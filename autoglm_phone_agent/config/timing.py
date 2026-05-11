@@ -1,0 +1,15 @@
+"""Default delays (seconds) for ADB actions — tune for slower devices if needed."""
+
+KEYBOARD_SWITCH_DELAY = 0.35
+TEXT_CLEAR_DELAY = 0.2
+TEXT_INPUT_DELAY = 0.4
+KEYBOARD_RESTORE_DELAY = 0.2  # same as keyboard restore wait after ime switch back
+
+DEFAULT_TAP_DELAY = 0.3
+DEFAULT_SWIPE_DELAY = 0.5
+DEFAULT_BACK_DELAY = 0.5
+DEFAULT_HOME_DELAY = 0.5
+DEFAULT_LAUNCH_DELAY = 1.0
+DEFAULT_DOUBLE_TAP_DELAY = 0.3
+DOUBLE_TAP_INTERVAL = 0.05
+DEFAULT_LONG_PRESS_DELAY = 0.5

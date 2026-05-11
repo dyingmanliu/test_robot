@@ -1,0 +1,4 @@
+# AutoGLM-Phone agent framework (OpenAI-compatible API, e.g. 智谱 BigModel)
+openai>=1.40.0
+pillow>=10.0.0
+python-dotenv>=1.0.0

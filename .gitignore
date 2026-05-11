@@ -1,0 +1,15 @@
+.DS_Store
+
+.env
+**/.env
+!.env.example
+!**/.env.example
+.venv/
+venv/
+__pycache__/
+*.pyc
+.Python
+*.egg-info/
+dist/
+build/
+node_modules/

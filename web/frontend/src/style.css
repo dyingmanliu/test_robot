@@ -1,0 +1,125 @@
+/* 视图技术数字机器人 — 白底 + 蓝色强调（Material 蓝点缀，非全屏蓝） */
+:root {
+  --bg-page: #ffffff;
+  --bg-subtle: #f8fafc;
+  --bg-elevated: #ffffff;
+  --bg-card: #ffffff;
+  --border-tech: #e2e8f0;
+  --border-subtle: #e2e8f0;
+  --accent: #2563eb;
+  --accent-strong: #1d4ed8;
+  --accent-soft: #3b82f6;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.06), 0 4px 12px rgba(15, 23, 42, 0.04);
+  font-family: "SF Pro Text", "Segoe UI", "PingFang SC", system-ui, sans-serif;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background: var(--bg-page);
+  min-height: 100%;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg-page);
+  color: var(--text-primary);
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+  color: var(--accent-strong);
+}
+
+button {
+  font: inherit;
+}
+
+.btn {
+  padding: 0.45rem 0.95rem;
+  border-radius: var(--radius-md);
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease;
+}
+
+.btn:hover:not(:disabled) {
+  border-color: #94a3b8;
+  background: #f8fafc;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn.primary,
+.btn-primary {
+  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+  border-color: #2563eb;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+}
+
+.btn.primary:hover:not(:disabled),
+.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #60a5fa 0%, #3b82f6 100%);
+  border-color: #1d4ed8;
+}
+
+.btn.ghost {
+  background: transparent;
+  border-color: #e2e8f0;
+  color: var(--text-secondary);
+}
+
+.btn-outline,
+.btn.btn-outline {
+  background: #ffffff;
+  border: 1px solid #93c5fd;
+  color: var(--accent);
+}
+
+.btn-outline:hover:not(:disabled) {
+  background: #eff6ff;
+}
+
+.glow {
+  box-shadow:
+    0 2px 12px rgba(37, 99, 235, 0.2),
+    0 4px 16px rgba(37, 99, 235, 0.12);
+}
+
+.tech-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-tech);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+.small {
+  font-size: 0.85rem;
+}
