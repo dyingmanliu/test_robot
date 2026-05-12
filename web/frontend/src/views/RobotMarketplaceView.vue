@@ -9,6 +9,7 @@
     </header>
 
     <p v-if="error" class="banner err">{{ error }}</p>
+    <p v-if="topSuccessMsg" class="banner ok top-flash">{{ topSuccessMsg }}</p>
     <div v-if="loading" class="muted">加载目录中…</div>
 
     <div v-else class="grid">
@@ -88,7 +89,6 @@
           <p class="bill-total">应付合计：<strong>{{ formatPrice(totalCents) }}</strong>（{{ billCurrency }}）</p>
           <p class="muted tiny">提交后进入「待审批」，无需在线支付；审批通过后在「我的机器人」中查看实例。</p>
         </div>
-        <p v-if="billResult" class="banner ok tight">{{ billResult }}</p>
         <p v-if="submitErr" class="banner err tight">{{ submitErr }}</p>
         <div class="dialog-actions">
           <button type="button" class="btn ghost" @click="closeDialog">关闭</button>
@@ -118,7 +118,7 @@ const pickedMode = ref("duration");
 const rentQuantity = ref(1);
 const submitting = ref(false);
 const submitErr = ref("");
-const billResult = ref("");
+const topSuccessMsg = ref("");
 
 const unitPriceCents = computed(() => {
   const r = dialogRobot.value;
@@ -153,12 +153,10 @@ function openRent(r) {
   pickedMode.value = "duration";
   rentQuantity.value = 1;
   submitErr.value = "";
-  billResult.value = "";
 }
 
 function closeDialog() {
   dialogRobot.value = null;
-  billResult.value = "";
 }
 
 async function confirmRent() {
@@ -166,14 +164,14 @@ async function confirmRent() {
   const qty = Math.max(1, Math.min(99, Number(rentQuantity.value) || 1));
   submitting.value = true;
   submitErr.value = "";
-  billResult.value = "";
   try {
     const { data } = await client.post("/api/rentals/orders", {
       robot_id: dialogRobot.value.id,
       billing_mode: pickedMode.value,
       quantity: qty,
     });
-    billResult.value = `已提交租用单 #${data.id}，合计 ${formatPrice(data.total_cents)}，状态：${data.status}。${data.message || ""}`;
+    topSuccessMsg.value = `已提交租用单 #${data.id}，合计 ${formatPrice(data.total_cents)}；${data.message || "待管理员审批。"}`;
+    closeDialog();
   } catch (e) {
     submitErr.value = formatApiError(e);
   } finally {
@@ -203,6 +201,10 @@ onMounted(loadCatalog);
   color: #475569;
   font-size: 0.95rem;
   line-height: 1.55;
+}
+
+.banner.ok.top-flash {
+  margin-bottom: 1rem;
 }
 
 .banner.err {

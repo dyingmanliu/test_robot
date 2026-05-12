@@ -17,7 +17,10 @@ import MonitorOpsView from "@/views/MonitorOpsView.vue";
 import FunctionalTaskWizardView from "@/views/FunctionalTaskWizardView.vue";
 import AdminRentalOrdersView from "@/views/AdminRentalOrdersView.vue";
 import PlatformIntroView from "@/views/PlatformIntroView.vue";
+import MyRobotsShell from "@/views/MyRobotsShell.vue";
 import MyRobotsView from "@/views/MyRobotsView.vue";
+import MyRobotDetailView from "@/views/MyRobotDetailView.vue";
+import MyRentalApplicationsView from "@/views/MyRentalApplicationsView.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -63,8 +66,21 @@ const router = createRouter({
     },
     {
       path: "/my-robots",
-      name: "myRobots",
-      component: MyRobotsView,
+      component: MyRobotsShell,
+      meta: { requiresAuth: true },
+      children: [
+        { path: "", name: "myRobots", component: MyRobotsView },
+        {
+          path: ":instanceId(\\d+)",
+          name: "myRobotDetail",
+          component: MyRobotDetailView,
+        },
+      ],
+    },
+    {
+      path: "/my-rental-applications",
+      name: "myRentalApplications",
+      component: MyRentalApplicationsView,
       meta: { requiresAuth: true },
     },
     {

@@ -23,9 +23,14 @@
           <router-link :to="{ name: 'platformIntro' }" class="nav-link" @click="closeAllDetails">平台介绍</router-link>
           <router-link to="/" class="nav-link" @click="closeAllDetails">工作台</router-link>
 
-          <router-link to="/marketplace" class="nav-link" @click="closeAllDetails">机器人商城</router-link>
-
-          <router-link to="/my-robots" class="nav-link" @click="closeAllDetails">我的机器人</router-link>
+          <details class="nav-dd" :class="{ 'nav-dd--current': marketplaceMenuActive }" @toggle="onNavDetailsToggle">
+            <summary class="nav-dd-trigger">机器人商城</summary>
+            <div class="nav-dd-panel">
+              <router-link to="/marketplace" class="nav-dd-item" @click="closeAllDetails">商城目录</router-link>
+              <router-link to="/my-robots" class="nav-dd-item" @click="closeAllDetails">我的机器人</router-link>
+              <router-link to="/my-rental-applications" class="nav-dd-item" @click="closeAllDetails">租用申请清单</router-link>
+            </div>
+          </details>
 
           <details class="nav-dd" :class="{ 'nav-dd--current': projectSpaceMenuActive }" @toggle="onNavDetailsToggle">
             <summary class="nav-dd-trigger">项目空间</summary>
@@ -88,6 +93,12 @@ const router = useRouter();
 /** 子路由命中时高亮对应下拉分组标题 */
 const projectSpaceMenuActive = computed(
   () => route.path.startsWith("/projects") || route.path === "/cases",
+);
+const marketplaceMenuActive = computed(
+  () =>
+    route.path === "/marketplace" ||
+    route.path.startsWith("/my-robots") ||
+    route.path === "/my-rental-applications",
 );
 const monitorMenuActive = computed(() => route.path === "/monitor" || route.path === "/dashboard");
 const adminMenuActive = computed(

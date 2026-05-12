@@ -12,6 +12,7 @@
         <router-link class="btn btn-primary glow" :to="{ name: 'cases' }">进入用例管理</router-link>
         <router-link class="btn btn-outline" :to="{ name: 'projects' }">项目空间</router-link>
         <router-link class="btn btn-outline" :to="{ name: 'robotMarketplace' }">机器人商城</router-link>
+        <router-link class="btn btn-outline" :to="{ name: 'myRentalApplications' }">租用申请</router-link>
         <router-link class="btn btn-outline" :to="{ name: 'myRobots' }">我的机器人</router-link>
       </div>
     </section>
