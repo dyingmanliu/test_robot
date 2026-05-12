@@ -134,6 +134,88 @@ def ensure_company_bootstrap() -> None:
         pass
 
 
+def ensure_builtin_platform_admin() -> None:
+    """若库中尚无任何 platform_admin，则按环境变量创建或提拔内置管理员（便于首次安装）。
+
+    生产环境请尽快修改默认密码，或设置 TCM_DISABLE_BUILTIN_ADMIN=1 并在通过注册 +
+    TCM_BOOTSTRAP_ADMIN_* 获得管理员后保持禁用。
+    """
+    try:
+        import logging
+        import os
+        import uuid
+
+        if os.getenv("TCM_DISABLE_BUILTIN_ADMIN", "").strip().lower() in ("1", "true", "yes"):
+            return
+
+        inspector = inspect(engine)
+        if not inspector.has_table("users"):
+            return
+
+        from app.auth_utils import hash_password
+        from app.models import Company, PersonalSpace, Project, User
+        from app.rbac import ROLE_PLATFORM_ADMIN
+
+        db = SessionLocal()
+        try:
+            if db.query(User).filter(User.role == ROLE_PLATFORM_ADMIN).first() is not None:
+                return
+
+            email = (os.getenv("TCM_BUILTIN_ADMIN_EMAIL") or "admin@localhost").strip().lower()
+            password = (os.getenv("TCM_BUILTIN_ADMIN_PASSWORD") or "ChangeMe123!").strip()
+            if len(password) < 6:
+                logging.getLogger(__name__).warning("TCM_BUILTIN_ADMIN_PASSWORD 短于 6 位，跳过内置管理员创建")
+                return
+
+            existing = db.query(User).filter(User.email == email).first()
+            if existing is not None:
+                existing.role = ROLE_PLATFORM_ADMIN
+                db.commit()
+                return
+
+            comp_name = (os.getenv("TCM_BUILTIN_ADMIN_COMPANY") or "内置平台").strip()[:128] or "内置平台"
+            company = db.query(Company).filter(Company.name == comp_name).first()
+            if company is None:
+                company = Company(name=comp_name, share_projects_cases_internally=False)
+                db.add(company)
+                db.flush()
+
+            base_uname = (os.getenv("TCM_BUILTIN_ADMIN_USERNAME") or "platform_admin").strip()[:64] or "platform_admin"
+            username = base_uname
+            if db.query(User).filter(User.username == username).first() is not None:
+                username = f"{base_uname[:40]}_{uuid.uuid4().hex[:8]}"[:64]
+
+            user = User(
+                username=username,
+                email=email,
+                hashed_password=hash_password(password),
+                role=ROLE_PLATFORM_ADMIN,
+                company_id=company.id,
+                company=company.name,
+            )
+            db.add(user)
+            db.flush()
+            db.add(PersonalSpace(user_id=user.id, name="个人空间"))
+            db.add(
+                Project(
+                    owner_id=user.id,
+                    name="默认项目空间",
+                    tested_app_name="未指定",
+                    test_objective="",
+                )
+            )
+            db.commit()
+            logging.getLogger(__name__).info(
+                "已创建内置平台管理员：邮箱=%s 用户名=%s（登录账号可填邮箱；请尽快修改默认密码）",
+                email,
+                username,
+            )
+        finally:
+            db.close()
+    except Exception:
+        pass
+
+
 def bootstrap_rbac() -> None:
     """将指定邮箱/手机号用户提升为平台管理员（环境变量，便于首次运维）。"""
     try:
