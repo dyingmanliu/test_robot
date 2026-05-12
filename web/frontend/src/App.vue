@@ -8,23 +8,23 @@
 
     <header class="top">
       <div class="top-bar">
-        <router-link :to="auth.token ? '/' : { name: 'platformIntro' }" class="brand">
+        <router-link :to="auth.token ? '/' : { name: 'platformIntro' }" class="brand" @click="closeAllDetails">
           <span class="brand-badge" aria-hidden="true">VT</span>
           <span class="brand-full">视图技术数字机器人</span>
         </router-link>
 
         <nav v-if="!auth.token" class="nav nav-public">
-          <router-link :to="{ name: 'platformIntro' }" class="nav-link">平台介绍</router-link>
-          <router-link to="/login" class="nav-link">登录</router-link>
-          <router-link to="/register" class="nav-link nav-em">注册</router-link>
+          <router-link :to="{ name: 'platformIntro' }" class="nav-link" @click="closeAllDetails">平台介绍</router-link>
+          <router-link to="/login" class="nav-link" @click="closeAllDetails">登录</router-link>
+          <router-link to="/register" class="nav-link nav-em" @click="closeAllDetails">注册</router-link>
         </nav>
 
         <nav v-else class="nav">
-          <router-link to="/" class="nav-link">工作台</router-link>
+          <router-link to="/" class="nav-link" @click="closeAllDetails">工作台</router-link>
 
-          <router-link to="/marketplace" class="nav-link">机器人商城</router-link>
+          <router-link to="/marketplace" class="nav-link" @click="closeAllDetails">机器人商城</router-link>
 
-          <details class="nav-dd" :class="{ 'nav-dd--current': projectSpaceMenuActive }">
+          <details class="nav-dd" :class="{ 'nav-dd--current': projectSpaceMenuActive }" @toggle="onNavDetailsToggle">
             <summary class="nav-dd-trigger">项目空间</summary>
             <div class="nav-dd-panel">
               <router-link to="/projects" class="nav-dd-item" @click="closeAllDetails">项目列表</router-link>
@@ -32,7 +32,7 @@
             </div>
           </details>
 
-          <details class="nav-dd" :class="{ 'nav-dd--current': monitorMenuActive }">
+          <details class="nav-dd" :class="{ 'nav-dd--current': monitorMenuActive }" @toggle="onNavDetailsToggle">
             <summary class="nav-dd-trigger">运行监控</summary>
             <div class="nav-dd-panel">
               <router-link
@@ -47,15 +47,20 @@
             </div>
           </details>
 
-          <details v-if="auth.role === 'platform_admin'" class="nav-dd" :class="{ 'nav-dd--current': adminMenuActive }">
+          <details
+            v-if="auth.role === 'platform_admin'"
+            class="nav-dd"
+            :class="{ 'nav-dd--current': adminMenuActive }"
+            @toggle="onNavDetailsToggle"
+          >
             <summary class="nav-dd-trigger">后台管理</summary>
             <div class="nav-dd-panel">
               <router-link to="/admin/users" class="nav-dd-item" @click="closeAllDetails">用户与角色</router-link>
             </div>
           </details>
 
-          <router-link :to="{ name: 'platformIntro' }" class="nav-link">平台介绍</router-link>
-          <router-link to="/profile" class="nav-link">个人中心</router-link>
+          <router-link :to="{ name: 'platformIntro' }" class="nav-link" @click="closeAllDetails">平台介绍</router-link>
+          <router-link to="/profile" class="nav-link" @click="closeAllDetails">个人中心</router-link>
         </nav>
       </div>
     </header>
@@ -69,7 +74,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from "vue";
+import { computed, onMounted, watch } from "vue";
 import { useAuthStore } from "@/stores/auth";
 import { useRoute, useRouter } from "vue-router";
 
@@ -83,6 +88,23 @@ const projectSpaceMenuActive = computed(
 );
 const monitorMenuActive = computed(() => route.path === "/monitor" || route.path === "/dashboard");
 const adminMenuActive = computed(() => route.path.startsWith("/admin"));
+
+/** 路由变化时收起下拉，避免上一页展开的菜单残留 */
+watch(
+  () => route.fullPath,
+  () => {
+    closeAllDetails();
+  },
+);
+
+/** 仅允许一个「项目空间 / 运行监控 / 后台管理」下拉同时展开 */
+function onNavDetailsToggle(ev) {
+  const target = ev.target;
+  if (!(target instanceof HTMLDetailsElement) || !target.open) return;
+  document.querySelectorAll(".nav-dd").forEach((el) => {
+    if (el !== target && el instanceof HTMLDetailsElement) el.open = false;
+  });
+}
 
 onMounted(async () => {
   if (auth.token && !auth.displayLabel) {

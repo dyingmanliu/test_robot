@@ -186,8 +186,15 @@ onMounted(loadCatalog);
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  /* 仅 4 列一行 或 2×2，避免出现 3+1（不用 auto-fill + minmax） */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1.25rem;
+}
+
+@media (min-width: 1100px) {
+  .grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 .robot-card {
