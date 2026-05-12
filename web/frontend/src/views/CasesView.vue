@@ -5,6 +5,9 @@
       · 用例归属<strong>项目空间</strong>（绑定被测应用与测试目标）；不同客户/应用独立项目，便于协作与隔离。
       <router-link to="/projects">管理项目空间</router-link>
     </p>
+    <p v-if="auth.companyInternalShare" class="banner share-hint">
+      公司已开启<strong>项目与用例公司内部共享</strong>：可查看同事项目与用例；编辑、删除与导入仍仅限本人创建的用例。
+    </p>
 
     <div v-if="projectsLoaded && !projects.length" class="banner warn">
       尚未创建项目空间。请先到
@@ -284,6 +287,7 @@ import axios from "axios";
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import client, { formatApiError } from "@/api/client";
+import { useAuthStore } from "@/stores/auth";
 
 /** 轮询时短暂断网、502 等不应立刻当作「执行失败」；401 等仍应立即失败 */
 function isTransientPollError(e) {
@@ -295,6 +299,7 @@ function isTransientPollError(e) {
 
 const route = useRoute();
 const router = useRouter();
+const auth = useAuthStore();
 
 const projects = ref([]);
 const projectsLoaded = ref(false);
@@ -700,6 +705,16 @@ onMounted(bootstrapProjectContext);
   background: #fffbeb;
   color: #92400e;
   font-size: 0.9rem;
+}
+
+.banner.share-hint {
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e3a8a;
+  font-size: 0.88rem;
 }
 
 .robot-pick {

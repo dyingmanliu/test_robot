@@ -21,7 +21,7 @@ from app.models import (
     TestCaseSetItem,
     User,
 )
-from app.routers.projects import _require_project
+from app.routers.projects import _require_project_owner
 from app.schemas import (
     CaseSetAiDraftOut,
     CaseSetCreate,
@@ -65,7 +65,7 @@ async def upload_app_package(
     user: User = Depends(get_current_user),
     file: UploadFile = File(...),
 ) -> ProjectAppArtifact:
-    _require_project(db, project_id, user)
+    _require_project_owner(db, project_id, user)
     data = await file.read()
     mx = _max_upload_bytes()
     if len(data) > mx:
@@ -98,7 +98,7 @@ def list_app_packages(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> list[ProjectAppArtifact]:
-    _require_project(db, project_id, user)
+    _require_project_owner(db, project_id, user)
     return (
         db.query(ProjectAppArtifact)
         .filter(ProjectAppArtifact.project_id == project_id)
@@ -124,7 +124,7 @@ def create_case_set(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> CaseSetOut:
-    _require_project(db, project_id, user)
+    _require_project_owner(db, project_id, user)
     seen = set()
     for cid in body.case_ids:
         if cid in seen:
@@ -167,7 +167,7 @@ def list_case_sets(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> list[CaseSetOut]:
-    _require_project(db, project_id, user)
+    _require_project_owner(db, project_id, user)
     sets = db.query(TestCaseSet).filter(TestCaseSet.project_id == project_id).order_by(TestCaseSet.created_at.desc()).all()
     out: list[CaseSetOut] = []
     for s in sets:
@@ -192,7 +192,7 @@ def ai_draft_case_set(
     user: User = Depends(get_current_user),
 ) -> CaseSetAiDraftOut:
     """占位：接入大模型后根据项目目标生成用例集草稿。"""
-    p = _require_project(db, project_id, user)
+    p = _require_project_owner(db, project_id, user)
     return CaseSetAiDraftOut(
         suggested_name=f"{p.name} · AI 推荐用例集",
         description="（占位）接入模型后将结合测试目标与被测应用自动生成步骤与覆盖建议。",
@@ -207,7 +207,7 @@ def create_functional_dispatch(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> FunctionalDispatchCreatedOut:
-    _require_project(db, project_id, user)
+    _require_project_owner(db, project_id, user)
     if not is_known_pool(body.device_pool_id.strip()):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="无效的设备池")
 
@@ -317,7 +317,7 @@ def list_functional_dispatches(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> list[FunctionalDispatchTask]:
-    _require_project(db, project_id, user)
+    _require_project_owner(db, project_id, user)
     return (
         db.query(FunctionalDispatchTask)
         .filter(FunctionalDispatchTask.project_id == project_id)

@@ -11,6 +11,11 @@ from app.database import get_db
 from app.deps import get_current_user
 from app.models import Project, User
 from app.rbac import can_view_all_cases
+from app.services.company_scope import (
+    company_shares_projects_cases,
+    enterprise_colleague_user_ids,
+    project_readable_by_user,
+)
 from app.services.case_kb import search_cases_kb
 
 router = APIRouter(prefix="/knowledge", tags=["knowledge"])
@@ -28,10 +33,15 @@ def search_test_cases_kb(
         proj = db.query(Project).filter(Project.id == project_id).first()
         if proj is None:
             return {"items": [], "message": "项目不存在"}
-        if not can_view_all_cases(user) and proj.owner_id != user.id:
+        if not project_readable_by_user(db, user, proj):
             return {"items": [], "message": "无权访问该项目"}
 
-    scope = None if can_view_all_cases(user) else [user.id]
+    if can_view_all_cases(user):
+        scope = None
+    elif company_shares_projects_cases(db, user):
+        scope = enterprise_colleague_user_ids(db, user)
+    else:
+        scope = [user.id]
     rows = search_cases_kb(db, q=q, project_id=project_id, owner_scope_ids=scope, limit=limit)
     items = []
     for tc, kb in rows:

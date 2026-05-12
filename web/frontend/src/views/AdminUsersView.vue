@@ -17,6 +17,7 @@
           <tr>
             <th>ID</th>
             <th>账号信息</th>
+            <th>公司</th>
             <th>当前角色</th>
             <th>操作</th>
           </tr>
@@ -28,6 +29,7 @@
               <div>{{ u.nickname || "—" }}</div>
               <div class="muted small">{{ u.phone || u.email || u.username }}</div>
             </td>
+            <td class="muted small">{{ u.company || "—" }}</td>
             <td>
               <select v-model="draft[u.id]" class="role-select">
                 <option v-for="(text, rk) in roleLabels" :key="rk" :value="rk">{{ text }}</option>

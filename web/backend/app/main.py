@@ -15,10 +15,19 @@ configure_logging()
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.database import Base, bootstrap_rbac, engine, ensure_personal_spaces, ensure_projects_bootstrap, ensure_schema
+from app.database import (
+    Base,
+    bootstrap_rbac,
+    engine,
+    ensure_company_bootstrap,
+    ensure_personal_spaces,
+    ensure_projects_bootstrap,
+    ensure_schema,
+)
 from app.routers import (
     admin,
     auth,
+    companies,
     billing,
     dashboard,
     device_pools_api,
@@ -48,6 +57,7 @@ app.add_middleware(
 )
 
 app.include_router(auth.router, prefix="/api")
+app.include_router(companies.router, prefix="/api")
 app.include_router(projects.router, prefix="/api")
 app.include_router(project_functional.router, prefix="/api")
 app.include_router(device_pools_api.router, prefix="/api")
@@ -68,6 +78,7 @@ app.include_router(ws_monitor.router, prefix="/api")
 def on_startup() -> None:
     Base.metadata.create_all(bind=engine)
     ensure_schema()
+    ensure_company_bootstrap()
     ensure_personal_spaces()
     ensure_projects_bootstrap()
     bootstrap_rbac()

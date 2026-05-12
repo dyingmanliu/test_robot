@@ -16,12 +16,32 @@ class PersonalSpaceOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class CompanyPublicOut(BaseModel):
+    id: int
+    name: str
+
+    model_config = {"from_attributes": True}
+
+
+class CompanyAdminOut(BaseModel):
+    id: int
+    name: str
+    share_projects_cases_internally: bool
+    user_count: int = 0
+
+
+class CompanySharePatch(BaseModel):
+    share_projects_cases_internally: bool
+
+
 class RegisterBody(BaseModel):
-    """手机号与邮箱二选一注册；密码由服务端 bcrypt 哈希存储。"""
+    """手机号与邮箱二选一注册；须选择已有公司或创建新公司。"""
 
     password: str = Field(..., min_length=6, max_length=128)
     phone: Optional[str] = None
     email: Optional[EmailStr] = None
+    company_id: Optional[int] = Field(None, description="选择已有公司时填写其 ID")
+    new_company_name: Optional[str] = Field(None, max_length=128, description="新公司全称，与 company_id 二选一")
 
     @field_validator("email", mode="before")
     @classmethod
@@ -36,6 +56,17 @@ class RegisterBody(BaseModel):
         has_email = self.email is not None and str(self.email).strip() != ""
         if has_phone == has_email:
             raise ValueError("请填写手机号或邮箱其中之一")
+        return self
+
+    @model_validator(mode="after")
+    def company_pick_one(self) -> RegisterBody:
+        has_id = self.company_id is not None and int(self.company_id) >= 1
+        nm = (self.new_company_name or "").strip()
+        has_new = bool(nm)
+        if has_id == has_new:
+            raise ValueError("请选择已有公司或填写新公司全称（二选一）")
+        if has_new and len(nm) > 128:
+            raise ValueError("公司名称不能超过 128 字")
         return self
 
     @field_validator("phone", mode="before")
@@ -65,6 +96,8 @@ class UserOut(BaseModel):
     nickname: Optional[str] = None
     avatar_url: Optional[str] = None
     company: Optional[str] = None
+    company_id: Optional[int] = None
+    company_internal_share: bool = False
     personal_space: Optional[PersonalSpaceOut] = None
     created_at: datetime
 
@@ -79,6 +112,7 @@ class AdminUserOut(BaseModel):
     email: Optional[str] = None
     nickname: Optional[str] = None
     company: Optional[str] = None
+    company_id: Optional[int] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -418,6 +452,7 @@ class RentalOrderCreatedOut(BaseModel):
 class RentalOrderOut(BaseModel):
     id: int
     user_id: int
+    company_id: Optional[int] = None
     robot_id: str
     robot_name: str
     billing_mode: str
@@ -437,6 +472,8 @@ class RentalOrderOut(BaseModel):
 class RobotInstanceOut(BaseModel):
     id: int
     rental_order_id: int
+    company_id: Optional[int] = None
+    leasing_user_id: int = Field(..., description="提交租用申请的用户 ID")
     catalog_robot_id: str
     instance_code: str
     display_name: str

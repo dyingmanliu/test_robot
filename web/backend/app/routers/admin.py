@@ -11,9 +11,9 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.deps import require_roles
-from app.models import RobotInstance, RobotRentalOrder, User
+from app.models import Company, RobotInstance, RobotRentalOrder, User
 from app.rbac import ROLE_PLATFORM_ADMIN, ROLE_LABELS, ROLES
-from app.schemas import AdminRolePatch, AdminUserOut, RentalOrderOut, RentalRejectBody
+from app.schemas import AdminRolePatch, AdminUserOut, CompanyAdminOut, CompanySharePatch, RentalOrderOut, RentalRejectBody
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -53,6 +53,7 @@ def approve_rental_order(
             RobotInstance(
                 rental_order_id=row.id,
                 user_id=row.user_id,
+                company_id=row.company_id,
                 catalog_robot_id=row.robot_id,
                 instance_code=code,
                 display_name=row.robot_name,
@@ -88,6 +89,48 @@ def reject_rental_order(
     db.commit()
     db.refresh(row)
     return row
+
+
+@router.get("/companies", response_model=list[CompanyAdminOut])
+def list_companies(
+    db: Session = Depends(get_db),
+    _: User = Depends(require_roles(ROLE_PLATFORM_ADMIN)),
+) -> list[CompanyAdminOut]:
+    rows = db.query(Company).order_by(Company.id.desc()).all()
+    out: list[CompanyAdminOut] = []
+    for c in rows:
+        n_users = db.query(func.count(User.id)).filter(User.company_id == c.id).scalar() or 0
+        out.append(
+            CompanyAdminOut(
+                id=c.id,
+                name=c.name,
+                share_projects_cases_internally=bool(c.share_projects_cases_internally),
+                user_count=int(n_users),
+            )
+        )
+    return out
+
+
+@router.patch("/companies/{company_id}/share-internal", response_model=CompanyAdminOut)
+def patch_company_share_internal(
+    company_id: int,
+    body: CompanySharePatch,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_roles(ROLE_PLATFORM_ADMIN)),
+) -> CompanyAdminOut:
+    c = db.query(Company).filter(Company.id == company_id).first()
+    if c is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="公司不存在")
+    c.share_projects_cases_internally = bool(body.share_projects_cases_internally)
+    db.commit()
+    db.refresh(c)
+    n_users = db.query(func.count(User.id)).filter(User.company_id == c.id).scalar() or 0
+    return CompanyAdminOut(
+        id=c.id,
+        name=c.name,
+        share_projects_cases_internally=bool(c.share_projects_cases_internally),
+        user_count=int(n_users),
+    )
 
 
 @router.get("/users", response_model=list[AdminUserOut])

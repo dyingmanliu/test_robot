@@ -37,6 +37,46 @@
       </div>
 
       <form @submit.prevent="submit">
+        <div class="company-block">
+          <p class="field-label">所属公司 <span class="req">*</span></p>
+          <div class="segmented small-seg" role="tablist" aria-label="公司填写方式">
+            <button
+              type="button"
+              class="seg-btn"
+              :class="{ active: companyMode === 'existing' }"
+              @click="companyMode = 'existing'"
+            >
+              选择已有公司
+            </button>
+            <button
+              type="button"
+              class="seg-btn"
+              :class="{ active: companyMode === 'new' }"
+              @click="companyMode = 'new'"
+            >
+              创建新公司
+            </button>
+          </div>
+          <label v-if="companyMode === 'existing'" class="field">
+            <span>公司</span>
+            <select v-model.number="selectedCompanyId" required>
+              <option disabled :value="0">请选择公司</option>
+              <option v-for="c in companies" :key="c.id" :value="c.id">{{ c.name }}</option>
+            </select>
+          </label>
+          <label v-else class="field">
+            <span>新公司全称</span>
+            <input
+              v-model="newCompanyName"
+              type="text"
+              maxlength="128"
+              placeholder="与已有列表不重复；若已存在请改用「选择已有公司」"
+              required
+            />
+          </label>
+          <p v-if="companiesError" class="err small">{{ companiesError }}</p>
+        </div>
+
         <label v-if="mode === 'phone'" class="field">
           <span>手机号</span>
           <input
@@ -73,9 +113,9 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
-import { formatApiError } from "@/api/client";
+import client, { formatApiError } from "@/api/client";
 import { useAuthStore } from "@/stores/auth";
 
 const mode = ref("phone");
@@ -87,19 +127,57 @@ const error = ref("");
 const auth = useAuthStore();
 const router = useRouter();
 
+const companyMode = ref("existing");
+const companies = ref([]);
+const selectedCompanyId = ref(0);
+const newCompanyName = ref("");
+const companiesError = ref("");
+
+onMounted(async () => {
+  try {
+    const { data } = await client.get("/api/companies");
+    companies.value = data || [];
+    if (!companies.value.length) {
+      companyMode.value = "new";
+    } else if (selectedCompanyId.value === 0) {
+      selectedCompanyId.value = companies.value[0].id;
+    }
+  } catch (e) {
+    companiesError.value = formatApiError(e);
+    companyMode.value = "new";
+  }
+});
+
 async function submit() {
   error.value = "";
   loading.value = true;
   try {
+    if (companyMode.value === "existing") {
+      if (!selectedCompanyId.value) {
+        error.value = "请选择已有公司，或切换到「创建新公司」填写全称";
+        return;
+      }
+    } else {
+      const nm = newCompanyName.value.trim();
+      if (!nm) {
+        error.value = "请填写新公司全称";
+        return;
+      }
+    }
+    const companyPayload =
+      companyMode.value === "existing"
+        ? { company_id: selectedCompanyId.value }
+        : { new_company_name: newCompanyName.value.trim() };
+
     if (mode.value === "phone") {
       const digits = phone.value.replace(/\D/g, "");
       if (digits.length !== 11 || !digits.startsWith("1")) {
         error.value = "请输入有效的 11 位手机号";
         return;
       }
-      await auth.register({ phone: digits, password: password.value });
+      await auth.register({ phone: digits, password: password.value, ...companyPayload });
     } else {
-      await auth.register({ email: email.value.trim(), password: password.value });
+      await auth.register({ email: email.value.trim(), password: password.value, ...companyPayload });
     }
     router.replace("/");
   } catch (e) {
@@ -143,7 +221,40 @@ async function submit() {
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: 440px;
+  max-width: 480px;
+}
+
+.company-block {
+  margin-bottom: 1rem;
+}
+
+.field-label {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+.req {
+  color: #b91c1c;
+}
+
+.small-seg {
+  margin-bottom: 0.75rem;
+}
+
+.err.small {
+  margin-top: 0.35rem;
+  font-size: 0.82rem;
+}
+
+select {
+  padding: 0.6rem 0.7rem;
+  border: 1px solid #cbd5e1;
+  border-radius: var(--radius-md);
+  background: #ffffff;
+  color: #0f172a;
+  font: inherit;
+  width: 100%;
 }
 
 .register-brand {

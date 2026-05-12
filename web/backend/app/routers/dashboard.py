@@ -12,24 +12,26 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.deps import get_current_user
 from app.models import Project, TestCase, TestRun, User
-from app.rbac import can_view_all_cases
+from app.rbac import can_view_all_cases, run_scope_query
+from app.services.company_scope import case_scope_query, project_scope_query
 from app.services.run_metrics import count_recognition_steps
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
 
 def _runs_rows(db: Session, user: User):
-    q = db.query(TestRun.status, TestRun.step_log)
-    if not can_view_all_cases(user):
-        q = q.filter(TestRun.owner_id == user.id)
-    return q.all()
+    if can_view_all_cases(user):
+        return db.query(TestRun.status, TestRun.step_log).all()
+    rq = run_scope_query(db, user)
+    return (
+        db.query(TestRun.status, TestRun.step_log)
+        .filter(TestRun.id.in_(rq.with_entities(TestRun.id)))
+        .all()
+    )
 
 
 def _cases_query(db: Session, user: User):
-    q = db.query(TestCase)
-    if not can_view_all_cases(user):
-        q = q.filter(TestCase.owner_id == user.id)
-    return q
+    return case_scope_query(db, db.query(TestCase), user)
 
 
 @router.get("/summary")
@@ -46,12 +48,13 @@ def dashboard_summary(
             "test_runs": db.query(TestRun).count(),
         }
     else:
+        pq = project_scope_query(db, db.query(Project), user)
         base = {
             "scope": "tenant",
             "role": user.role,
-            "projects": db.query(Project).filter(Project.owner_id == user.id).count(),
-            "test_cases": db.query(TestCase).filter(TestCase.owner_id == user.id).count(),
-            "test_runs": db.query(TestRun).filter(TestRun.owner_id == user.id).count(),
+            "projects": pq.count(),
+            "test_cases": _cases_query(db, user).count(),
+            "test_runs": run_scope_query(db, user).count(),
         }
 
     run_rows = _runs_rows(db, user)

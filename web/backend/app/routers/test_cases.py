@@ -14,6 +14,7 @@ from app.deps import get_current_user
 from app.executor import execute_test_run, prepare_cancel_slot, signal_cancel
 from app.models import Project, RobotInstance, TestCase, TestCaseRevision, TestRun, User
 from app.rbac import can_view_all_cases, case_scope_filter, run_scope_query
+from app.services.company_scope import can_use_robot_instance, project_readable_by_user
 from app.schemas import (
     CaseImportResultOut,
     CaseStepJson,
@@ -46,7 +47,14 @@ def _run_in_thread(run_id: int) -> None:
         db.close()
 
 
-def _get_case_for_user(db: Session, case_id: int, user: User) -> TestCase | None:
+def _get_case_for_read(db: Session, case_id: int, user: User) -> TestCase | None:
+    q = db.query(TestCase).filter(TestCase.id == case_id)
+    if can_view_all_cases(user):
+        return q.first()
+    return case_scope_filter(db, q, user).first()
+
+
+def _get_case_for_write(db: Session, case_id: int, user: User) -> TestCase | None:
     q = db.query(TestCase).filter(TestCase.id == case_id)
     if not can_view_all_cases(user):
         q = q.filter(TestCase.owner_id == user.id)
@@ -59,6 +67,13 @@ def _resolve_project_for_case(db: Session, project_id: int, user: User) -> Proje
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="项目空间不存在")
     if not can_view_all_cases(user) and p.owner_id != user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权在该项目空间下创建用例")
+    return p
+
+
+def _require_project_readable(db: Session, project_id: int, user: User) -> Project:
+    p = db.query(Project).filter(Project.id == project_id).first()
+    if p is None or not project_readable_by_user(db, user, p):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="项目空间不存在")
     return p
 
 
@@ -82,12 +97,10 @@ def list_cases(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> list[TestCaseOut]:
-    q = case_scope_filter(db.query(TestCase), user)
+    q = case_scope_filter(db, db.query(TestCase), user)
     if project_id is not None:
         proj = db.query(Project).filter(Project.id == project_id).first()
-        if proj is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="项目空间不存在")
-        if not can_view_all_cases(user) and proj.owner_id != user.id:
+        if proj is None or not project_readable_by_user(db, user, proj):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="项目空间不存在")
         q = q.filter(TestCase.project_id == project_id)
     rows = q.order_by(desc(TestCase.updated_at)).all()
@@ -173,11 +186,7 @@ def list_runs(
     user: User = Depends(get_current_user),
 ) -> list[TestRunListItemOut]:
     """分页列出项目下执行记录（step_log 持久化在库中，可通过 runs/:id 拉取全文）。"""
-    proj = db.query(Project).filter(Project.id == project_id).first()
-    if proj is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="项目空间不存在")
-    if not can_view_all_cases(user) and proj.owner_id != user.id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="项目空间不存在")
+    proj = _require_project_readable(db, project_id, user)
 
     q = (
         run_scope_query(db, user)
@@ -250,7 +259,7 @@ def list_case_versions(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> list[TestCaseRevisionOut]:
-    tc = _get_case_for_user(db, case_id, user)
+    tc = _get_case_for_read(db, case_id, user)
     if tc is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="用例不存在")
     revs = (
@@ -268,7 +277,7 @@ def get_case(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> TestCaseOut:
-    tc = _get_case_for_user(db, case_id, user)
+    tc = _get_case_for_read(db, case_id, user)
     if tc is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="用例不存在")
     return test_case_to_out(tc)
@@ -281,7 +290,7 @@ def update_case(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> TestCaseOut:
-    tc = _get_case_for_user(db, case_id, user)
+    tc = _get_case_for_write(db, case_id, user)
     if tc is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="用例不存在")
     data = body.model_dump(exclude_unset=True)
@@ -319,7 +328,7 @@ def delete_case(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> None:
-    tc = _get_case_for_user(db, case_id, user)
+    tc = _get_case_for_write(db, case_id, user)
     if tc is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="用例不存在")
     db.delete(tc)
@@ -333,17 +342,18 @@ async def run_case(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> TestRun:
-    tc = _get_case_for_user(db, case_id, user)
+    tc = _get_case_for_read(db, case_id, user)
     if tc is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="用例不存在")
 
     inst = db.query(RobotInstance).filter(RobotInstance.id == body.robot_instance_id).first()
     if inst is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="机器人实例不存在")
-    if inst.user_id != tc.owner_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="该实例不属于用例所属用户，无法用于此用例")
-    if inst.status != "active":
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="机器人实例未处于可用状态")
+    if not can_use_robot_instance(db, user, inst):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="无权使用该公司下的该机器人实例，或实例不可用",
+        )
 
     run = TestRun(case_id=tc.id, owner_id=tc.owner_id, robot_instance_id=inst.id, status="pending")
     db.add(run)

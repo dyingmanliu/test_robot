@@ -63,6 +63,73 @@ def ensure_schema() -> None:
             if "robot_instance_id" not in cols:
                 with engine.begin() as conn:
                     conn.execute(text("ALTER TABLE test_runs ADD COLUMN robot_instance_id INTEGER"))
+        if inspector.has_table("users"):
+            ucols = {c["name"] for c in inspector.get_columns("users")}
+            with engine.begin() as conn:
+                if "company_id" not in ucols:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN company_id INTEGER"))
+        if inspector.has_table("robot_rental_orders"):
+            rcols = {c["name"] for c in inspector.get_columns("robot_rental_orders")}
+            with engine.begin() as conn:
+                if "company_id" not in rcols:
+                    conn.execute(text("ALTER TABLE robot_rental_orders ADD COLUMN company_id INTEGER"))
+        if inspector.has_table("robot_instances"):
+            ricols = {c["name"] for c in inspector.get_columns("robot_instances")}
+            with engine.begin() as conn:
+                if "company_id" not in ricols:
+                    conn.execute(text("ALTER TABLE robot_instances ADD COLUMN company_id INTEGER"))
+    except Exception:
+        pass
+
+
+def ensure_company_bootstrap() -> None:
+    """从历史 users.company 文本补建 companies 表关联，并回填租用单/实例的 company_id。"""
+    try:
+        inspector = inspect(engine)
+        if not inspector.has_table("users"):
+            return
+        from app.models import Company, RobotInstance, RobotRentalOrder, User
+
+        db = SessionLocal()
+        try:
+            for (name,) in (
+                db.query(User.company)
+                .filter(User.company.isnot(None))
+                .distinct()
+                .all()
+            ):
+                if not name or not str(name).strip():
+                    continue
+                nm = str(name).strip()[:128]
+                if db.query(Company).filter(Company.name == nm).first() is None:
+                    db.add(Company(name=nm, share_projects_cases_internally=False))
+            db.commit()
+
+            for u in db.query(User).filter(User.company_id.is_(None)).all():
+                if u.company and str(u.company).strip():
+                    nm = str(u.company).strip()[:128]
+                    c = db.query(Company).filter(Company.name == nm).first()
+                    if c is not None:
+                        u.company_id = c.id
+            db.commit()
+
+            for row in db.query(RobotRentalOrder).filter(RobotRentalOrder.company_id.is_(None)).all():
+                u = db.query(User).filter(User.id == row.user_id).first()
+                if u and u.company_id is not None:
+                    row.company_id = u.company_id
+            db.commit()
+
+            for inst in db.query(RobotInstance).filter(RobotInstance.company_id.is_(None)).all():
+                u = db.query(User).filter(User.id == inst.user_id).first()
+                if u and u.company_id is not None:
+                    inst.company_id = u.company_id
+                elif inst.rental_order_id:
+                    ro = db.query(RobotRentalOrder).filter(RobotRentalOrder.id == inst.rental_order_id).first()
+                    if ro and ro.company_id is not None:
+                        inst.company_id = ro.company_id
+            db.commit()
+        finally:
+            db.close()
     except Exception:
         pass
 

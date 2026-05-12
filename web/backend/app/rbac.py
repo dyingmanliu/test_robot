@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
-from app.models import TestCase, TestRun, User
+from app.models import User
 
 # 预定义角色（写入 JWT 与数据库）
 ROLE_PLATFORM_ADMIN = "platform_admin"
@@ -31,16 +31,15 @@ def can_manage_users(user: User) -> bool:
     return user.role == ROLE_PLATFORM_ADMIN
 
 
-def case_scope_filter(query, user: User):
-    """测试用例列表/查询：企业用户仅本人空间。"""
-    if can_view_all_cases(user):
-        return query
-    return query.filter(TestCase.owner_id == user.id)
+def case_scope_filter(db: Session, query, user: User):
+    """测试用例列表/查询：企业用户默认仅本人；公司开启内部共享后含同事用例。"""
+    from app.services.company_scope import case_scope_query
+
+    return case_scope_query(db, query, user)
 
 
 def run_scope_query(db: Session, user: User):
-    """执行记录：企业用户仅本人资源（按用例归属 owner_id）。"""
-    q = db.query(TestRun)
-    if can_view_all_cases(user):
-        return q
-    return q.filter(TestRun.owner_id == user.id)
+    """执行记录：与用例 owner 范围一致（公司内部共享时含同事）。"""
+    from app.services.company_scope import run_scope_query as company_run_scope_query
+
+    return company_run_scope_query(db, user)

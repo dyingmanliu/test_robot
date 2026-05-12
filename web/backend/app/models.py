@@ -9,6 +9,19 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
 
 
+class Company(Base):
+    """企业租户：注册用户归属同一公司后可共享租用机器人；管理员可开关「项目与用例公司内部共享」。"""
+
+    __tablename__ = "companies"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String(128), unique=True, index=True)
+    share_projects_cases_internally: Mapped[bool] = mapped_column(default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    users: Mapped[list["User"]] = relationship(back_populates="company_rel")
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -19,10 +32,12 @@ class User(Base):
     nickname: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     avatar_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
     company: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    company_id: Mapped[Optional[int]] = mapped_column(ForeignKey("companies.id"), nullable=True, index=True)
     hashed_password: Mapped[str] = mapped_column(String(255))
     role: Mapped[str] = mapped_column(String(32), default="enterprise", index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
+    company_rel: Mapped[Optional["Company"]] = relationship(back_populates="users")
     test_cases: Mapped[list["TestCase"]] = relationship(back_populates="owner")
     personal_space: Mapped[Optional["PersonalSpace"]] = relationship(back_populates="owner", uselist=False)
     projects: Mapped[list["Project"]] = relationship(back_populates="owner")
@@ -223,6 +238,7 @@ class RobotRentalOrder(Base):
     reviewer_user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
     reject_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    company_id: Mapped[Optional[int]] = mapped_column(ForeignKey("companies.id"), nullable=True, index=True)
 
     instances: Mapped[list["RobotInstance"]] = relationship(back_populates="rental_order")
 
@@ -241,9 +257,15 @@ class RobotInstance(Base):
     display_bio: Mapped[str] = mapped_column(Text, default="")
     status: Mapped[str] = mapped_column(String(32), default="active", index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    company_id: Mapped[Optional[int]] = mapped_column(ForeignKey("companies.id"), nullable=True, index=True)
 
     rental_order: Mapped["RobotRentalOrder"] = relationship(back_populates="instances")
     runs: Mapped[list["TestRun"]] = relationship(back_populates="robot_instance")
+
+    @property
+    def leasing_user_id(self) -> int:
+        """与 API 中 leasing_user_id 一致（提交租用申请的用户）。"""
+        return int(self.user_id)
 
 
 class TestRun(Base):

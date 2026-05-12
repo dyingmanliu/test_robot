@@ -31,6 +31,10 @@ export const useAuthStore = defineStore("auth", {
     token: localStorage.getItem("tcm_token") || "",
     /** RBAC 角色，来自 GET /api/auth/me */
     role: localStorage.getItem("tcm_role") || "",
+    /** 当前用户 ID（用于前端展示/权限判断） */
+    userId: localStorage.getItem("tcm_user_id") ? Number(localStorage.getItem("tcm_user_id")) : null,
+    /** 公司内项目与用例是否对同事可见（由平台管理员开关） */
+    companyInternalShare: localStorage.getItem("tcm_company_share") === "1",
     /** 顶栏展示：昵称优先，否则手机号脱敏 / 邮箱 / 用户名 */
     displayLabel:
       localStorage.getItem("tcm_display") ||
@@ -48,9 +52,13 @@ export const useAuthStore = defineStore("auth", {
     clear() {
       this.token = "";
       this.role = "";
+      this.userId = null;
+      this.companyInternalShare = false;
       this.displayLabel = "";
       localStorage.removeItem("tcm_token");
       localStorage.removeItem("tcm_role");
+      localStorage.removeItem("tcm_user_id");
+      localStorage.removeItem("tcm_company_share");
       localStorage.removeItem("tcm_display");
       localStorage.removeItem("tcm_username");
     },
@@ -59,8 +67,13 @@ export const useAuthStore = defineStore("auth", {
       const label = displayFromUser(data);
       this.displayLabel = label;
       this.role = data.role || "";
+      this.userId = typeof data.id === "number" ? data.id : null;
+      this.companyInternalShare = Boolean(data.company_internal_share);
       localStorage.setItem("tcm_display", label);
       localStorage.setItem("tcm_role", this.role);
+      if (this.userId != null) localStorage.setItem("tcm_user_id", String(this.userId));
+      else localStorage.removeItem("tcm_user_id");
+      localStorage.setItem("tcm_company_share", this.companyInternalShare ? "1" : "0");
       localStorage.removeItem("tcm_username");
       return data;
     },
@@ -75,6 +88,8 @@ export const useAuthStore = defineStore("auth", {
       const payload = { password: body.password };
       if (body.phone) payload.phone = body.phone;
       if (body.email) payload.email = body.email;
+      if (body.company_id != null) payload.company_id = body.company_id;
+      if (body.new_company_name) payload.new_company_name = body.new_company_name;
       await client.post("/api/auth/register", payload);
       const account = body.phone || body.email || "";
       await this.login(account, body.password);

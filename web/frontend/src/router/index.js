@@ -15,6 +15,7 @@ import RobotMarketplaceView from "@/views/RobotMarketplaceView.vue";
 import PaymentView from "@/views/PaymentView.vue";
 import MonitorOpsView from "@/views/MonitorOpsView.vue";
 import FunctionalTaskWizardView from "@/views/FunctionalTaskWizardView.vue";
+import AdminCompaniesView from "@/views/AdminCompaniesView.vue";
 import AdminRentalOrdersView from "@/views/AdminRentalOrdersView.vue";
 import PlatformIntroView from "@/views/PlatformIntroView.vue";
 import MyRobotsShell from "@/views/MyRobotsShell.vue";
@@ -94,6 +95,12 @@ const router = createRouter({
       name: "monitorOps",
       component: MonitorOpsView,
       meta: { requiresAuth: true, roles: ["platform_admin", "tse"], fullBleed: true },
+    },
+    {
+      path: "/admin/companies",
+      name: "adminCompanies",
+      component: AdminCompaniesView,
+      meta: { requiresAuth: true, roles: ["platform_admin"] },
     },
     {
       path: "/admin/rental-orders",

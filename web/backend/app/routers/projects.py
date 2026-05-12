@@ -11,24 +11,37 @@ from app.deps import get_current_user
 from app.models import Project, TestCase, TestRun, User
 from app.rbac import can_view_all_cases
 from app.schemas import ProjectCreate, ProjectOut, ProjectUpdate, ProjectWithStatsOut
+from app.services.company_scope import project_owned_by_user, project_scope_query
 from app.services.project_dashboard import build_project_dashboard_payload
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
 
-def _get_project_or_none(db: Session, project_id: int, user: User) -> Project | None:
+def _get_project_readable(db: Session, project_id: int, user: User) -> Project | None:
+    q = project_scope_query(db, db.query(Project).filter(Project.id == project_id), user)
+    return q.first()
+
+
+def _get_project_owned(db: Session, project_id: int, user: User) -> Project | None:
     p = db.query(Project).filter(Project.id == project_id).first()
-    if p is None:
-        return None
-    if not can_view_all_cases(user) and p.owner_id != user.id:
+    if p is None or not project_owned_by_user(user, p):
         return None
     return p
 
 
 def _require_project(db: Session, project_id: int, user: User) -> Project:
-    p = _get_project_or_none(db, project_id, user)
+    """读权限：本人项目或（公司开启内部共享时）同事项目。"""
+    p = _get_project_readable(db, project_id, user)
     if p is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="项目空间不存在或无权访问")
+    return p
+
+
+def _require_project_owner(db: Session, project_id: int, user: User) -> Project:
+    """写权限：仅项目归属人或平台/TSE。"""
+    p = _get_project_owned(db, project_id, user)
+    if p is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="项目空间不存在或无权修改")
     return p
 
 
@@ -37,9 +50,7 @@ def list_projects(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> list[ProjectWithStatsOut]:
-    q = db.query(Project)
-    if not can_view_all_cases(user):
-        q = q.filter(Project.owner_id == user.id)
+    q = project_scope_query(db, db.query(Project), user)
     projects = q.order_by(desc(Project.updated_at)).all()
     ids = [p.id for p in projects]
     counts: dict[int, int] = {}
@@ -112,7 +123,7 @@ def update_project(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> Project:
-    p = _require_project(db, project_id, user)
+    p = _require_project_owner(db, project_id, user)
     data = body.model_dump(exclude_unset=True)
     if "name" in data and data["name"] is not None:
         p.name = data["name"].strip()
@@ -131,7 +142,7 @@ def delete_project(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> None:
-    p = _get_project_or_none(db, project_id, user)
+    p = _get_project_owned(db, project_id, user)
     if p is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="项目空间不存在或无权访问")
     n = db.query(TestCase).filter(TestCase.project_id == project_id).count()

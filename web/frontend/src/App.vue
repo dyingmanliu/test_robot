@@ -63,6 +63,7 @@
           >
             <summary class="nav-dd-trigger">后台管理</summary>
             <div class="nav-dd-panel">
+              <router-link to="/admin/companies" class="nav-dd-item" @click="closeAllDetails">公司与共享</router-link>
               <router-link to="/admin/rental-orders" class="nav-dd-item" @click="closeAllDetails">租用审批</router-link>
               <router-link to="/admin/users" class="nav-dd-item" @click="closeAllDetails">用户与角色</router-link>
             </div>
