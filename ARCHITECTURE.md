@@ -75,6 +75,43 @@ autoglm-phone-test-agent/          # 仓库根目录
 
 ## 4. 运行时架构
 
+下图概括 **浏览器前端**、**FastAPI 后端**、**同进程内的 `autoglm_phone_agent`** 以及 **CLI** 的调用关系；与下文 4.1–4.4 中的端口、HTTP 轮询、执行链路与 WebSocket 监控一致。开发环境下浏览器到后端的 HTTP 常经 Vite 将 `/api` 代理到 Uvicorn（见 4.1）。
+
+```mermaid
+flowchart TB
+  subgraph client["客户端"]
+    Vue["Vue 3 前端\nweb/frontend"]
+  end
+
+  subgraph server["Web 后端 web/backend"]
+    FastAPI["FastAPI\nREST /api、JWT、\nWebSocket /api/ws/…"]
+    Exec["executor.py\n线程池异步执行"]
+    DB[("SQLite\ntest_cases / test_runs 等")]
+  end
+
+  subgraph agent["Agent 包 autoglm_phone_agent"]
+    PTA["PhoneTestAgent\n观察 → 推理 → ADB 动作"]
+  end
+
+  subgraph ext["外部依赖"]
+    LLM["OpenAI 兼容 LLM API"]
+    Dev["Android 设备\nADB"]
+  end
+
+  CLI["main.py\nCLI 入口"] --> PTA
+
+  Vue -->|"HTTP\n用例 CRUD、登录、\nPOST …/run、轮询 runs"| FastAPI
+  Vue -.->|"WebSocket\n运行监控大屏"| FastAPI
+  FastAPI --> DB
+  FastAPI --> Exec
+  Exec -->|"同进程 import\nagent.run(task, on_step…)"| PTA
+  Exec -->|"on_step 追加 step_log、\n更新 TestRun 状态"| DB
+  PTA --> LLM
+  PTA --> Dev
+```
+
+说明：**Web 路径**下 Agent 仅由后端 `executor` 在后台线程中拉起，前端不直连 LLM 或 ADB；**CLI 路径**下跳过 Web，直接调用同一 `PhoneTestAgent` 包。
+
 ### 4.1 进程与端口（典型本地开发）
 
 | 组件 | 默认端口 | 说明 |
