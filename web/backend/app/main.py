@@ -19,6 +19,7 @@ from app.database import (
     Base,
     bootstrap_rbac,
     engine,
+    ensure_builtin_platform_admin,
     ensure_company_bootstrap,
     ensure_personal_spaces,
     ensure_projects_bootstrap,
@@ -78,6 +79,7 @@ app.include_router(ws_monitor.router, prefix="/api")
 def on_startup() -> None:
     Base.metadata.create_all(bind=engine)
     ensure_schema()
+    ensure_builtin_platform_admin()
     ensure_company_bootstrap()
     ensure_personal_spaces()
     ensure_projects_bootstrap()
