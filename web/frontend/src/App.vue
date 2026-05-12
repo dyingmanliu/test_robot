@@ -20,6 +20,7 @@
         </nav>
 
         <nav v-else class="nav">
+          <router-link :to="{ name: 'platformIntro' }" class="nav-link" @click="closeAllDetails">平台介绍</router-link>
           <router-link to="/" class="nav-link" @click="closeAllDetails">工作台</router-link>
 
           <router-link to="/marketplace" class="nav-link" @click="closeAllDetails">机器人商城</router-link>
@@ -62,7 +63,6 @@
             </div>
           </details>
 
-          <router-link :to="{ name: 'platformIntro' }" class="nav-link" @click="closeAllDetails">平台介绍</router-link>
           <router-link to="/profile" class="nav-link" @click="closeAllDetails">个人中心</router-link>
         </nav>
       </div>
