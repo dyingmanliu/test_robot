@@ -246,6 +246,7 @@ class TestRunOut(BaseModel):
     id: int
     case_id: int
     owner_id: int
+    robot_instance_id: Optional[int] = None
     status: str
     step_log: Optional[str] = None
     output_message: Optional[str]
@@ -263,6 +264,8 @@ class TestRunListItemOut(BaseModel):
     case_id: int
     case_title: str
     project_id: Optional[int] = None
+    robot_instance_id: Optional[int] = None
+    robot_instance_code: Optional[str] = None
     status: str
     recognition_steps: int = 0
     started_at: Optional[datetime] = None
@@ -381,3 +384,97 @@ class FunctionalDispatchListOut(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+# --- 租用申请与机器人实例 ---
+
+
+class RentalOrderCreate(BaseModel):
+    robot_id: str = Field(..., min_length=1, max_length=64)
+    billing_mode: str = Field(..., description="duration | count")
+    quantity: int = Field(1, ge=1, le=99)
+
+    @field_validator("billing_mode")
+    @classmethod
+    def billing_mode_known(cls, v: str) -> str:
+        if v not in ("duration", "count"):
+            raise ValueError("billing_mode 须为 duration 或 count")
+        return v
+
+
+class RentalOrderCreatedOut(BaseModel):
+    id: int
+    status: str
+    quantity: int
+    unit_price_cents: int
+    total_cents: int
+    currency: str
+    robot_id: str
+    robot_name: str
+    billing_mode: str
+    message: str = "已生成账单，待管理员审批；审批通过后将自动实例化并分配编号。"
+
+
+class RentalOrderOut(BaseModel):
+    id: int
+    user_id: int
+    robot_id: str
+    robot_name: str
+    billing_mode: str
+    quantity: int
+    unit_price_cents: int
+    total_cents: int
+    currency: str
+    status: str
+    reviewed_at: Optional[datetime] = None
+    reviewer_user_id: Optional[int] = None
+    reject_reason: Optional[str] = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class RobotInstanceOut(BaseModel):
+    id: int
+    rental_order_id: int
+    catalog_robot_id: str
+    instance_code: str
+    display_name: str
+    display_bio: str
+    status: str
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class RobotInstancePatch(BaseModel):
+    display_name: Optional[str] = Field(None, max_length=128)
+    display_bio: Optional[str] = Field(None, max_length=2000)
+
+    @field_validator("display_name", mode="before")
+    @classmethod
+    def strip_name(cls, v: object) -> object:
+        if v is None:
+            return None
+        if isinstance(v, str):
+            return v.strip()[:128]
+        return v
+
+    @field_validator("display_bio", mode="before")
+    @classmethod
+    def strip_bio(cls, v: object) -> object:
+        if v is None:
+            return None
+        if isinstance(v, str):
+            return v.strip()[:2000]
+        return v
+
+
+class RunCaseBody(BaseModel):
+    """执行用例时绑定已租用的机器人实例。"""
+
+    robot_instance_id: int = Field(..., ge=1)
+
+
+class RentalRejectBody(BaseModel):
+    reason: str = Field(default="", max_length=500)

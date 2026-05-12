@@ -9,8 +9,8 @@
     <header class="top">
       <div class="top-bar">
         <router-link :to="auth.token ? '/' : { name: 'platformIntro' }" class="brand" @click="closeAllDetails">
-          <span class="brand-badge" aria-hidden="true">VT</span>
-          <span class="brand-full">视图技术数字机器人</span>
+          <span class="brand-badge" aria-hidden="true">ST</span>
+          <span class="brand-full">识图技术数字机器人</span>
         </router-link>
 
         <nav v-if="!auth.token" class="nav nav-public">
@@ -23,6 +23,8 @@
           <router-link to="/" class="nav-link" @click="closeAllDetails">工作台</router-link>
 
           <router-link to="/marketplace" class="nav-link" @click="closeAllDetails">机器人商城</router-link>
+
+          <router-link to="/my-robots" class="nav-link" @click="closeAllDetails">我的机器人</router-link>
 
           <details class="nav-dd" :class="{ 'nav-dd--current': projectSpaceMenuActive }" @toggle="onNavDetailsToggle">
             <summary class="nav-dd-trigger">项目空间</summary>
@@ -55,6 +57,7 @@
           >
             <summary class="nav-dd-trigger">后台管理</summary>
             <div class="nav-dd-panel">
+              <router-link to="/admin/rental-orders" class="nav-dd-item" @click="closeAllDetails">租用审批</router-link>
               <router-link to="/admin/users" class="nav-dd-item" @click="closeAllDetails">用户与角色</router-link>
             </div>
           </details>
@@ -87,7 +90,9 @@ const projectSpaceMenuActive = computed(
   () => route.path.startsWith("/projects") || route.path === "/cases",
 );
 const monitorMenuActive = computed(() => route.path === "/monitor" || route.path === "/dashboard");
-const adminMenuActive = computed(() => route.path.startsWith("/admin"));
+const adminMenuActive = computed(
+  () => route.path.startsWith("/admin"),
+);
 
 /** 路由变化时收起下拉，避免上一页展开的菜单残留 */
 watch(

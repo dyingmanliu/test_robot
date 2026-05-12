@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.deps import get_current_user
 from app.executor import execute_test_run, prepare_cancel_slot, signal_cancel
-from app.models import Project, TestCase, TestCaseRevision, TestRun, User
+from app.models import Project, RobotInstance, TestCase, TestCaseRevision, TestRun, User
 from app.rbac import can_view_all_cases, case_scope_filter, run_scope_query
 from app.schemas import (
     CaseImportResultOut,
@@ -23,6 +23,7 @@ from app.schemas import (
     TestCaseUpdate,
     TestRunListItemOut,
     TestRunOut,
+    RunCaseBody,
 )
 from app.services.case_agent_text import parse_steps_json
 from app.services.case_import import parse_import_file, row_to_create
@@ -190,12 +191,19 @@ def list_runs(
     if case_ids:
         for tc in db.query(TestCase).filter(TestCase.id.in_(case_ids)).all():
             titles[tc.id] = tc.title
+    inst_ids = {r.robot_instance_id for r in rows if r.robot_instance_id}
+    inst_codes: dict[int, str] = {}
+    if inst_ids:
+        for ri in db.query(RobotInstance).filter(RobotInstance.id.in_(inst_ids)).all():
+            inst_codes[ri.id] = ri.instance_code
     return [
         TestRunListItemOut(
             id=r.id,
             case_id=r.case_id,
             case_title=titles.get(r.case_id, ""),
             project_id=project_id,
+            robot_instance_id=r.robot_instance_id,
+            robot_instance_code=inst_codes.get(r.robot_instance_id) if r.robot_instance_id else None,
             status=r.status,
             recognition_steps=count_recognition_steps(r.step_log),
             started_at=r.started_at,
@@ -321,6 +329,7 @@ def delete_case(
 @router.post("/{case_id}/run", response_model=TestRunOut)
 async def run_case(
     case_id: int,
+    body: RunCaseBody,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> TestRun:
@@ -328,7 +337,15 @@ async def run_case(
     if tc is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="用例不存在")
 
-    run = TestRun(case_id=tc.id, owner_id=tc.owner_id, status="pending")
+    inst = db.query(RobotInstance).filter(RobotInstance.id == body.robot_instance_id).first()
+    if inst is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="机器人实例不存在")
+    if inst.user_id != tc.owner_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="该实例不属于用例所属用户，无法用于此用例")
+    if inst.status != "active":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="机器人实例未处于可用状态")
+
+    run = TestRun(case_id=tc.id, owner_id=tc.owner_id, robot_instance_id=inst.id, status="pending")
     db.add(run)
     db.commit()
     db.refresh(run)

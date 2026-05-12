@@ -28,11 +28,13 @@ from app.routers import (
     platform_api,
     project_functional,
     projects,
+    rentals,
+    robot_instances,
     test_cases,
     ws_monitor,
 )
 
-app = FastAPI(title="视图技术数字机器人", version="1.0.0")
+app = FastAPI(title="识图技术数字机器人", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -54,6 +56,8 @@ app.include_router(knowledge.router, prefix="/api")
 app.include_router(admin.router, prefix="/api")
 app.include_router(platform_api.router, prefix="/api")
 app.include_router(marketplace.router, prefix="/api")
+app.include_router(rentals.router, prefix="/api")
+app.include_router(robot_instances.router, prefix="/api")
 app.include_router(billing.router, prefix="/api")
 app.include_router(dashboard.router, prefix="/api")
 app.include_router(monitor_api.router, prefix="/api")

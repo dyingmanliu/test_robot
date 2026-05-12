@@ -3,7 +3,7 @@
     <div class="register-backdrop" aria-hidden="true" />
     <div class="register-inner">
       <header class="register-brand">
-        <p class="platform-name">视图技术数字机器人</p>
+        <p class="platform-name">识图技术数字机器人</p>
         <p class="platform-tag">注册后即可使用工作台与测试用例能力</p>
       </header>
       <div class="card tech-panel">

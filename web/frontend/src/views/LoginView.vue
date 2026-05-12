@@ -3,7 +3,7 @@
     <div class="login-backdrop" aria-hidden="true" />
     <div class="login-inner">
       <header class="login-brand">
-        <p class="platform-name">视图技术数字机器人</p>
+        <p class="platform-name">识图技术数字机器人</p>
         <p class="platform-tag">数字机器人编排 · 自动化执行 · 租户隔离</p>
       </header>
       <div class="card tech-panel">

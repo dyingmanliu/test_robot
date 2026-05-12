@@ -204,12 +204,59 @@ class BillingPreorder(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
+class RobotRentalOrder(Base):
+    """租用申请单：含数量与账单金额；待管理员审批后实例化机器人（暂不经过支付）。"""
+
+    __tablename__ = "robot_rental_orders"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    robot_id: Mapped[str] = mapped_column(String(64), index=True)
+    robot_name: Mapped[str] = mapped_column(String(128))
+    billing_mode: Mapped[str] = mapped_column(String(16))
+    quantity: Mapped[int] = mapped_column(Integer, default=1)
+    unit_price_cents: Mapped[int] = mapped_column(Integer, default=0)
+    total_cents: Mapped[int] = mapped_column(Integer, default=0)
+    currency: Mapped[str] = mapped_column(String(8), default="CNY")
+    status: Mapped[str] = mapped_column(String(32), default="pending_approval", index=True)
+    reviewed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    reviewer_user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    reject_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    instances: Mapped[list["RobotInstance"]] = relationship(back_populates="rental_order")
+
+
+class RobotInstance(Base):
+    """已审批实例化的数字机器人：用户可改展示名与简介；执行用例与监控均关联此表。"""
+
+    __tablename__ = "robot_instances"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    rental_order_id: Mapped[int] = mapped_column(ForeignKey("robot_rental_orders.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    catalog_robot_id: Mapped[str] = mapped_column(String(64), index=True)
+    instance_code: Mapped[str] = mapped_column(String(32), unique=True, index=True)
+    display_name: Mapped[str] = mapped_column(String(128), default="")
+    display_bio: Mapped[str] = mapped_column(Text, default="")
+    status: Mapped[str] = mapped_column(String(32), default="active", index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    rental_order: Mapped["RobotRentalOrder"] = relationship(back_populates="instances")
+    runs: Mapped[list["TestRun"]] = relationship(back_populates="robot_instance")
+
+
 class TestRun(Base):
     __tablename__ = "test_runs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     case_id: Mapped[int] = mapped_column(ForeignKey("test_cases.id"), index=True)
     owner_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    robot_instance_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("robot_instances.id", ondelete="SET NULL"),
+        index=True,
+        nullable=True,
+    )
     status: Mapped[str] = mapped_column(String(32), default="pending")
     step_log: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     output_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -218,3 +265,5 @@ class TestRun(Base):
     finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     test_case: Mapped["TestCase"] = relationship(back_populates="runs")
+    robot_instance: Mapped[Optional["RobotInstance"]] = relationship(back_populates="runs")
+

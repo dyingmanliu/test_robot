@@ -6,7 +6,7 @@
       <div class="hero-inner">
         <p class="hero-kicker">企业级 · 多租户 · AI 驱动</p>
         <h1 class="hero-title">
-          视图技术<span class="hero-accent">数字机器人</span>
+          识图技术<span class="hero-accent">数字机器人</span>
         </h1>
         <p class="hero-lead">
           用<strong>数字机器人</strong>承接分析、执行、专项与质量评估；项目空间隔离资产，执行日志可追溯，计费与商城一站式闭环——对标业界智能测试代理形态，沉淀你可信赖的自动化中枢。
@@ -89,7 +89,7 @@
     </section>
 
     <footer class="intro-foot">
-      <p>视图技术数字机器人 · 页面结构参考业界智能测试代理类产品站点的常见叙事逻辑。</p>
+      <p>识图技术数字机器人 · 页面结构参考业界智能测试代理类产品站点的常见叙事逻辑。</p>
     </footer>
   </div>
 </template>

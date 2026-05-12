@@ -2,16 +2,92 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from datetime import datetime
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.deps import require_roles
-from app.models import User
+from app.models import RobotInstance, RobotRentalOrder, User
 from app.rbac import ROLE_PLATFORM_ADMIN, ROLE_LABELS, ROLES
-from app.schemas import AdminRolePatch, AdminUserOut
+from app.schemas import AdminRolePatch, AdminUserOut, RentalOrderOut, RentalRejectBody
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+
+def _next_instance_codes(db: Session, count: int) -> list[str]:
+    n = db.query(func.count(RobotInstance.id)).scalar() or 0
+    return [f"DR-{n + i + 1:06d}" for i in range(count)]
+
+
+@router.get("/rental-orders", response_model=list[RentalOrderOut])
+def list_rental_orders(
+    status: Optional[str] = Query(None, description="按状态筛选，如 pending_approval"),
+    db: Session = Depends(get_db),
+    _: User = Depends(require_roles(ROLE_PLATFORM_ADMIN)),
+) -> list[RobotRentalOrder]:
+    q = db.query(RobotRentalOrder).order_by(RobotRentalOrder.id.desc())
+    if status:
+        q = q.filter(RobotRentalOrder.status == status)
+    return q.limit(200).all()
+
+
+@router.post("/rental-orders/{order_id}/approve", response_model=RentalOrderOut)
+def approve_rental_order(
+    order_id: int,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_roles(ROLE_PLATFORM_ADMIN)),
+) -> RobotRentalOrder:
+    row = db.query(RobotRentalOrder).filter(RobotRentalOrder.id == order_id).first()
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="租用单不存在")
+    if row.status != "pending_approval":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="该租用单不在待审批状态")
+
+    codes = _next_instance_codes(db, row.quantity)
+    for code in codes:
+        db.add(
+            RobotInstance(
+                rental_order_id=row.id,
+                user_id=row.user_id,
+                catalog_robot_id=row.robot_id,
+                instance_code=code,
+                display_name=row.robot_name,
+                display_bio="",
+                status="active",
+            )
+        )
+    row.status = "approved"
+    row.reviewed_at = datetime.utcnow()
+    row.reviewer_user_id = admin.id
+    row.reject_reason = None
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+@router.post("/rental-orders/{order_id}/reject", response_model=RentalOrderOut)
+def reject_rental_order(
+    order_id: int,
+    body: RentalRejectBody,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_roles(ROLE_PLATFORM_ADMIN)),
+) -> RobotRentalOrder:
+    row = db.query(RobotRentalOrder).filter(RobotRentalOrder.id == order_id).first()
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="租用单不存在")
+    if row.status != "pending_approval":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="该租用单不在待审批状态")
+    row.status = "rejected"
+    row.reviewed_at = datetime.utcnow()
+    row.reviewer_user_id = admin.id
+    row.reject_reason = (body.reason or "").strip() or None
+    db.commit()
+    db.refresh(row)
+    return row
 
 
 @router.get("/users", response_model=list[AdminUserOut])

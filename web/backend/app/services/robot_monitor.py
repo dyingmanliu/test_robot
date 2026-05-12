@@ -1,7 +1,7 @@
 """机器人运行态势聚合。
 
-已实例化池规模由环境变量配置；执行中/等待与 ``test_runs`` 对齐；待机为池内剩余容量；
-离线为未接入或未实例化的占位节点（演示用）。结果确定性强，无随机抖动，便于大屏稳定展示。
+存在已审批的 ``robot_instances`` 时，按实例展示状态（与 ``test_runs`` 中绑定实例的最新执行关联）；
+否则回退为基于环境变量与 ``test_runs`` 的演示池模型。
 """
 
 from __future__ import annotations
@@ -10,12 +10,13 @@ import os
 from datetime import datetime, timezone
 from typing import Any
 
+from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
-from app.models import TestRun
+from app.models import RobotInstance, TestRun
 
 
-def compute_robot_metrics(db: Session) -> dict[str, Any]:
+def _compute_robot_metrics_legacy(db: Session) -> dict[str, Any]:
     pool_m = max(0, int(os.getenv("ROBOT_MONITOR_POOL_SIZE", "16")))
     offline_n = max(0, int(os.getenv("ROBOT_MONITOR_OFFLINE_COUNT", "3")))
 
@@ -107,11 +108,88 @@ def compute_robot_metrics(db: Session) -> dict[str, Any]:
         "waiting_slots": wa,
         "idle_slots": idle_c,
         "robots": robots,
-        # 兼容旧版大屏字段
         "online": pool_m,
         "idle": idle_c,
         "executing": ex,
         "waiting": wa,
         "updated_at": now,
         "source": "executor_db+pool_model",
+    }
+
+
+def compute_robot_metrics(db: Session) -> dict[str, Any]:
+    instances = (
+        db.query(RobotInstance)
+        .filter(RobotInstance.status == "active")
+        .order_by(RobotInstance.id.asc())
+        .all()
+    )
+    if not instances:
+        return _compute_robot_metrics_legacy(db)
+
+    offline_n = max(0, int(os.getenv("ROBOT_MONITOR_OFFLINE_COUNT", "0")))
+    running_count = db.query(TestRun).filter(TestRun.status == "running").count()
+    pending_count = db.query(TestRun).filter(TestRun.status == "pending").count()
+
+    robots: list[dict[str, Any]] = []
+    for inst in instances:
+        latest = (
+            db.query(TestRun)
+            .filter(TestRun.robot_instance_id == inst.id)
+            .order_by(desc(TestRun.id))
+            .first()
+        )
+        if latest is not None and latest.status == "running":
+            st, label, rid = "executing", "执行中", latest.id
+        elif latest is not None and latest.status == "pending":
+            st, label, rid = "waiting", "等待", latest.id
+        else:
+            st, label, rid = "idle", "待机", None
+
+        robots.append(
+            {
+                "id": inst.instance_code,
+                "name": (inst.display_name or "").strip() or inst.catalog_robot_id,
+                "status": st,
+                "label": label,
+                "run_id": rid,
+                "instantiated": True,
+            }
+        )
+
+    for o in range(offline_n):
+        robots.append(
+            {
+                "id": f"edge-offline-{o + 1:02d}",
+                "name": f"未接入节点 {o + 1}",
+                "status": "offline",
+                "label": "离线",
+                "run_id": None,
+                "instantiated": False,
+            }
+        )
+
+    ex = sum(1 for r in robots if r["status"] == "executing")
+    wa = sum(1 for r in robots if r["status"] == "waiting")
+    idle_c = sum(1 for r in robots if r["status"] == "idle")
+    pool_m = len(instances)
+
+    now = datetime.now(timezone.utc).isoformat()
+    return {
+        "type": "robot_monitor",
+        "instantiated_count": pool_m,
+        "offline_count": offline_n,
+        "fleet_display_total": pool_m + offline_n,
+        "running_tasks": running_count,
+        "pending_tasks": pending_count,
+        "executing_slots": ex,
+        "waiting_slots": wa,
+        "idle_slots": idle_c,
+        "robots": robots,
+        "online": pool_m,
+        "idle": idle_c,
+        "executing": ex,
+        "waiting": wa,
+        "updated_at": now,
+        "source": "robot_instances+test_runs",
     }

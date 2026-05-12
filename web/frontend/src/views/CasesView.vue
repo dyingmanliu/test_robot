@@ -52,12 +52,30 @@
         <button
           type="button"
           class="btn"
-          :disabled="!selectedIds.length || running"
+          :disabled="!selectedProjectId || !selectedIds.length || running || !selectedRobotInstanceId"
           @click="runSelected"
         >
           {{ running ? "执行中…" : "自动化执行选中" }}
         </button>
       </div>
+    </div>
+
+    <div v-if="projectsLoaded && !robotInstances.length" class="banner warn">
+      执行用例需绑定已租用的机器人实例。请先到
+      <router-link to="/marketplace">机器人商城</router-link>
+      提交租用申请，管理员审批通过后到
+      <router-link to="/my-robots">我的机器人</router-link>
+      查看编号与属性，再回到本页选择实例后执行。
+    </div>
+    <div v-else-if="projectsLoaded && robotInstances.length" class="robot-pick">
+      <label class="robot-pick-inner">
+        <span class="picker-label">执行用例使用的机器人实例</span>
+        <select v-model.number="selectedRobotInstanceId" class="robot-select">
+          <option v-for="ins in robotInstances" :key="ins.id" :value="ins.id">
+            {{ ins.instance_code }} · {{ (ins.display_name || "").trim() || ins.catalog_robot_id }}
+          </option>
+        </select>
+      </label>
     </div>
 
     <div v-if="loadError" class="banner err">{{ loadError }}</div>
@@ -291,6 +309,9 @@ const stopBusy = ref(false);
 const liveRun = ref(null);
 const resultRuns = ref([]);
 
+const robotInstances = ref([]);
+const selectedRobotInstanceId = ref(null);
+
 const canStopRun = computed(() => {
   const r = liveRun.value;
   return !!(r && (r.status === "pending" || r.status === "running"));
@@ -355,6 +376,23 @@ async function load() {
 function onProjectChange() {
   router.replace({ path: "/cases", query: { project: String(selectedProjectId.value) } });
   load();
+  loadRobotInstances();
+}
+
+async function loadRobotInstances() {
+  try {
+    const { data } = await client.get("/api/robot-instances/mine");
+    robotInstances.value = Array.isArray(data) ? data : [];
+    if (robotInstances.value.length && !selectedRobotInstanceId.value) {
+      selectedRobotInstanceId.value = robotInstances.value[0].id;
+    }
+    if (!robotInstances.value.length) {
+      selectedRobotInstanceId.value = null;
+    }
+  } catch {
+    robotInstances.value = [];
+    selectedRobotInstanceId.value = null;
+  }
 }
 
 async function bootstrapProjectContext() {
@@ -373,6 +411,7 @@ async function bootstrapProjectContext() {
     selectedProjectId.value = null;
   }
   await load();
+  await loadRobotInstances();
 }
 
 function toggleAll(e) {
@@ -607,13 +646,19 @@ async function pollRun(runId, onTick) {
 
 async function runSelected() {
   if (!selectedIds.value.length) return;
+  if (!selectedRobotInstanceId.value) {
+    loadError.value = "请先选择要使用的机器人实例";
+    return;
+  }
   running.value = true;
   liveRun.value = null;
   resultRuns.value = [];
   try {
     for (const caseId of selectedIds.value) {
       liveRun.value = null;
-      const { data: started } = await client.post(`/api/test-cases/${caseId}/run`);
+      const { data: started } = await client.post(`/api/test-cases/${caseId}/run`, {
+        robot_instance_id: selectedRobotInstanceId.value,
+      });
       liveRun.value = { ...started };
       const final = await pollRun(started.id, (data) => {
         liveRun.value = data;
@@ -654,6 +699,28 @@ onMounted(bootstrapProjectContext);
   margin-bottom: 1rem;
   background: #fffbeb;
   color: #92400e;
+  font-size: 0.9rem;
+}
+
+.robot-pick {
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.robot-pick-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-width: 32rem;
+}
+
+.robot-select {
+  padding: 0.45rem 0.55rem;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
   font-size: 0.9rem;
 }
 

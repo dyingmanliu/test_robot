@@ -60,6 +60,9 @@ def ensure_schema() -> None:
             if "step_log" not in cols:
                 with engine.begin() as conn:
                     conn.execute(text("ALTER TABLE test_runs ADD COLUMN step_log TEXT"))
+            if "robot_instance_id" not in cols:
+                with engine.begin() as conn:
+                    conn.execute(text("ALTER TABLE test_runs ADD COLUMN robot_instance_id INTEGER"))
     except Exception:
         pass
 

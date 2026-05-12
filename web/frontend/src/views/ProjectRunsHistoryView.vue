@@ -28,6 +28,7 @@
           <tr>
             <th>执行 ID</th>
             <th>用例</th>
+            <th>机器人实例</th>
             <th>状态</th>
             <th>识别步数</th>
             <th>开始</th>
@@ -39,6 +40,7 @@
           <tr v-for="r in runs" :key="r.id">
             <td>{{ r.id }}</td>
             <td class="title-cell">{{ r.case_title || "—" }}</td>
+            <td class="muted small">{{ r.robot_instance_code || "—" }}</td>
             <td><span class="pill" :class="statusClass(r.status)">{{ r.status }}</span></td>
             <td>{{ r.recognition_steps }}</td>
             <td class="muted small">{{ fmt(r.started_at) }}</td>

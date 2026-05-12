@@ -4,7 +4,7 @@
       <h1>数字机器人商城</h1>
       <p class="hint">
         四大数字机器人覆盖<strong>测试分析</strong>、<strong>功能执行</strong>、<strong>专项执行</strong>与<strong>质量评估</strong>。
-        选择计费模式后点击「立即租用」，系统将在计费模块生成预订单并进入支付页。
+        选择计费模式与数量后提交租用申请，系统生成账单（暂不支付）；管理员审批通过后将自动实例化并分配编号。
       </p>
     </header>
 
@@ -53,7 +53,7 @@
 
     <div v-if="dialogRobot" class="overlay" @click.self="closeDialog">
       <div class="dialog card">
-        <h3>选择计费方式</h3>
+        <h3>租用数字机器人</h3>
         <p class="muted small">{{ dialogRobot.name }}</p>
         <label class="radio-row">
           <input v-model="pickedMode" type="radio" value="duration" />
@@ -71,11 +71,29 @@
             {{ dialogRobot.billing_modes.count.unit_label }}</span
           >
         </label>
+        <div class="qty-row">
+          <label for="rent-qty">租用数量</label>
+          <input
+            id="rent-qty"
+            v-model.number="rentQuantity"
+            type="number"
+            min="1"
+            max="99"
+            class="qty-input"
+          />
+        </div>
+        <div v-if="dialogRobot" class="bill-box">
+          <p><strong>账单预览</strong></p>
+          <p class="bill-line">单价：{{ formatPrice(unitPriceCents) }} × {{ rentQuantity }} 台</p>
+          <p class="bill-total">应付合计：<strong>{{ formatPrice(totalCents) }}</strong>（{{ billCurrency }}）</p>
+          <p class="muted tiny">提交后进入「待审批」，无需在线支付；审批通过后在「我的机器人」中查看实例。</p>
+        </div>
+        <p v-if="billResult" class="banner ok tight">{{ billResult }}</p>
         <p v-if="submitErr" class="banner err tight">{{ submitErr }}</p>
         <div class="dialog-actions">
-          <button type="button" class="btn ghost" @click="closeDialog">取消</button>
+          <button type="button" class="btn ghost" @click="closeDialog">关闭</button>
           <button type="button" class="btn primary" :disabled="submitting" @click="confirmRent">
-            {{ submitting ? "创建预订单…" : "生成预订单并去支付" }}
+            {{ submitting ? "提交中…" : "提交租用申请" }}
           </button>
         </div>
       </div>
@@ -88,19 +106,30 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from "vue";
-import { useRouter } from "vue-router";
+import { computed, onMounted, ref } from "vue";
 import client, { formatApiError } from "@/api/client";
 import RobotMascotAvatar from "@/components/RobotMascotAvatar.vue";
 
-const router = useRouter();
 const robots = ref([]);
 const loading = ref(true);
 const error = ref("");
 const dialogRobot = ref(null);
 const pickedMode = ref("duration");
+const rentQuantity = ref(1);
 const submitting = ref(false);
 const submitErr = ref("");
+const billResult = ref("");
+
+const unitPriceCents = computed(() => {
+  const r = dialogRobot.value;
+  if (!r) return 0;
+  const m = pickedMode.value === "duration" ? r.billing_modes.duration : r.billing_modes.count;
+  return Number(m?.price_cents) || 0;
+});
+
+const totalCents = computed(() => unitPriceCents.value * Math.max(1, Math.min(99, Number(rentQuantity.value) || 1)));
+
+const billCurrency = "CNY";
 
 function formatPrice(cents) {
   return `¥${(Number(cents) / 100).toFixed(2)}`;
@@ -122,24 +151,29 @@ async function loadCatalog() {
 function openRent(r) {
   dialogRobot.value = r;
   pickedMode.value = "duration";
+  rentQuantity.value = 1;
   submitErr.value = "";
+  billResult.value = "";
 }
 
 function closeDialog() {
   dialogRobot.value = null;
+  billResult.value = "";
 }
 
 async function confirmRent() {
   if (!dialogRobot.value) return;
+  const qty = Math.max(1, Math.min(99, Number(rentQuantity.value) || 1));
   submitting.value = true;
   submitErr.value = "";
+  billResult.value = "";
   try {
-    const { data } = await client.post("/api/billing/preorders", {
+    const { data } = await client.post("/api/rentals/orders", {
       robot_id: dialogRobot.value.id,
       billing_mode: pickedMode.value,
+      quantity: qty,
     });
-    closeDialog();
-    await router.push(data.payment_path);
+    billResult.value = `已提交租用单 #${data.id}，合计 ${formatPrice(data.total_cents)}，状态：${data.status}。${data.message || ""}`;
   } catch (e) {
     submitErr.value = formatApiError(e);
   } finally {
@@ -182,6 +216,57 @@ onMounted(loadCatalog);
 
 .banner.err.tight {
   margin-bottom: 0.75rem;
+}
+
+.banner.ok {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #065f46;
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.88rem;
+}
+
+.banner.ok.tight {
+  margin-bottom: 0.75rem;
+}
+
+.qty-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin: 0.85rem 0;
+  font-size: 0.9rem;
+  color: #334155;
+}
+
+.qty-input {
+  width: 5rem;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.bill-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.75rem 0.9rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.88rem;
+}
+
+.bill-box p {
+  margin: 0.25rem 0;
+}
+
+.bill-total {
+  font-size: 1rem;
+  margin-top: 0.35rem !important;
+}
+
+.bill-line {
+  color: #475569;
 }
 
 .grid {

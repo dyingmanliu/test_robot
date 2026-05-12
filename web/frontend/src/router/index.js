@@ -15,7 +15,9 @@ import RobotMarketplaceView from "@/views/RobotMarketplaceView.vue";
 import PaymentView from "@/views/PaymentView.vue";
 import MonitorOpsView from "@/views/MonitorOpsView.vue";
 import FunctionalTaskWizardView from "@/views/FunctionalTaskWizardView.vue";
+import AdminRentalOrdersView from "@/views/AdminRentalOrdersView.vue";
 import PlatformIntroView from "@/views/PlatformIntroView.vue";
+import MyRobotsView from "@/views/MyRobotsView.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -60,6 +62,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: "/my-robots",
+      name: "myRobots",
+      component: MyRobotsView,
+      meta: { requiresAuth: true },
+    },
+    {
       path: "/payment",
       name: "payment",
       component: PaymentView,
@@ -70,6 +78,12 @@ const router = createRouter({
       name: "monitorOps",
       component: MonitorOpsView,
       meta: { requiresAuth: true, roles: ["platform_admin", "tse"], fullBleed: true },
+    },
+    {
+      path: "/admin/rental-orders",
+      name: "adminRentalOrders",
+      component: AdminRentalOrdersView,
+      meta: { requiresAuth: true, roles: ["platform_admin"] },
     },
     {
       path: "/admin/users",
