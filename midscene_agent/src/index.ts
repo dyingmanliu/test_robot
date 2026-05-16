@@ -14,3 +14,8 @@ export {
   resolveDeviceId,
   type HdcTarget,
 } from './hdc.js';
+export {
+  WEB_DISPATCH_VERSION,
+  parseWebDispatchJson,
+  type WebTestDispatch,
+} from './web_dispatch.js';

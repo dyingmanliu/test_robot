@@ -3,7 +3,7 @@
     <header class="head">
       <h1>我的机器人</h1>
       <p class="sub">
-        审批通过后展示本公司全部已实例化机器人；同一公司成员均可查看。仅<strong>提交租用申请的用户</strong>可修改展示名称与简介。
+        审批通过后展示本公司全部已实例化机器人；同一公司成员均可查看。仅<strong>提交租用申请的用户</strong>可修改展示名称、简介与测试执行引擎。
       </p>
     </header>
 
@@ -26,6 +26,7 @@
             <th>实例编号</th>
             <th>展示名称</th>
             <th>目录类型</th>
+            <th>执行引擎</th>
             <th>状态</th>
             <th>提交人（用户 ID）</th>
             <th>创建时间</th>
@@ -42,6 +43,7 @@
             <td class="mono strong">{{ r.instance_code }}</td>
             <td>{{ r.display_name || "—" }}</td>
             <td><span class="pill">{{ r.catalog_robot_id }}</span></td>
+            <td class="muted small">{{ engineLabel(r.test_agent_backend) }}</td>
             <td>{{ r.status }}</td>
             <td class="muted small mono">{{ r.leasing_user_id }}</td>
             <td class="muted small">{{ fmt(r.created_at) }}</td>
@@ -74,6 +76,12 @@ const router = useRouter();
 const instances = ref([]);
 const loading = ref(true);
 const error = ref("");
+
+function engineLabel(backend) {
+  const b = String(backend || "autoglm").toLowerCase();
+  if (b === "midscene") return "Midscene";
+  return "AutoGLM";
+}
 
 function fmt(iso) {
   try {

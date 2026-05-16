@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -13,7 +13,15 @@ from app.database import get_db
 from app.deps import require_roles
 from app.models import Company, RobotInstance, RobotRentalOrder, User
 from app.rbac import ROLE_PLATFORM_ADMIN, ROLE_LABELS, ROLES
-from app.schemas import AdminRolePatch, AdminUserOut, CompanyAdminOut, CompanySharePatch, RentalOrderOut, RentalRejectBody
+from app.schemas import (
+    AdminRolePatch,
+    AdminUserOut,
+    CompanyAdminOut,
+    CompanySharePatch,
+    RentalApproveBody,
+    RentalOrderOut,
+    RentalRejectBody,
+)
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -38,6 +46,7 @@ def list_rental_orders(
 @router.post("/rental-orders/{order_id}/approve", response_model=RentalOrderOut)
 def approve_rental_order(
     order_id: int,
+    body: RentalApproveBody = Body(default=RentalApproveBody()),
     db: Session = Depends(get_db),
     admin: User = Depends(require_roles(ROLE_PLATFORM_ADMIN)),
 ) -> RobotRentalOrder:
@@ -59,6 +68,7 @@ def approve_rental_order(
                 display_name=row.robot_name,
                 display_bio="",
                 status="active",
+                test_agent_backend=body.test_agent_backend,
             )
         )
     row.status = "approved"

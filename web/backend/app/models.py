@@ -258,6 +258,8 @@ class RobotInstance(Base):
     status: Mapped[str] = mapped_column(String(32), default="active", index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     company_id: Mapped[Optional[int]] = mapped_column(ForeignKey("companies.id"), nullable=True, index=True)
+    #: 执行用例时调用的自动化引擎：autoglm=Android/ADB+智谱；midscene=HarmonyOS/HDC+Midscene.js
+    test_agent_backend: Mapped[str] = mapped_column(String(32), default="autoglm", index=True)
 
     rental_order: Mapped["RobotRentalOrder"] = relationship(back_populates="instances")
     runs: Mapped[list["TestRun"]] = relationship(back_populates="robot_instance")

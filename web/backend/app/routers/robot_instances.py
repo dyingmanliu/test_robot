@@ -62,6 +62,8 @@ def patch_my_instance(
         inst.display_name = body.display_name
     if body.display_bio is not None:
         inst.display_bio = body.display_bio
+    if body.test_agent_backend is not None:
+        inst.test_agent_backend = body.test_agent_backend
     db.commit()
     db.refresh(inst)
     return inst

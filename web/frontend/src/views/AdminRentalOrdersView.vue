@@ -15,6 +15,13 @@
       >
         待审批
       </button>
+      <label class="agent-pick">
+        <span class="agent-pick-label">通过时绑定</span>
+        <select v-model="approveAgentBackend" class="agent-select">
+          <option value="autoglm">AutoGLM（Android / ADB）</option>
+          <option value="midscene">Midscene（HarmonyOS / HDC）</option>
+        </select>
+      </label>
       <button type="button" class="btn ghost" :disabled="loading" @click="load">刷新</button>
     </div>
 
@@ -96,6 +103,9 @@ const error = ref("");
 const filterStatus = ref("pending_approval");
 const busyId = ref(null);
 
+/** 审批通过并实例化时写入机器人实例的测试引擎 */
+const approveAgentBackend = ref("autoglm");
+
 const reject = reactive({
   open: false,
   orderId: null,
@@ -143,7 +153,9 @@ async function approve(id) {
   busyId.value = id;
   error.value = "";
   try {
-    await client.post(`/api/admin/rental-orders/${id}/approve`);
+    await client.post(`/api/admin/rental-orders/${id}/approve`, {
+      test_agent_backend: approveAgentBackend.value,
+    });
     await load();
   } catch (e) {
     error.value = formatApiError(e);
@@ -202,6 +214,27 @@ onMounted(async () => {
   gap: 0.5rem;
   margin-bottom: 1rem;
   flex-wrap: wrap;
+  align-items: center;
+}
+
+.agent-pick {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+  color: #475569;
+}
+
+.agent-pick-label {
+  white-space: nowrap;
+}
+
+.agent-select {
+  font-size: 0.82rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
 }
 
 .banner.err {

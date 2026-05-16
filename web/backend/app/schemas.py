@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
@@ -449,6 +449,15 @@ class RentalOrderCreatedOut(BaseModel):
     message: str = "已生成账单，待管理员审批；审批通过后将自动实例化并分配编号。"
 
 
+class RentalApproveBody(BaseModel):
+    """管理员审批通过并实例化机器人时，选择绑定的测试执行引擎。"""
+
+    test_agent_backend: Literal["autoglm", "midscene"] = Field(
+        default="autoglm",
+        description="autoglm：AutoGLM-Phone（Android/ADB）；midscene：Midscene.js（HarmonyOS/HDC）",
+    )
+
+
 class RentalOrderOut(BaseModel):
     id: int
     user_id: int
@@ -479,6 +488,10 @@ class RobotInstanceOut(BaseModel):
     display_name: str
     display_bio: str
     status: str
+    test_agent_backend: str = Field(
+        default="autoglm",
+        description="执行用例时使用的引擎：autoglm 或 midscene",
+    )
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -487,6 +500,7 @@ class RobotInstanceOut(BaseModel):
 class RobotInstancePatch(BaseModel):
     display_name: Optional[str] = Field(None, max_length=128)
     display_bio: Optional[str] = Field(None, max_length=2000)
+    test_agent_backend: Optional[Literal["autoglm", "midscene"]] = None
 
     @field_validator("display_name", mode="before")
     @classmethod

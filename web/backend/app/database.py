@@ -78,6 +78,18 @@ def ensure_schema() -> None:
             with engine.begin() as conn:
                 if "company_id" not in ricols:
                     conn.execute(text("ALTER TABLE robot_instances ADD COLUMN company_id INTEGER"))
+                if "test_agent_backend" not in ricols:
+                    conn.execute(
+                        text(
+                            "ALTER TABLE robot_instances ADD COLUMN test_agent_backend VARCHAR(32) DEFAULT 'autoglm'"
+                        )
+                    )
+                    conn.execute(
+                        text(
+                            "UPDATE robot_instances SET test_agent_backend = 'autoglm' "
+                            "WHERE test_agent_backend IS NULL OR TRIM(test_agent_backend) = ''"
+                        )
+                    )
     except Exception:
         pass
 

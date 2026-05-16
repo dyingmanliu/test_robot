@@ -30,6 +30,8 @@
           <dd class="mono">#{{ inst.rental_order_id }}</dd>
           <dt>提交租用用户 ID</dt>
           <dd class="mono">{{ inst.leasing_user_id }}</dd>
+          <dt>测试执行引擎</dt>
+          <dd>{{ agentEngineLabel(inst.test_agent_backend) }}（{{ inst.test_agent_backend || "autoglm" }}）</dd>
           <dt>运行状态</dt>
           <dd>{{ inst.status }}</dd>
           <dt>创建时间</dt>
@@ -48,6 +50,16 @@
           <span>简介</span>
           <textarea v-model="draft.display_bio" rows="5" maxlength="2000" />
         </label>
+        <label class="field">
+          <span>测试执行引擎</span>
+          <select v-model="draft.test_agent_backend" class="select-full">
+            <option value="autoglm">AutoGLM（Android / ADB）</option>
+            <option value="midscene">Midscene（HarmonyOS / HDC）</option>
+          </select>
+        </label>
+        <p class="hint small">
+          之后在本平台执行用例时，将固定使用该引擎；需与目标设备类型及环境变量配置一致。
+        </p>
         <button type="button" class="btn primary" :disabled="saving" @click="save">
           {{ saving ? "保存中…" : "保存修改" }}
         </button>
@@ -57,6 +69,7 @@
         <p class="hint muted">您不是该实例的租用提交人，仅可查看。</p>
         <p><strong>展示名称：</strong>{{ inst.display_name || "—" }}</p>
         <p><strong>简介：</strong>{{ inst.display_bio || "—" }}</p>
+        <p><strong>测试执行引擎：</strong>{{ agentEngineLabel(inst.test_agent_backend) }}</p>
       </section>
     </template>
 
@@ -77,7 +90,7 @@ const inst = ref(null);
 const loading = ref(true);
 const error = ref("");
 const saving = ref(false);
-const draft = reactive({ display_name: "", display_bio: "" });
+const draft = reactive({ display_name: "", display_bio: "", test_agent_backend: "autoglm" });
 
 const canEdit = computed(() => {
   if (!inst.value || auth.userId == null) return false;
@@ -92,11 +105,18 @@ function fmt(iso) {
   }
 }
 
+function agentEngineLabel(backend) {
+  const b = String(backend || "autoglm").toLowerCase();
+  if (b === "midscene") return "Midscene";
+  return "AutoGLM";
+}
+
 function applyDraft() {
   const r = inst.value;
   if (!r) return;
   draft.display_name = r.display_name || "";
   draft.display_bio = r.display_bio || "";
+  draft.test_agent_backend = r.test_agent_backend || "autoglm";
 }
 
 async function load() {
@@ -131,6 +151,7 @@ async function save() {
     await client.patch(`/api/robot-instances/${inst.value.id}`, {
       display_name: (draft.display_name || "").trim(),
       display_bio: (draft.display_bio || "").trim(),
+      test_agent_backend: draft.test_agent_backend || "autoglm",
     });
     await load();
   } catch (e) {
@@ -257,11 +278,17 @@ watch(
 }
 
 .field input,
-.field textarea {
+.field textarea,
+.field select.select-full {
   font-size: 0.95rem;
   padding: 0.5rem 0.6rem;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
+}
+
+.field select.select-full {
+  width: 100%;
+  max-width: 100%;
 }
 
 .banner.err {

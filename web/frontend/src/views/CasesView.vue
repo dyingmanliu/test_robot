@@ -75,7 +75,8 @@
         <span class="picker-label">执行用例使用的机器人实例</span>
         <select v-model.number="selectedRobotInstanceId" class="robot-select">
           <option v-for="ins in robotInstances" :key="ins.id" :value="ins.id">
-            {{ ins.instance_code }} · {{ (ins.display_name || "").trim() || ins.catalog_robot_id }}
+            {{ ins.instance_code }} · {{ (ins.display_name || "").trim() || ins.catalog_robot_id }} ·
+            {{ agentEngineLabel(ins.test_agent_backend) }}
           </option>
         </select>
       </label>
@@ -568,6 +569,12 @@ async function remove(c) {
   await client.delete(`/api/test-cases/${c.id}`);
   selectedIds.value = selectedIds.value.filter((id) => id !== c.id);
   await load();
+}
+
+function agentEngineLabel(backend) {
+  const b = String(backend || "autoglm").toLowerCase();
+  if (b === "midscene") return "Midscene";
+  return "AutoGLM";
 }
 
 function statusLabel(s) {
