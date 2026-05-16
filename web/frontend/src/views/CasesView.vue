@@ -138,39 +138,65 @@
         </button>
       </div>
       <div class="status-strip">
-        <span class="status-line">
-          <strong>执行状态：</strong>
-          <span class="badge inline" :class="liveRun.status">{{ statusLabel(liveRun.status) }}</span>
-        </span>
-        <span class="muted small">
-          运行 ID {{ liveRun.id }} · 用例 ID {{ liveRun.case_id }}
-          · 已完成步骤 {{ stepCount(liveRun) }}
-        </span>
-        <p v-if="liveRun.status === 'running' || liveRun.status === 'pending'" class="hint">
-          停止将在<strong>当前这一步</strong>完成后生效（模型推理与设备操作期间无法立刻打断）。
-        </p>
+        <div class="status-strip-main">
+          <span class="status-line">
+            <strong>执行状态：</strong>
+            <span class="badge inline" :class="liveRun.status">{{ statusLabel(liveRun.status) }}</span>
+          </span>
+          <span class="muted small">
+            运行 ID {{ liveRun.id }} · 用例 ID {{ liveRun.case_id }}
+            · 已完成步骤 {{ stepCount(liveRun) }}
+          </span>
+          <p v-if="liveRun.status === 'running' || liveRun.status === 'pending'" class="hint">
+            停止将在<strong>当前这一步</strong>完成后生效（模型推理与设备操作期间无法立刻打断）。
+          </p>
+        </div>
+        <div class="status-progress" aria-label="执行进度">
+          <span class="progress-label">预估进度</span>
+          <span class="progress-pct">{{ runProgressPercent }}%</span>
+          <div class="progress-track">
+            <div
+              class="progress-fill"
+              :class="{ done: runProgressPercent >= 100 }"
+              :style="{ width: `${runProgressPercent}%` }"
+            />
+          </div>
+        </div>
       </div>
-      <p v-if="!liveRun.step_log" class="muted">已排队，等待第一步…</p>
-      <div v-else class="steps">
-        <div
-          v-for="(st, idx) in parseStepLog(liveRun.step_log)"
-          :key="idx"
-          class="step-card"
-          :class="{ finished: st.finished }"
-        >
-          <div class="step-meta">
-            <span class="step-no">第 {{ st.step }} 步</span>
-            <span v-if="st.finished" class="step-tag">结束</span>
+      <div class="exec-console">
+        <aside class="exec-screen-pane">
+          <DeviceScreenMirror
+            :robot-instance-id="selectedRobotInstanceId"
+            :active="screenMirrorActive"
+          />
+        </aside>
+        <div class="exec-log-pane">
+          <h3 class="exec-log-title">执行过程</h3>
+          <div ref="liveLogScrollRef" class="exec-log-scroll">
+            <p v-if="!liveRun.step_log" class="muted log-empty">已排队，等待第一步…</p>
+            <div v-else class="steps">
+              <div
+                v-for="(st, idx) in parseStepLog(liveRun.step_log)"
+                :key="idx"
+                class="step-card"
+                :class="{ finished: st.finished }"
+              >
+                <div class="step-meta">
+                  <span class="step-no">第 {{ st.step }} 步</span>
+                  <span v-if="st.finished" class="step-tag">结束</span>
+                </div>
+                <div v-if="st.thinking" class="step-block">
+                  <span class="step-label">推理</span>
+                  <pre class="step-pre">{{ st.thinking }}</pre>
+                </div>
+                <div v-if="st.action != null" class="step-block">
+                  <span class="step-label">动作</span>
+                  <pre class="step-pre action">{{ formatJson(st.action) }}</pre>
+                </div>
+                <div v-if="st.message" class="step-msg">{{ st.message }}</div>
+              </div>
+            </div>
           </div>
-          <div v-if="st.thinking" class="step-block">
-            <span class="step-label">推理</span>
-            <pre class="step-pre">{{ st.thinking }}</pre>
-          </div>
-          <div v-if="st.action != null" class="step-block">
-            <span class="step-label">动作</span>
-            <pre class="step-pre action">{{ formatJson(st.action) }}</pre>
-          </div>
-          <div v-if="st.message" class="step-msg">{{ st.message }}</div>
         </div>
       </div>
     </div>
@@ -182,30 +208,59 @@
           <span class="badge" :class="r.status">{{ statusLabel(r.status) }}</span>
           <span class="muted small">运行 ID: {{ r.id }} · 用例 ID: {{ r.case_id }}</span>
         </div>
-        <div v-if="r.step_log" class="steps">
-          <div
-            v-for="(st, idx) in parseStepLog(r.step_log)"
-            :key="idx"
-            class="step-card"
-            :class="{ finished: st.finished }"
-          >
-            <div class="step-meta">
-              <span class="step-no">第 {{ st.step }} 步</span>
-              <span v-if="st.finished" class="step-tag">结束</span>
+        <div v-if="r.step_log" class="exec-console exec-console--result">
+          <aside class="exec-screen-pane">
+            <DeviceScreenMirror
+              :robot-instance-id="selectedRobotInstanceId"
+              :active="false"
+            />
+          </aside>
+          <div class="exec-log-pane">
+            <h3 class="exec-log-title">执行过程</h3>
+            <div class="exec-log-scroll">
+              <div class="steps">
+                <div
+                  v-for="(st, idx) in parseStepLog(r.step_log)"
+                  :key="idx"
+                  class="step-card"
+                  :class="{ finished: st.finished }"
+                >
+                  <div class="step-meta">
+                    <span class="step-no">第 {{ st.step }} 步</span>
+                    <span v-if="st.finished" class="step-tag">结束</span>
+                  </div>
+                  <div v-if="st.thinking" class="step-block">
+                    <span class="step-label">推理</span>
+                    <pre class="step-pre">{{ st.thinking }}</pre>
+                  </div>
+                  <div v-if="st.action != null" class="step-block">
+                    <span class="step-label">动作</span>
+                    <pre class="step-pre action">{{ formatJson(st.action) }}</pre>
+                  </div>
+                  <div v-if="st.message" class="step-msg">{{ st.message }}</div>
+                </div>
+              </div>
             </div>
-            <div v-if="st.thinking" class="step-block">
-              <span class="step-label">推理</span>
-              <pre class="step-pre">{{ st.thinking }}</pre>
-            </div>
-            <div v-if="st.action != null" class="step-block">
-              <span class="step-label">动作</span>
-              <pre class="step-pre action">{{ formatJson(st.action) }}</pre>
-            </div>
-            <div v-if="st.message" class="step-msg">{{ st.message }}</div>
           </div>
         </div>
         <pre v-if="r.output_message" class="out summary">{{ r.output_message }}</pre>
         <pre v-if="r.error_trace" class="out err">{{ r.error_trace }}</pre>
+        <div v-if="r.id" class="report-download">
+          <p class="report-desc">
+            测试执行已结束。可下载 Midscene 可视化测试报告（HTML），查看步骤截图与详细执行过程。
+          </p>
+          <button
+            v-if="r.has_report"
+            type="button"
+            class="report-link"
+            @click="downloadReport(r.id)"
+          >
+            下载测试报告
+          </button>
+          <p v-else class="muted small report-none">
+            本次执行未生成可下载报告（非 Midscene 引擎或执行未产出报告文件）。
+          </p>
+        </div>
       </div>
     </div>
 
@@ -319,9 +374,10 @@
 
 <script setup>
 import axios from "axios";
-import { computed, onMounted, reactive, ref } from "vue";
+import { computed, nextTick, onMounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import client, { formatApiError } from "@/api/client";
+import DeviceScreenMirror from "@/components/DeviceScreenMirror.vue";
 import { useAuthStore } from "@/stores/auth";
 
 /** 轮询时短暂断网、502 等不应立刻当作「执行失败」；401 等仍应立即失败 */
@@ -356,6 +412,28 @@ const canStopRun = computed(() => {
   const r = liveRun.value;
   return !!(r && (r.status === "pending" || r.status === "running"));
 });
+
+const screenMirrorActive = computed(() => {
+  const r = liveRun.value;
+  return !!(r && (r.status === "pending" || r.status === "running"));
+});
+
+const liveLogScrollRef = ref(null);
+
+function scrollLiveLogToBottom() {
+  nextTick(() => {
+    const el = liveLogScrollRef.value;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+  });
+}
+
+watch(
+  () => liveRun.value?.step_log,
+  () => {
+    if (liveRun.value) scrollLiveLogToBottom();
+  },
+);
 
 const importMsg = ref("");
 
@@ -659,6 +737,24 @@ function stepCount(run) {
   return parseStepLog(run?.step_log).length;
 }
 
+/** 根据状态与 step_log 条数估算进度（执行中最高约 95%，结束后 100%） */
+function estimateRunProgress(run) {
+  if (!run) return 0;
+  const status = run.status;
+  if (status === "success" || status === "failed" || status === "cancelled") {
+    return 100;
+  }
+  if (status === "pending") return 8;
+  const n = stepCount(run);
+  if (n <= 0) return 12;
+  const base = 12;
+  const span = 83;
+  const estimated = base + span * (1 - Math.exp(-n / 10));
+  return Math.min(95, Math.round(estimated));
+}
+
+const runProgressPercent = computed(() => estimateRunProgress(liveRun.value));
+
 async function stopRun() {
   const id = liveRun.value?.id;
   if (!id) return;
@@ -692,6 +788,26 @@ function formatJson(v) {
     return JSON.stringify(v, null, 2);
   } catch {
     return String(v);
+  }
+}
+
+async function downloadReport(runId) {
+  if (!runId) return;
+  try {
+    const { data } = await client.get(`/api/test-cases/runs/${runId}/report`, {
+      responseType: "blob",
+    });
+    const blob = new Blob([data], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `midscene-report-run-${runId}.html`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    window.alert(formatApiError(e));
   }
 }
 
@@ -739,9 +855,15 @@ async function runSelected() {
         robot_instance_id: selectedRobotInstanceId.value,
       });
       liveRun.value = { ...started };
+      scrollLiveLogToBottom();
       const final = await pollRun(started.id, (data) => {
         liveRun.value = data;
+        scrollLiveLogToBottom();
       });
+      liveRun.value = final;
+      if (["success", "failed", "cancelled"].includes(final.status)) {
+        await new Promise((r) => setTimeout(r, 500));
+      }
       resultRuns.value.push(final);
     }
   } catch (e) {
@@ -954,11 +1076,70 @@ onMounted(bootstrapProjectContext);
 }
 
 .status-strip {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.25rem;
   margin-bottom: 1rem;
   padding: 0.65rem 0.85rem;
   background: #f1f5f9;
   border-radius: 8px;
   border: 1px solid #e2e8f0;
+}
+
+.status-strip-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.status-progress {
+  flex-shrink: 0;
+  width: min(220px, 38%);
+  padding-top: 0.1rem;
+}
+
+.progress-label {
+  display: block;
+  font-size: 0.72rem;
+  color: #64748b;
+  margin-bottom: 0.2rem;
+}
+
+.progress-pct {
+  display: block;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 0.35rem;
+  text-align: right;
+}
+
+.progress-track {
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #38bdf8, #2563eb);
+  border-radius: 999px;
+  transition: width 0.45s ease;
+}
+
+.progress-fill.done {
+  background: linear-gradient(90deg, #4ade80, #16a34a);
+}
+
+@media (max-width: 720px) {
+  .status-strip {
+    flex-direction: column;
+  }
+
+  .status-progress {
+    width: 100%;
+  }
 }
 
 .status-line {
@@ -1057,11 +1238,99 @@ onMounted(bootstrapProjectContext);
   margin-top: 0.75rem;
 }
 
+.report-download {
+  margin-top: 1rem;
+  padding: 0.85rem 1rem;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 10px;
+}
+
+.report-desc {
+  margin: 0 0 0.6rem;
+  font-size: 0.9rem;
+  color: #0c4a6e;
+  line-height: 1.5;
+}
+
+.report-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #2563eb;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.report-link:hover {
+  color: #1d4ed8;
+}
+
+.report-none {
+  margin: 0;
+}
+
+.exec-console {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 1rem;
+  margin-top: 0.75rem;
+  height: 480px;
+  min-height: 420px;
+}
+
+.exec-console--result {
+  margin-top: 0.65rem;
+}
+
+.exec-screen-pane {
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.exec-log-pane {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.exec-log-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.exec-log-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+  background: #f8fafc;
+}
+
+.log-empty {
+  margin: 0;
+  padding: 0.35rem 0;
+}
+
 .steps {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  margin-top: 0.5rem;
+  margin-top: 0;
 }
 
 .step-card {
@@ -1117,8 +1386,24 @@ onMounted(bootstrapProjectContext);
   font-size: 0.8rem;
   white-space: pre-wrap;
   word-break: break-word;
-  max-height: 280px;
+  max-height: 200px;
   overflow: auto;
+}
+
+@media (max-width: 900px) {
+  .exec-console {
+    grid-template-columns: 1fr;
+    height: auto;
+    min-height: 0;
+  }
+
+  .exec-screen-pane {
+    min-height: 280px;
+  }
+
+  .exec-log-scroll {
+    max-height: 420px;
+  }
 }
 
 .step-pre.action {

@@ -80,6 +80,9 @@ def ensure_schema() -> None:
             if "robot_instance_id" not in cols:
                 with engine.begin() as conn:
                     conn.execute(text("ALTER TABLE test_runs ADD COLUMN robot_instance_id INTEGER"))
+            if "report_path" not in cols:
+                with engine.begin() as conn:
+                    conn.execute(text("ALTER TABLE test_runs ADD COLUMN report_path TEXT"))
         if inspector.has_table("users"):
             ucols = {c["name"] for c in inspector.get_columns("users")}
             with engine.begin() as conn:

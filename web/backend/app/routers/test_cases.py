@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
+from fastapi.responses import FileResponse
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
@@ -28,6 +29,8 @@ from app.schemas import (
 )
 from app.services.case_agent_text import parse_steps_json
 from app.services.case_import import parse_import_file, row_to_create
+from app.services.robot_run_guard import busy_run_detail_message, find_active_run_for_instance
+from app.services.run_report import resolve_report_file
 from app.services.case_kb import upsert_case_kb
 from app.services.run_metrics import count_recognition_steps
 from app.test_case_io import revision_to_out, steps_to_json, test_case_to_out
@@ -255,6 +258,25 @@ def get_run(
     return r
 
 
+@router.get("/runs/{run_id}/report")
+def download_run_report(
+    run_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> FileResponse:
+    """下载 Midscene HTML 测试报告（须本次执行已生成 report_path）。"""
+    r = run_scope_query(db, user).filter(TestRun.id == run_id).first()
+    if r is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="执行记录不存在")
+    path = resolve_report_file(r.report_path)
+    filename = f"midscene-report-run-{run_id}{path.suffix or '.html'}"
+    return FileResponse(
+        path,
+        media_type="text/html; charset=utf-8",
+        filename=filename,
+    )
+
+
 @router.post("/runs/{run_id}/cancel", response_model=TestRunOut)
 def cancel_run(
     run_id: int,
@@ -374,6 +396,13 @@ async def run_case(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="无权使用该公司下的该机器人实例，或实例不可用",
+        )
+
+    busy = find_active_run_for_instance(db, inst.id)
+    if busy is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=busy_run_detail_message(busy),
         )
 
     run = TestRun(case_id=tc.id, owner_id=tc.owner_id, robot_instance_id=inst.id, status="pending")

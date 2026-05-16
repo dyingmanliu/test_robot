@@ -79,8 +79,11 @@ def run_midscene_agent_task(
     *,
     on_machine_line: Callable[[dict[str, Any]], None] | None = None,
     should_cancel: Callable[[], bool] | None = None,
-) -> tuple[bool, str]:
-    """通过子进程运行 midscene_agent CLI（--web-dispatch：stdin 为 Web 下发 JSON）。"""
+) -> tuple[bool, str, str | None]:
+    """通过子进程运行 midscene_agent CLI（--web-dispatch：stdin 为 Web 下发 JSON）。
+
+    返回 (成功与否, 结果说明, Midscene HTML 报告路径或 None)。
+    """
     load_dotenv(_REPO_ROOT / ".env")
     mid_root = _REPO_ROOT / "midscene_agent"
     cli_rel = Path("src/cli.ts")
@@ -134,9 +137,10 @@ def run_midscene_agent_task(
 
     final_ok: bool | None = None
     final_message = ""
+    final_report_file: str | None = None
 
     def process_line(raw: str) -> None:
-        nonlocal final_ok, final_message
+        nonlocal final_ok, final_message, final_report_file
         line = raw.strip()
         if not line:
             return
@@ -149,6 +153,9 @@ def run_midscene_agent_task(
         if obj.get("kind") == "done":
             final_ok = bool(obj.get("ok"))
             final_message = str(obj.get("message") or "")
+            rf = obj.get("reportFile")
+            if rf is not None and str(rf).strip():
+                final_report_file = str(rf).strip()
 
     while True:
         if should_cancel and should_cancel():
@@ -157,7 +164,7 @@ def run_midscene_agent_task(
                 proc.wait(timeout=15)
             except subprocess.TimeoutExpired:
                 proc.kill()
-            return False, "执行已取消"
+            return False, "执行已取消", None
 
         try:
             raw = line_q.get(timeout=0.35)
@@ -185,10 +192,10 @@ def run_midscene_agent_task(
         proc.wait(timeout=5)
 
     if final_ok is not None:
-        return final_ok, final_message
+        return final_ok, final_message, final_report_file
 
     code = proc.returncode if proc.returncode is not None else -1
-    return False, f"Midscene 子进程异常结束（exit {code}），未收到结果行"
+    return False, f"Midscene 子进程异常结束（exit {code}），未收到结果行", None
 
 
 def execute_test_run(db: Session, run_id: int) -> None:
@@ -225,6 +232,47 @@ def execute_test_run(db: Session, run_id: int) -> None:
     inst: RobotInstance | None = None
     if run.robot_instance_id is not None:
         inst = db.query(RobotInstance).filter(RobotInstance.id == run.robot_instance_id).first()
+
+    instance_lock = None
+    lock_held = False
+    if run.robot_instance_id is not None:
+        from app.services.robot_run_guard import (
+            busy_run_detail_message,
+            find_active_run_for_instance,
+            instance_execution_lock,
+        )
+
+        def _fail_busy(msg: str) -> None:
+            run.status = "failed"
+            run.output_message = msg
+            run.error_trace = None
+            run.finished_at = datetime.utcnow()
+            db.commit()
+            _run_cancel_events.pop(run_id, None)
+
+        busy = find_active_run_for_instance(db, run.robot_instance_id, exclude_run_id=run_id)
+        if busy is not None:
+            _fail_busy(busy_run_detail_message(busy))
+            return
+
+        instance_lock = instance_execution_lock(run.robot_instance_id)
+        if not instance_lock.acquire(blocking=False):
+            busy = find_active_run_for_instance(db, run.robot_instance_id, exclude_run_id=run_id)
+            _fail_busy(
+                busy_run_detail_message(busy)
+                if busy is not None
+                else "该机器人实例已有任务在执行中，请稍后再试"
+            )
+            return
+        lock_held = True
+
+        busy = find_active_run_for_instance(db, run.robot_instance_id, exclude_run_id=run_id)
+        if busy is not None:
+            instance_lock.release()
+            lock_held = False
+            _fail_busy(busy_run_detail_message(busy))
+            return
+
     backend = (getattr(inst, "test_agent_backend", None) or "autoglm").strip().lower()
     if backend not in ("autoglm", "midscene"):
         backend = "autoglm"
@@ -233,6 +281,7 @@ def execute_test_run(db: Session, run_id: int) -> None:
     run.started_at = datetime.utcnow()
     run.output_message = None
     run.error_trace = None
+    run.report_path = None
     run.step_log = ""
     db.commit()
 
@@ -358,19 +407,24 @@ def execute_test_run(db: Session, run_id: int) -> None:
                 row.error_trace = None
                 row.finished_at = datetime.utcnow()
                 db.commit()
+            if lock_held and instance_lock is not None:
+                instance_lock.release()
             _run_cancel_events.pop(run_id, None)
             return
         else:
             web_dispatch = None
 
         if backend == "midscene":
-            ok, msg = run_midscene_agent_task(
+            from app.services.run_report import normalize_report_path
+
+            ok, msg, report_file = run_midscene_agent_task(
                 web_dispatch,
                 on_machine_line=midscene_obj_to_step,
                 should_cancel=should_cancel,
             )
             row = db.query(TestRun).filter(TestRun.id == run_id).first()
             if row:
+                row.report_path = normalize_report_path(report_file)
                 if cancel_ev.is_set():
                     row.status = "cancelled"
                     row.output_message = msg or "用户已终止执行"
@@ -405,4 +459,6 @@ def execute_test_run(db: Session, run_id: int) -> None:
         if row:
             row.finished_at = datetime.utcnow()
             db.commit()
+        if lock_held and instance_lock is not None:
+            instance_lock.release()
         _run_cancel_events.pop(run_id, None)

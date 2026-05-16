@@ -8,7 +8,9 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.deps import get_current_user
 from app.models import RobotInstance, User
-from app.schemas import RobotInstanceOut, RobotInstancePatch
+from app.schemas import DeviceScreenOut, RobotInstanceOut, RobotInstancePatch
+from app.services.company_scope import can_use_robot_instance
+from app.services.device_screen import capture_device_screen
 
 router = APIRouter(prefix="/robot-instances", tags=["robot-instances"])
 
@@ -44,6 +46,33 @@ def get_my_instance(
     if not _instance_readable(user, inst):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权查看该实例")
     return inst
+
+
+@router.get("/{instance_id}/device-screen", response_model=DeviceScreenOut)
+def get_device_screen(
+    instance_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> DeviceScreenOut:
+    inst = db.query(RobotInstance).filter(RobotInstance.id == instance_id).first()
+    if inst is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="机器人实例不存在")
+    if not can_use_robot_instance(db, user, inst):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权使用该实例")
+    backend = (inst.test_agent_backend or "autoglm").strip().lower()
+    try:
+        frame = capture_device_screen(backend)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"设备投屏截屏失败：{e}",
+        ) from e
+    return DeviceScreenOut(
+        image_base64=frame.image_base64,
+        width=frame.width,
+        height=frame.height,
+        backend=frame.backend,
+    )
 
 
 @router.patch("/{instance_id}", response_model=RobotInstanceOut)

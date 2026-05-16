@@ -290,9 +290,15 @@ class TestRun(Base):
     step_log: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     output_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     error_trace: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    #: Midscene HTML 报告在本机的绝对路径（仅服务端用于下载）
+    report_path: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     started_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     test_case: Mapped["TestCase"] = relationship(back_populates="runs")
     robot_instance: Mapped[Optional["RobotInstance"]] = relationship(back_populates="runs")
+
+    @property
+    def has_report(self) -> bool:
+        return bool((self.report_path or "").strip())
 

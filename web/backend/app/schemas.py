@@ -301,6 +301,7 @@ class TestRunOut(BaseModel):
     step_log: Optional[str] = None
     output_message: Optional[str]
     error_trace: Optional[str]
+    has_report: bool = False
     started_at: Optional[datetime]
     finished_at: Optional[datetime]
 
@@ -535,6 +536,16 @@ class RobotInstancePatch(BaseModel):
         if isinstance(v, str):
             return v.strip()[:2000]
         return v
+
+
+class DeviceScreenOut(BaseModel):
+    """设备当前画面（Base64 PNG），供 Web 投屏轮询。"""
+
+    image_base64: str
+    width: int
+    height: int
+    backend: str
+    mime_type: str = "image/png"
 
 
 class RunCaseBody(BaseModel):
