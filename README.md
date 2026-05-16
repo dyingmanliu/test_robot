@@ -22,6 +22,12 @@
 - **依赖**：根目录 [`requirements.txt`](./requirements.txt)；运行时读取仓库根目录 **`.env`**（API Key、模型、ADB 设备等）。
 - **CLI 入口**：仓库根目录 [`main.py`](./main.py)，可在终端直接发起单次任务（与 Web 执行共用同一套 Agent 逻辑）。
 
+### 1b. HarmonyOS Agent（`midscene_agent/`）
+
+- **职责**：基于字节跳动 **[Midscene.js](https://midscenejs.com/)**（`@midscene/harmony`），通过 **HDC** 对 **HarmonyOS 6.x / NEXT** APP 做视觉驱动的自然语言自动化测试。
+- **依赖**：Node.js ≥ 18；[`midscene_agent/package.json`](./midscene_agent/package.json)；模型变量 `MIDSCENE_MODEL_*`、设备变量 `HDC_*`（见 [`midscene_agent/.env.example`](./midscene_agent/.env.example) 或根目录 `.env`）。
+- **CLI**：`cd midscene_agent && npm install && npm run task -- "自然语言任务"`；示例 `npm run demo`；详见 [`midscene_agent/README.md`](./midscene_agent/README.md)。
+
 ### 2. Web 后端（`web/backend/`）
 
 | 模块 | 路径 / 路由前缀 | 功能摘要 |
