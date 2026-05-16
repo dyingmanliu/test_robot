@@ -312,6 +312,7 @@ def execute_test_run(db: Session, run_id: int) -> None:
 
     from app.services.case_agent_text import build_agent_task_text
 
+    case_format = (getattr(case, "case_format", None) or "structured").strip().lower()
     agent_task = build_agent_task_text(
         task_text=case.task_text,
         preconditions=getattr(case, "preconditions", "") or "",
@@ -320,16 +321,49 @@ def execute_test_run(db: Session, run_id: int) -> None:
 
     try:
         if backend == "midscene":
-            web_dispatch: dict[str, Any] = {
-                "version": 1,
-                "run_id": run_id,
-                "case_id": case.id,
-                "robot_instance_id": run.robot_instance_id,
-                "agent_task": agent_task,
-                "task_text": case.task_text,
-                "preconditions": getattr(case, "preconditions", "") or "",
-                "steps_json": getattr(case, "steps_json", None) or "[]",
-            }
+            if case_format == "yaml":
+                from app.services.case_yaml import validate_case_yaml
+
+                yaml_script = validate_case_yaml(getattr(case, "case_yaml", "") or "")
+                web_dispatch = {
+                    "version": 1,
+                    "run_id": run_id,
+                    "case_id": case.id,
+                    "robot_instance_id": run.robot_instance_id,
+                    "execution_mode": "yaml",
+                    "yaml_script": yaml_script,
+                    "case_format": "yaml",
+                    "task_text": case.task_text,
+                    "preconditions": getattr(case, "preconditions", "") or "",
+                    "steps_json": getattr(case, "steps_json", None) or "[]",
+                }
+            else:
+                web_dispatch = {
+                    "version": 1,
+                    "run_id": run_id,
+                    "case_id": case.id,
+                    "robot_instance_id": run.robot_instance_id,
+                    "execution_mode": "natural",
+                    "agent_task": agent_task,
+                    "case_format": "structured",
+                    "task_text": case.task_text,
+                    "preconditions": getattr(case, "preconditions", "") or "",
+                    "steps_json": getattr(case, "steps_json", None) or "[]",
+                }
+        elif case_format == "yaml":
+            row = db.query(TestRun).filter(TestRun.id == run_id).first()
+            if row:
+                row.status = "failed"
+                row.output_message = "YAML 用例须绑定 Midscene 机器人实例执行"
+                row.error_trace = None
+                row.finished_at = datetime.utcnow()
+                db.commit()
+            _run_cancel_events.pop(run_id, None)
+            return
+        else:
+            web_dispatch = None
+
+        if backend == "midscene":
             ok, msg = run_midscene_agent_task(
                 web_dispatch,
                 on_machine_line=midscene_obj_to_step,
@@ -347,7 +381,7 @@ def execute_test_run(db: Session, run_id: int) -> None:
                     row.status = "failed"
                     row.output_message = msg
                     row.error_trace = None
-        else:
+        elif web_dispatch is None:
             outcome = run_phone_agent_task(agent_task, on_step=on_autoglm_step, should_cancel=should_cancel)
             row = db.query(TestRun).filter(TestRun.id == run_id).first()
             if row:

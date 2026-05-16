@@ -111,6 +111,9 @@ class TestCase(Base):
     task_text: Mapped[str] = mapped_column(Text)
     preconditions: Mapped[str] = mapped_column(Text, default="")
     steps_json: Mapped[str] = mapped_column(Text, default="[]")
+    #: structured=表单步骤；yaml=Midscene YAML（仅 Midscene 机器人执行）
+    case_format: Mapped[str] = mapped_column(String(16), default="structured", index=True)
+    case_yaml: Mapped[str] = mapped_column(Text, default="")
     priority: Mapped[str] = mapped_column(String(16), default="P2")
     revision_no: Mapped[int] = mapped_column(Integer, default=1)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
@@ -133,6 +136,8 @@ class TestCaseRevision(Base):
     task_text: Mapped[str] = mapped_column(Text)
     preconditions: Mapped[str] = mapped_column(Text, default="")
     steps_json: Mapped[str] = mapped_column(Text, default="[]")
+    case_format: Mapped[str] = mapped_column(String(16), default="structured")
+    case_yaml: Mapped[str] = mapped_column(Text, default="")
     priority: Mapped[str] = mapped_column(String(16), default="P2")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 

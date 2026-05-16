@@ -86,9 +86,27 @@ def _append_revision_snapshot(db: Session, tc: TestCase) -> None:
             task_text=tc.task_text,
             preconditions=tc.preconditions or "",
             steps_json=tc.steps_json or "[]",
+            case_format=getattr(tc, "case_format", None) or "structured",
+            case_yaml=getattr(tc, "case_yaml", None) or "",
             priority=tc.priority or "P2",
         )
     )
+
+
+def _validate_test_case_row(tc: TestCase) -> None:
+    fmt = (getattr(tc, "case_format", None) or "structured").strip().lower()
+    if fmt == "yaml":
+        from app.services.case_yaml import validate_case_yaml
+
+        tc.case_yaml = validate_case_yaml(getattr(tc, "case_yaml", "") or "")
+        tc.case_format = "yaml"
+        return
+    tc.case_format = "structured"
+    if not (tc.task_text or "").strip() and not parse_steps_json(tc.steps_json):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="执行说明与步骤不能同时为空",
+        )
 
 
 @router.get("", response_model=list[TestCaseOut])
@@ -121,9 +139,12 @@ def create_case(
         task_text=(body.task_text or "").strip(),
         preconditions=(body.preconditions or "").strip(),
         steps_json=steps_to_json(body.steps),
+        case_format=body.case_format,
+        case_yaml=(body.case_yaml or "").strip(),
         priority=(body.priority or "P2").strip()[:16],
         revision_no=1,
     )
+    _validate_test_case_row(tc)
     db.add(tc)
     db.commit()
     db.refresh(tc)
@@ -304,12 +325,12 @@ def update_case(
         tc.steps_json = steps_to_json([CaseStepJson.model_validate(s) for s in data["steps"]])
     if "priority" in data and data["priority"] is not None:
         tc.priority = data["priority"].strip()[:16]
+    if "case_format" in data and data["case_format"] is not None:
+        tc.case_format = data["case_format"]
+    if "case_yaml" in data and data["case_yaml"] is not None:
+        tc.case_yaml = data["case_yaml"].strip()
 
-    if not (tc.task_text or "").strip() and not parse_steps_json(tc.steps_json):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="执行说明与步骤不能同时为空",
-        )
+    _validate_test_case_row(tc)
 
     tc.revision_no = (tc.revision_no or 1) + 1
     tc.updated_at = datetime.utcnow()

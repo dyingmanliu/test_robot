@@ -1,26 +1,38 @@
 /**
- * Web 测试平台通过 stdin 下发的任务载荷（与 Python build_agent_task_text 对齐字段）。
+ * Web 测试平台通过 stdin 下发的任务载荷。
  */
 
 export const WEB_DISPATCH_VERSION = 1;
+
+export type WebExecutionMode = 'natural' | 'yaml';
 
 export interface WebTestDispatch {
   version: number;
   run_id?: number;
   case_id?: number;
   robot_instance_id?: number | null;
-  /** 与后端 build_agent_task_text 一致的可执行全文 */
-  agent_task: string;
+  /** natural：自然语言 agent_task；yaml：执行 yaml_script */
+  execution_mode?: WebExecutionMode;
+  /** structured 模式下的可执行全文 */
+  agent_task?: string;
+  /** Midscene YAML 脚本（须含 tasks:） */
+  yaml_script?: string;
   task_text?: string;
   preconditions?: string;
-  /** 原始 JSON 字符串或已解析数组 */
   steps_json?: string | unknown[];
+  case_format?: string;
 }
 
 function optUInt(v: unknown): number | undefined {
   if (v === undefined || v === null) return undefined;
   const n = Number(v);
   return Number.isFinite(n) ? n : undefined;
+}
+
+function parseExecutionMode(v: unknown): WebExecutionMode {
+  const m = String(v ?? 'natural').toLowerCase();
+  if (m === 'yaml') return 'yaml';
+  return 'natural';
 }
 
 export function parseWebDispatchJson(raw: string): WebTestDispatch {
@@ -42,9 +54,22 @@ export function parseWebDispatchJson(raw: string): WebTestDispatch {
   if (!Number.isFinite(version) || version < 1) {
     throw new Error('Web 下发任务 version 无效');
   }
-  const agent_task = String(o.agent_task ?? '').trim();
-  if (!agent_task) {
-    throw new Error('Web 下发任务缺少 agent_task 或内容为空');
+
+  const execution_mode = parseExecutionMode(
+    o.execution_mode ?? (o.case_format === 'yaml' ? 'yaml' : 'natural'),
+  );
+
+  const agent_task =
+    o.agent_task !== undefined ? String(o.agent_task).trim() : undefined;
+  const yaml_script =
+    o.yaml_script !== undefined ? String(o.yaml_script).trim() : undefined;
+
+  if (execution_mode === 'yaml') {
+    if (!yaml_script) {
+      throw new Error('YAML 模式缺少 yaml_script');
+    }
+  } else if (!agent_task) {
+    throw new Error('自然语言模式缺少 agent_task 或内容为空');
   }
 
   const rid = o.robot_instance_id;
@@ -63,10 +88,14 @@ export function parseWebDispatchJson(raw: string): WebTestDispatch {
     run_id: optUInt(o.run_id),
     case_id: optUInt(o.case_id),
     robot_instance_id,
+    execution_mode,
     agent_task,
+    yaml_script,
     task_text: o.task_text !== undefined ? String(o.task_text) : undefined,
     preconditions:
       o.preconditions !== undefined ? String(o.preconditions) : undefined,
     steps_json: o.steps_json as string | unknown[] | undefined,
+    case_format:
+      o.case_format !== undefined ? String(o.case_format) : undefined,
   };
 }

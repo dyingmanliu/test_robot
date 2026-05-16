@@ -55,6 +55,23 @@ def ensure_schema() -> None:
                     conn.execute(text("ALTER TABLE test_cases ADD COLUMN priority VARCHAR(16) DEFAULT 'P2'"))
                 if "revision_no" not in tc_cols:
                     conn.execute(text("ALTER TABLE test_cases ADD COLUMN revision_no INTEGER DEFAULT 1"))
+                if "case_format" not in tc_cols:
+                    conn.execute(
+                        text("ALTER TABLE test_cases ADD COLUMN case_format VARCHAR(16) DEFAULT 'structured'")
+                    )
+                if "case_yaml" not in tc_cols:
+                    conn.execute(text("ALTER TABLE test_cases ADD COLUMN case_yaml TEXT DEFAULT ''"))
+        if inspector.has_table("test_case_revisions"):
+            rev_cols = {c["name"] for c in inspector.get_columns("test_case_revisions")}
+            with engine.begin() as conn:
+                if "case_format" not in rev_cols:
+                    conn.execute(
+                        text(
+                            "ALTER TABLE test_case_revisions ADD COLUMN case_format VARCHAR(16) DEFAULT 'structured'"
+                        )
+                    )
+                if "case_yaml" not in rev_cols:
+                    conn.execute(text("ALTER TABLE test_case_revisions ADD COLUMN case_yaml TEXT DEFAULT ''"))
         if inspector.has_table("test_runs"):
             cols = {c["name"] for c in inspector.get_columns("test_runs")}
             if "step_log" not in cols:

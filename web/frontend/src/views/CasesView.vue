@@ -93,6 +93,7 @@
             </th>
             <th>标题</th>
             <th>优先级</th>
+            <th>格式</th>
             <th>步骤</th>
             <th>执行说明</th>
             <th class="narrow">操作</th>
@@ -105,6 +106,7 @@
             </td>
             <td>{{ c.title }}</td>
             <td>{{ c.priority || "—" }}</td>
+            <td class="muted small">{{ formatLabel(c.case_format) }}</td>
             <td class="muted small">{{ stepPreview(c) }}</td>
             <td class="task">{{ truncate(c.task_text, 80) }}</td>
             <td class="ops">
@@ -225,6 +227,37 @@
             <option value="P3">P3</option>
           </select>
         </label>
+        <fieldset class="field format-field">
+          <span class="format-label">用例格式</span>
+          <label class="format-opt">
+            <input v-model="dialog.case_format" type="radio" value="structured" />
+            结构化（步骤 + 执行说明）
+          </label>
+          <label class="format-opt">
+            <input v-model="dialog.case_format" type="radio" value="yaml" />
+            Midscene YAML（须使用 Midscene 机器人执行）
+          </label>
+        </fieldset>
+        <template v-if="dialog.case_format === 'yaml'">
+          <label class="field">
+            <span>Midscene YAML 脚本</span>
+            <textarea
+              v-model="dialog.case_yaml"
+              class="yaml-editor"
+              rows="16"
+              spellcheck="false"
+              placeholder="须包含 tasks: 段"
+            ></textarea>
+          </label>
+          <p class="muted small">
+            参考
+            <a href="https://midscenejs.com/automate-with-scripts-in-yaml" target="_blank" rel="noopener"
+              >Midscene YAML 文档</a
+            >。设备由服务端 HDC 连接。
+          </p>
+          <button type="button" class="btn ghost mini" @click="fillYamlTemplate">填入示例模板</button>
+        </template>
+        <template v-else>
         <label class="field">
           <span>前置条件</span>
           <textarea v-model="dialog.preconditions" rows="2" placeholder="环境、账号、数据准备等"></textarea>
@@ -244,6 +277,7 @@
           <textarea v-model="dialog.task_text" rows="4"></textarea>
         </label>
         <p class="muted small">保存时至少需要「执行说明」或一条有效步骤。</p>
+        </template>
         <p v-if="dialog.error" class="err">{{ dialog.error }}</p>
         <div class="modal-actions">
           <button type="button" class="btn ghost" @click="dialog.open = false">取消</button>
@@ -325,6 +359,15 @@ const canStopRun = computed(() => {
 
 const importMsg = ref("");
 
+const DEFAULT_YAML_TEMPLATE = `# Midscene HarmonyOS 用例（runYaml 仅执行 tasks 段；设备由服务端 HDC 连接）
+tasks:
+  - name: 示例任务
+    flow:
+      - ai: 打开设置应用
+      - sleep: 1000
+      - aiAssert: 页面显示设置项列表
+`;
+
 const dialog = reactive({
   open: false,
   editing: false,
@@ -333,6 +376,8 @@ const dialog = reactive({
   task_text: "",
   preconditions: "",
   priority: "P2",
+  case_format: "structured",
+  case_yaml: "",
   steps: [],
   error: "",
 });
@@ -433,9 +478,20 @@ function truncate(s, n) {
   return s.length <= n ? s : `${s.slice(0, n)}…`;
 }
 
+function formatLabel(fmt) {
+  return String(fmt || "structured").toLowerCase() === "yaml" ? "YAML" : "结构化";
+}
+
 function stepPreview(c) {
+  if (String(c.case_format || "").toLowerCase() === "yaml") return "YAML";
   const n = Array.isArray(c.steps) ? c.steps.length : 0;
   return n ? `${n} 步` : "—";
+}
+
+function fillYamlTemplate() {
+  if (!dialog.case_yaml.trim()) {
+    dialog.case_yaml = DEFAULT_YAML_TEMPLATE;
+  }
 }
 
 function fmtTime(iso) {
@@ -463,6 +519,8 @@ function openCreate() {
   dialog.task_text = "";
   dialog.preconditions = "";
   dialog.priority = "P2";
+  dialog.case_format = "structured";
+  dialog.case_yaml = "";
   dialog.steps = [{ description: "", expected: "" }];
   dialog.error = "";
 }
@@ -475,6 +533,8 @@ function openEdit(c) {
   dialog.task_text = c.task_text || "";
   dialog.preconditions = c.preconditions || "";
   dialog.priority = c.priority || "P2";
+  dialog.case_format = c.case_format || "structured";
+  dialog.case_yaml = c.case_yaml || "";
   const st = Array.isArray(c.steps) && c.steps.length ? c.steps : [];
   dialog.steps = st.length
     ? st.map((x) => ({
@@ -518,7 +578,12 @@ async function saveDialog() {
     return;
   }
   const stepsPayload = buildStepsPayload();
-  if (!dialog.task_text.trim() && stepsPayload.length === 0) {
+  if (dialog.case_format === "yaml") {
+    if (!dialog.case_yaml.trim()) {
+      dialog.error = "请填写 Midscene YAML 脚本";
+      return;
+    }
+  } else if (!dialog.task_text.trim() && stepsPayload.length === 0) {
     dialog.error = "请填写执行说明或至少一条步骤";
     return;
   }
@@ -528,6 +593,8 @@ async function saveDialog() {
       task_text: dialog.task_text.trim(),
       preconditions: (dialog.preconditions || "").trim(),
       priority: dialog.priority,
+      case_format: dialog.case_format,
+      case_yaml: dialog.case_format === "yaml" ? dialog.case_yaml : "",
       steps: stepsPayload,
     };
     if (dialog.editing && dialog.id) {
@@ -1141,6 +1208,37 @@ textarea {
   max-width: 720px;
   max-height: 90vh;
   overflow-y: auto;
+}
+
+.format-field {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.65rem 0.75rem;
+}
+
+.format-label {
+  display: block;
+  font-size: 0.82rem;
+  color: #64748b;
+  margin-bottom: 0.4rem;
+}
+
+.format-opt {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  font-size: 0.88rem;
+  color: #334155;
+  margin-bottom: 0.35rem;
+  cursor: pointer;
+}
+
+.yaml-editor {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .step-row {

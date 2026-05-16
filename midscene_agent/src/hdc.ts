@@ -9,11 +9,26 @@ export interface HdcTarget {
   deviceId: string;
 }
 
-function hdcBin(hdcHome?: string): string {
-  if (hdcHome?.trim()) {
-    return `${hdcHome.replace(/\/$/, '')}/hdc`;
+/**
+ * 解析 hdc 可执行文件完整路径。
+ * HDC_HOME 应为 toolchains 目录；若误传已含 /hdc 的路径也会兼容。
+ */
+export function resolveHdcExecutablePath(hdcHomeOrBin?: string): string {
+  const raw = hdcHomeOrBin?.trim();
+  if (!raw) {
+    if (process.env.HDC_HOME?.trim()) {
+      return resolveHdcExecutablePath(process.env.HDC_HOME);
+    }
+    return 'hdc';
   }
-  return 'hdc';
+  if (raw.endsWith('/hdc') || raw.endsWith('\\hdc')) {
+    return raw;
+  }
+  return `${raw.replace(/\/$/, '')}/hdc`;
+}
+
+function hdcBin(hdcHome?: string): string {
+  return resolveHdcExecutablePath(hdcHome);
 }
 
 async function runHdc(args: string[], hdcHome?: string): Promise<string> {
@@ -29,7 +44,13 @@ async function runHdc(args: string[], hdcHome?: string): Promise<string> {
     if (e.code === 'ENOENT') {
       throw new Error(
         `未找到 HDC 命令 (${bin})。请安装 DevEco Studio / HarmonyOS 命令行工具，` +
-          '并将 hdc 加入 PATH，或设置 HDC_HOME 指向 hdc 所在目录。',
+          '并将 hdc 加入 PATH，或设置 HDC_HOME 指向 toolchains 目录（内含 hdc 可执行文件）。',
+      );
+    }
+    if (e.code === 'EACCES') {
+      throw new Error(
+        `无法执行 HDC (${bin})。若路径是目录，请设置 HDC_HOME 为 toolchains 目录而非目录本身；` +
+          `确认文件存在且可执行: chmod +x .../toolchains/hdc。原始错误: ${e.message}`,
       );
     }
     throw new Error(

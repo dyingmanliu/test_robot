@@ -15,7 +15,7 @@ import {
   loadAgentConfig,
   type MidsceneAgentConfig,
 } from './config.js';
-import { resolveDeviceId } from './hdc.js';
+import { resolveDeviceId, resolveHdcExecutablePath } from './hdc.js';
 
 export interface AgentRunOutcome {
   ok: boolean;
@@ -61,9 +61,7 @@ export class HarmonyTestAgent {
       const deviceOpts: ConstructorParameters<typeof HarmonyDevice>[1] = {
         autoDismissKeyboard: this.cfg.autoDismissKeyboard,
       };
-      if (this.cfg.hdcHome) {
-        deviceOpts.hdcPath = `${this.cfg.hdcHome.replace(/\/$/, '')}/hdc`;
-      }
+      deviceOpts.hdcPath = resolveHdcExecutablePath(this.cfg.hdcHome);
 
       device = new HarmonyDevice(deviceId, deviceOpts);
       agent = new HarmonyAgent(device, {
@@ -119,9 +117,7 @@ export class HarmonyTestAgent {
       const deviceOpts: ConstructorParameters<typeof HarmonyDevice>[1] = {
         autoDismissKeyboard: this.cfg.autoDismissKeyboard,
       };
-      if (this.cfg.hdcHome) {
-        deviceOpts.hdcPath = `${this.cfg.hdcHome.replace(/\/$/, '')}/hdc`;
-      }
+      deviceOpts.hdcPath = resolveHdcExecutablePath(this.cfg.hdcHome);
 
       device = new HarmonyDevice(deviceId, deviceOpts);
       agent = new HarmonyAgent(device, {
@@ -164,11 +160,24 @@ export class HarmonyTestAgent {
     }
   }
 
+  /**
+   * 执行 Midscene YAML 脚本（仅 tasks 段；设备由当前 Agent 连接）。
+   */
+  async runYamlScript(
+    yamlScript: string,
+    options: { onStep?: StepCallback } = {},
+  ): Promise<AgentRunOutcome> {
+    const { runHarmonyYamlScript } = await import('./yaml_runner.js');
+    return runHarmonyYamlScript(yamlScript, this.cfg, options);
+  }
+
   private async resolveDeviceId(): Promise<string> {
     if (this.cfg.deviceId) {
       return resolveDeviceId(this.cfg.deviceId, this.cfg.hdcHome);
     }
-    const devices = await getConnectedDevices();
+    const devices = await getConnectedDevices(
+      resolveHdcExecutablePath(this.cfg.hdcHome),
+    );
     if (devices.length) {
       return devices[0].deviceId;
     }

@@ -57,6 +57,7 @@ async function main(): Promise<number> {
 
   let task = '';
   let webPayload: WebTestDispatch | null = null;
+  let webYamlMode = false;
 
   if (webDispatch) {
     const raw = await readStdinAll();
@@ -66,7 +67,10 @@ async function main(): Promise<number> {
       console.error(e instanceof Error ? e.message : String(e));
       return 1;
     }
-    task = webPayload.agent_task;
+    webYamlMode = webPayload.execution_mode === 'yaml';
+    task = webYamlMode
+      ? (webPayload.yaml_script ?? '')
+      : (webPayload.agent_task ?? '');
   } else {
     task = positionals.join(' ').trim();
     if (!task) {
@@ -77,7 +81,12 @@ async function main(): Promise<number> {
   if (!task && !values.steps) {
     console.error('用法: npm run task -- "自然语言任务"');
     console.error('  或多步: npm run task -- --steps "步骤1" "步骤2"');
-    console.error('  Web 下发: printf \'%s\' \'{"version":1,"agent_task":"..."}\' | npm run task -- --web-dispatch');
+    console.error(
+      '  Web 自然语言: printf \'%s\' \'{"version":1,"execution_mode":"natural","agent_task":"..."}\' | npm run task -- --web-dispatch',
+    );
+    console.error(
+      '  Web YAML: printf \'%s\' \'{"version":1,"execution_mode":"yaml","yaml_script":"tasks:\\n  - ..."}\' | npm run task -- --web-dispatch',
+    );
     return 1;
   }
 
@@ -87,6 +96,7 @@ async function main(): Promise<number> {
         kind: 'meta',
         source: 'web',
         version: webPayload.version,
+        execution_mode: webPayload.execution_mode ?? 'natural',
         run_id: webPayload.run_id,
         case_id: webPayload.case_id,
         robot_instance_id: webPayload.robot_instance_id,
@@ -135,6 +145,8 @@ async function main(): Promise<number> {
   if (values.steps) {
     const steps = positionals.map((s) => s.trim()).filter(Boolean);
     outcome = await agent.runSteps(steps, { onStep });
+  } else if (webYamlMode) {
+    outcome = await agent.runYamlScript(task, { onStep });
   } else {
     outcome = await agent.run(task, { onStep });
   }
