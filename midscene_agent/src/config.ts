@@ -53,6 +53,77 @@ export function loadAgentConfig(
   };
 }
 
+/** 若未单独配置 Midscene，则从 Web/AutoGLM 共用的智谱等变量推导（见 model-common-config） */
+export function applySharedModelEnvFallbacks(): void {
+  const setIfEmpty = (key: string, value: string | undefined) => {
+    if (value?.trim() && !process.env[key]?.trim()) {
+      process.env[key] = value.trim();
+    }
+  };
+
+  const baseUrl =
+    process.env.MIDSCENE_MODEL_BASE_URL?.trim() ||
+    process.env.OPENAI_BASE_URL?.trim() ||
+    'https://open.bigmodel.cn/api/paas/v4';
+  setIfEmpty('MIDSCENE_MODEL_BASE_URL', baseUrl);
+
+  const isDashScope = (process.env.MIDSCENE_MODEL_BASE_URL || baseUrl)
+    .toLowerCase()
+    .includes('dashscope');
+  const apiKey =
+    process.env.MIDSCENE_MODEL_API_KEY?.trim() ||
+    (isDashScope ? process.env.DASHSCOPE_API_KEY?.trim() : undefined) ||
+    (!isDashScope
+      ? process.env.BIGMODEL_API_KEY?.trim() ||
+        process.env.ZHIPU_API_KEY?.trim()
+      : undefined) ||
+    process.env.OPENAI_API_KEY?.trim();
+  setIfEmpty('MIDSCENE_MODEL_API_KEY', apiKey);
+
+  const phoneModel = (process.env.PHONE_AGENT_MODEL || 'autoglm-phone').trim();
+  const modelName = process.env.MIDSCENE_MODEL_NAME?.trim() || phoneModel;
+  setIfEmpty('MIDSCENE_MODEL_NAME', modelName);
+
+  if (!process.env.MIDSCENE_MODEL_FAMILY?.trim()) {
+    const name = (process.env.MIDSCENE_MODEL_NAME || modelName).toLowerCase();
+    let family = 'glm-v';
+    if (name.includes('autoglm')) {
+      family = 'auto-glm';
+    } else if (name.includes('glm-5v')) {
+      family = 'glm-v';
+    } else if (name.includes('qwen3.6')) {
+      family = 'qwen3.6';
+    } else if (name.includes('qwen3.5') || name.includes('qwen3')) {
+      family = 'qwen3.5';
+    } else if (name.includes('qwen')) {
+      family = 'qwen3-vl';
+    } else if (name.includes('doubao')) {
+      family = 'doubao-seed';
+    } else if (name.includes('gemini')) {
+      family = 'gemini';
+    } else if (name.includes('gpt-5')) {
+      family = 'gpt-5';
+    }
+    process.env.MIDSCENE_MODEL_FAMILY = family;
+  }
+
+  // auto-glm 仅负责操作规划；aiAssert/aiQuery 需 Insight 模型（见 model-common-config）
+  const family = (process.env.MIDSCENE_MODEL_FAMILY || '').toLowerCase();
+  if (family.includes('auto-glm') || family === 'auto-glm-multilingual') {
+    const insightKey =
+      process.env.MIDSCENE_INSIGHT_MODEL_API_KEY?.trim() || apiKey;
+    setIfEmpty('MIDSCENE_INSIGHT_MODEL_API_KEY', insightKey);
+    setIfEmpty(
+      'MIDSCENE_INSIGHT_MODEL_BASE_URL',
+      process.env.MIDSCENE_MODEL_BASE_URL?.trim() || baseUrl,
+    );
+    setIfEmpty('MIDSCENE_INSIGHT_MODEL_NAME', 'glm-4.6v');
+    setIfEmpty('MIDSCENE_INSIGHT_MODEL_FAMILY', 'glm-v');
+  }
+}
+
+applySharedModelEnvFallbacks();
+
 /** Midscene 模型相关变量见 https://midscenejs.com/model-config */
 export function assertMidsceneModelEnv(): void {
   const missing: string[] = [];

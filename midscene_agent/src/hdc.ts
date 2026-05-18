@@ -13,11 +13,23 @@ export interface HdcTarget {
  * 解析 hdc 可执行文件完整路径。
  * HDC_HOME 应为 toolchains 目录；若误传已含 /hdc 的路径也会兼容。
  */
+function isPlaceholderHdcHome(value: string): boolean {
+  const v = value.toLowerCase();
+  return (
+    v.includes('/path/to') ||
+    v.includes('your-') ||
+    v.includes('replace-with') ||
+    v === 'hdc' ||
+    v === 'bin'
+  );
+}
+
 export function resolveHdcExecutablePath(hdcHomeOrBin?: string): string {
   const raw = hdcHomeOrBin?.trim();
-  if (!raw) {
-    if (process.env.HDC_HOME?.trim()) {
-      return resolveHdcExecutablePath(process.env.HDC_HOME);
+  if (!raw || isPlaceholderHdcHome(raw)) {
+    const envHome = process.env.HDC_HOME?.trim();
+    if (envHome && !isPlaceholderHdcHome(envHome)) {
+      return resolveHdcExecutablePath(envHome);
     }
     return 'hdc';
   }

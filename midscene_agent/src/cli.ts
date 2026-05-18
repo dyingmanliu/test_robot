@@ -176,4 +176,27 @@ async function readStdinTask(): Promise<string> {
   return readStdinAll();
 }
 
-main().then((code) => process.exit(code));
+function emitMachineDone(ok: boolean, message: string, reportFile?: string): void {
+  process.stdout.write(
+    `${JSON.stringify({
+      kind: 'done',
+      ok,
+      message,
+      reportFile: reportFile ?? undefined,
+    })}\n`,
+  );
+}
+
+main()
+  .then((code) => process.exit(code))
+  .catch((err: unknown) => {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(msg);
+    const webDispatch = process.argv.includes('--web-dispatch');
+    const machineOut =
+      process.argv.includes('--machine-out') || webDispatch;
+    if (machineOut) {
+      emitMachineDone(false, msg);
+    }
+    process.exit(1);
+  });

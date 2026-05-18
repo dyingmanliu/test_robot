@@ -138,6 +138,7 @@ def run_midscene_agent_task(
     final_ok: bool | None = None
     final_message = ""
     final_report_file: str | None = None
+    non_json_lines: list[str] = []
 
     def process_line(raw: str) -> None:
         nonlocal final_ok, final_message, final_report_file
@@ -147,6 +148,7 @@ def run_midscene_agent_task(
         try:
             obj: dict[str, Any] = json.loads(line)
         except json.JSONDecodeError:
+            non_json_lines.append(line)
             return
         if on_machine_line:
             on_machine_line(obj)
@@ -195,6 +197,15 @@ def run_midscene_agent_task(
         return final_ok, final_message, final_report_file
 
     code = proc.returncode if proc.returncode is not None else -1
+    detail = ""
+    for candidate in reversed(non_json_lines):
+        if candidate.startswith("Error:"):
+            detail = candidate.removeprefix("Error:").strip()
+            break
+    if not detail and non_json_lines:
+        detail = non_json_lines[-1][:500]
+    if detail:
+        return False, detail, None
     return False, f"Midscene 子进程异常结束（exit {code}），未收到结果行", None
 
 
