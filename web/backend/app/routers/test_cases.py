@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from typing import Optional
@@ -17,9 +18,12 @@ from app.models import Project, RobotInstance, TestCase, TestCaseRevision, TestR
 from app.rbac import can_view_all_cases, case_scope_filter, run_scope_query
 from app.services.company_scope import can_use_robot_instance, project_readable_by_user
 from app.schemas import (
+    CaseGenerateMetaOut,
     CaseImportResultOut,
     CaseStepJson,
     TestCaseCreate,
+    TestCaseGenerateIn,
+    TestCaseGenerateOut,
     TestCaseOut,
     TestCaseRevisionOut,
     TestCaseUpdate,
@@ -27,6 +31,7 @@ from app.schemas import (
     TestRunOut,
     RunCaseBody,
 )
+from app.services.case_generation import CaseGeneratorError, generate_case_draft
 from app.services.case_agent_text import parse_steps_json
 from app.services.case_import import parse_import_file, row_to_create
 from app.services.robot_run_guard import busy_run_detail_message, find_active_run_for_instance
@@ -36,6 +41,8 @@ from app.services.run_metrics import count_recognition_steps
 from app.test_case_io import revision_to_out, steps_to_json, test_case_to_out
 
 router = APIRouter(prefix="/test-cases", tags=["test-cases"])
+
+log = logging.getLogger("app.routers.test_cases")
 
 _executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="tcm_run")
 
@@ -126,6 +133,39 @@ def list_cases(
         q = q.filter(TestCase.project_id == project_id)
     rows = q.order_by(desc(TestCase.updated_at)).all()
     return [test_case_to_out(tc) for tc in rows]
+
+
+@router.post("/generate", response_model=TestCaseGenerateOut)
+def generate_case_from_prompt(
+    body: TestCaseGenerateIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> TestCaseGenerateOut:
+    """根据用户一句话生成 structured 用例草稿（不写库，供前端预览编辑后保存）。"""
+    proj = _resolve_project_for_case(db, body.project_id, user)
+    log.info(
+        "API 用例生成 project_id=%s user_id=%s prompt_len=%s",
+        body.project_id,
+        user.id,
+        len(body.prompt),
+    )
+    try:
+        draft = generate_case_draft(db, project=proj, user=user, prompt=body.prompt)
+    except CaseGeneratorError as e:
+        log.warning("API 用例生成失败 project_id=%s: %s", body.project_id, e)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+    return TestCaseGenerateOut(
+        title=draft.title,
+        task_text=draft.task_text,
+        preconditions=draft.preconditions,
+        steps=draft.steps,
+        priority=draft.priority,
+        case_format="structured",
+        generation_meta=CaseGenerateMetaOut(
+            model=draft.model,
+            similar_case_ids=draft.similar_case_ids or [],
+        ),
+    )
 
 
 @router.post("", response_model=TestCaseOut)
@@ -428,5 +468,13 @@ async def run_case(
     db.refresh(run)
 
     prepare_cancel_slot(run.id)
+    log.info(
+        "API 提交执行 run_id=%s case_id=%s robot_instance_id=%s platform=%s device_id=%s",
+        run.id,
+        case_id,
+        body.robot_instance_id,
+        platform,
+        device_id or "(默认)",
+    )
     asyncio.get_running_loop().run_in_executor(_executor, _run_in_thread, run.id)
     return run

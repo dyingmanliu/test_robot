@@ -162,10 +162,15 @@ async function main(): Promise<number> {
     if (phase === 'error') console.error(`[步骤 ${step} 失败] ${error}`);
   };
 
+  const webSteps =
+    webPayload?.agent_steps?.length ? webPayload.agent_steps : undefined;
+
   let outcome;
   if (values.steps) {
     const steps = positionals.map((s) => s.trim()).filter(Boolean);
     outcome = await agent.runSteps(steps, { onStep });
+  } else if (webSteps?.length) {
+    outcome = await agent.runSteps(webSteps, { onStep });
   } else if (webYamlMode) {
     outcome = await agent.runYamlScript(task, { onStep });
   } else {

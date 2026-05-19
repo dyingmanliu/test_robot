@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import logging
+import os
+import time
 from pathlib import Path
 
 from dotenv import load_dotenv
+from starlette.requests import Request
 
 # 与 Agent CLI / executor 共用仓库根目录 .env（JWT、数据库路径、大模型 Key 等）
 _REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -47,6 +51,51 @@ from app.routers import (
 
 app = FastAPI(title="识图技术数字机器人", version="1.0.0")
 
+_http_log = logging.getLogger("app.http")
+
+
+def _http_log_level(path: str, method: str) -> int:
+    """高频轮询接口可用 LOG_HTTP_QUIET_POLLS=1 降为 DEBUG。"""
+    if os.getenv("LOG_HTTP_QUIET_POLLS", "").strip().lower() in ("1", "true", "yes"):
+        if method == "GET" and (path.endswith("/health") or "/test-cases/runs/" in path):
+            return logging.DEBUG
+    return logging.INFO
+
+
+@app.middleware("http")
+async def request_logging_middleware(request: Request, call_next):
+    start = time.perf_counter()
+    method = request.method
+    path = request.url.path
+    query = str(request.url.query) if request.url.query else ""
+    client = request.client.host if request.client else "-"
+    try:
+        response = await call_next(request)
+        elapsed_ms = (time.perf_counter() - start) * 1000
+        msg = f"{method} {path}"
+        if query and os.getenv("LOG_HTTP_QUERY", "1").strip().lower() in ("1", "true", "yes"):
+            msg += f"?{query}"
+        _http_log.log(
+            _http_log_level(path, method),
+            "%s | client=%s | status=%s | %.1fms",
+            msg,
+            client,
+            response.status_code,
+            elapsed_ms,
+        )
+        return response
+    except Exception:
+        elapsed_ms = (time.perf_counter() - start) * 1000
+        _http_log.exception(
+            "%s %s | client=%s | 未处理异常 | %.1fms",
+            method,
+            path,
+            client,
+            elapsed_ms,
+        )
+        raise
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -77,8 +126,12 @@ app.include_router(monitor_api.router, prefix="/api")
 app.include_router(ws_monitor.router, prefix="/api")
 
 
+_startup_log = logging.getLogger("app")
+
+
 @app.on_event("startup")
 def on_startup() -> None:
+    _startup_log.info("应用启动：初始化数据库与 RBAC")
     Base.metadata.create_all(bind=engine)
     ensure_schema()
     ensure_builtin_platform_admin()
@@ -86,6 +139,7 @@ def on_startup() -> None:
     ensure_personal_spaces()
     ensure_projects_bootstrap()
     bootstrap_rbac()
+    _startup_log.info("应用启动完成")
 
 
 @app.get("/api/health")

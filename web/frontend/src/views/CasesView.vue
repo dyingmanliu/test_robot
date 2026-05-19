@@ -34,14 +34,33 @@
         >
           项目看板
         </router-link>
-        <button
-          type="button"
-          class="btn primary"
-          :disabled="!selectedProjectId"
-          @click="openCreate"
-        >
-          新建用例
-        </button>
+        <div ref="createMenuRef" class="create-case-wrap">
+          <button
+            type="button"
+            class="btn primary create-case-trigger"
+            :disabled="!selectedProjectId"
+            :aria-expanded="createMenuOpen"
+            aria-haspopup="menu"
+            @click.stop="toggleCreateMenu"
+          >
+            创建用例
+            <span class="create-case-caret" aria-hidden="true">▾</span>
+          </button>
+          <div v-if="createMenuOpen && selectedProjectId" class="create-case-menu" role="menu">
+            <button type="button" class="create-case-item" role="menuitem" @click="startManualCreate">
+              手工创建
+            </button>
+            <button
+              type="button"
+              class="create-case-item"
+              role="menuitem"
+              :disabled="genDialog.loading"
+              @click="startAutoCreate"
+            >
+              自动生成
+            </button>
+          </div>
+        </div>
         <label class="btn import-label">
           导入 CSV/Excel
           <input
@@ -58,7 +77,7 @@
           :disabled="!selectedProjectId || !selectedIds.length || running || !canStartExecution"
           @click="runSelected"
         >
-          {{ running ? "执行中…" : "自动化执行选中" }}
+          {{ running ? "执行中…" : "执行测试" }}
         </button>
       </div>
     </div>
@@ -172,7 +191,7 @@
             </td>
           </tr>
           <tr v-if="!cases.length && !loading">
-            <td colspan="7" class="empty">暂无数据，点击「新建用例」开始。</td>
+            <td colspan="7" class="empty">暂无数据，点击「创建用例」开始。</td>
           </tr>
         </tbody>
       </table>
@@ -326,6 +345,34 @@
 
     <p v-if="importMsg" class="banner ok">{{ importMsg }}</p>
 
+    <div v-if="genDialog.open" class="modal-overlay" @click.self="closeGenerate">
+      <div class="modal">
+        <h3>自动生成用例</h3>
+        <p class="muted small">
+          用一句话描述要测什么，系统将生成结构化用例草稿，保存前可在编辑页核对步骤与预期。
+        </p>
+        <label class="field">
+          <span>测试描述</span>
+          <textarea
+            v-model="genDialog.prompt"
+            rows="4"
+            maxlength="2000"
+            placeholder="例如：已登录用户从首页进入购物车并完成结算"
+            :disabled="genDialog.loading"
+          ></textarea>
+        </label>
+        <p v-if="genDialog.error" class="err">{{ genDialog.error }}</p>
+        <div class="modal-actions">
+          <button type="button" class="btn ghost" :disabled="genDialog.loading" @click="closeGenerate">
+            取消
+          </button>
+          <button type="button" class="btn primary" :disabled="genDialog.loading" @click="submitGenerate">
+            {{ genDialog.loading ? "生成中…" : "生成" }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div v-if="dialog.open" class="modal-overlay" @click.self="dialog.open = false">
       <div class="modal modal-wide">
         <h3>{{ dialog.editing ? "编辑用例" : "新建用例" }}</h3>
@@ -434,7 +481,7 @@
 
 <script setup>
 import axios from "axios";
-import { computed, nextTick, onMounted, reactive, ref, watch } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import client, { formatApiError } from "@/api/client";
 import DeviceScreenMirror from "@/components/DeviceScreenMirror.vue";
@@ -604,6 +651,16 @@ const dialog = reactive({
   steps: [],
   error: "",
 });
+
+const genDialog = reactive({
+  open: false,
+  prompt: "",
+  loading: false,
+  error: "",
+});
+
+const createMenuOpen = ref(false);
+const createMenuRef = ref(null);
 
 const verDialog = reactive({
   open: false,
@@ -794,6 +851,33 @@ function removeStep(idx) {
   dialog.steps.splice(idx, 1);
 }
 
+function closeCreateMenu() {
+  createMenuOpen.value = false;
+}
+
+function toggleCreateMenu() {
+  if (!selectedProjectId.value) return;
+  createMenuOpen.value = !createMenuOpen.value;
+}
+
+function startManualCreate() {
+  closeCreateMenu();
+  openCreate();
+}
+
+function startAutoCreate() {
+  closeCreateMenu();
+  openGenerate();
+}
+
+function onDocumentClick(ev) {
+  if (!createMenuOpen.value) return;
+  const el = createMenuRef.value;
+  if (el && !el.contains(ev.target)) {
+    closeCreateMenu();
+  }
+}
+
 function openCreate() {
   if (!selectedProjectId.value) return;
   dialog.open = true;
@@ -807,6 +891,67 @@ function openCreate() {
   dialog.case_yaml = "";
   dialog.steps = [{ description: "", expected: "" }];
   dialog.error = "";
+}
+
+function openGenerate() {
+  if (!selectedProjectId.value) return;
+  genDialog.open = true;
+  genDialog.prompt = "";
+  genDialog.loading = false;
+  genDialog.error = "";
+}
+
+function closeGenerate() {
+  if (genDialog.loading) return;
+  genDialog.open = false;
+  genDialog.error = "";
+}
+
+function openCreateWithDraft(draft) {
+  if (!selectedProjectId.value) return;
+  dialog.open = true;
+  dialog.editing = false;
+  dialog.id = null;
+  dialog.title = draft.title || "";
+  dialog.task_text = draft.task_text || "";
+  dialog.preconditions = draft.preconditions || "";
+  dialog.priority = draft.priority || "P2";
+  dialog.case_format = "structured";
+  dialog.case_yaml = "";
+  const st = Array.isArray(draft.steps) ? draft.steps : [];
+  dialog.steps = st.length
+    ? st.map((x) => ({
+        description: x.description || "",
+        expected: x.expected || "",
+      }))
+    : [{ description: "", expected: "" }];
+  dialog.error = "";
+}
+
+async function submitGenerate() {
+  genDialog.error = "";
+  const prompt = (genDialog.prompt || "").trim();
+  if (!prompt) {
+    genDialog.error = "请填写测试描述";
+    return;
+  }
+  if (!selectedProjectId.value) {
+    genDialog.error = "请先选择项目空间";
+    return;
+  }
+  genDialog.loading = true;
+  try {
+    const { data } = await client.post("/api/test-cases/generate", {
+      project_id: selectedProjectId.value,
+      prompt,
+    });
+    genDialog.open = false;
+    openCreateWithDraft(data);
+  } catch (e) {
+    genDialog.error = formatApiError(e);
+  } finally {
+    genDialog.loading = false;
+  }
 }
 
 function openEdit(c) {
@@ -1108,7 +1253,14 @@ async function runSelected() {
   }
 }
 
-onMounted(bootstrapProjectContext);
+onMounted(() => {
+  bootstrapProjectContext();
+  document.addEventListener("click", onDocumentClick);
+});
+
+onUnmounted(() => {
+  document.removeEventListener("click", onDocumentClick);
+});
 </script>
 
 <style scoped>
@@ -1234,6 +1386,56 @@ onMounted(bootstrapProjectContext);
 .actions {
   display: flex;
   gap: 0.5rem;
+  align-items: center;
+}
+
+.create-case-wrap {
+  position: relative;
+}
+
+.create-case-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.create-case-caret {
+  font-size: 0.75rem;
+  opacity: 0.85;
+}
+
+.create-case-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 30;
+  min-width: 9.5rem;
+  padding: 0.35rem 0;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+}
+
+.create-case-item {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 0.85rem;
+  border: none;
+  background: transparent;
+  text-align: left;
+  font-size: 0.9rem;
+  color: #0f172a;
+  cursor: pointer;
+}
+
+.create-case-item:hover:not(:disabled) {
+  background: #f1f5f9;
+}
+
+.create-case-item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .table-wrap {

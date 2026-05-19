@@ -12,8 +12,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable
 
+import logging
+
 from dotenv import load_dotenv
 from sqlalchemy.orm import Session
+
+log = logging.getLogger("app.executor")
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 if str(_REPO_ROOT) not in sys.path:
@@ -335,6 +339,18 @@ def execute_test_run(db: Session, run_id: int) -> None:
     case_format = (getattr(case, "case_format", None) or "structured").strip().lower()
     inst_code = getattr(inst, "instance_code", None) or "—"
 
+    log.info(
+        "开始执行 run_id=%s case_id=%s case=%r engine=%s platform=%s device_id=%s format=%s robot=%s",
+        run_id,
+        case.id,
+        case.title,
+        backend,
+        platform,
+        device_id or "(默认)",
+        case_format,
+        inst_code,
+    )
+
     load_dotenv(_REPO_ROOT / ".env")
 
     if backend == "autoglm" and not (os.getenv("BIGMODEL_API_KEY") or os.getenv("ZHIPU_API_KEY")):
@@ -455,12 +471,19 @@ def execute_test_run(db: Session, run_id: int) -> None:
             ),
         )
 
-    from app.services.case_agent_text import build_agent_task_text
+    from app.services.case_agent_text import build_agent_task_text, build_midscene_agent_steps
 
+    preconditions = getattr(case, "preconditions", "") or ""
+    steps_json = getattr(case, "steps_json", None) or "[]"
     agent_task = build_agent_task_text(
         task_text=case.task_text,
-        preconditions=getattr(case, "preconditions", "") or "",
-        steps_json=getattr(case, "steps_json", None) or "[]",
+        preconditions=preconditions,
+        steps_json=steps_json,
+    )
+    midscene_agent_steps = build_midscene_agent_steps(
+        task_text=case.task_text,
+        preconditions=preconditions,
+        steps_json=steps_json,
     )
 
     dispatch_base: dict[str, Any] = {
@@ -513,6 +536,13 @@ def execute_test_run(db: Session, run_id: int) -> None:
                     "agent_task": agent_task,
                     "case_format": "structured",
                 }
+                if midscene_agent_steps:
+                    web_dispatch["agent_steps"] = midscene_agent_steps
+                    log.info(
+                        "Midscene 拆步执行 run_id=%s steps=%s",
+                        run_id,
+                        len(midscene_agent_steps),
+                    )
         elif backend == "autoglm":
             web_dispatch = None
         else:
@@ -572,6 +602,7 @@ def execute_test_run(db: Session, run_id: int) -> None:
                     row.output_message = outcome.message
                     row.error_trace = None
     except Exception:
+        log.exception("执行异常 run_id=%s case_id=%s", run_id, case.id)
         row = db.query(TestRun).filter(TestRun.id == run_id).first()
         if row:
             row.status = "failed"
@@ -581,6 +612,12 @@ def execute_test_run(db: Session, run_id: int) -> None:
         if row:
             row.finished_at = datetime.utcnow()
             db.commit()
+            log.info(
+                "执行结束 run_id=%s status=%s message=%s",
+                run_id,
+                row.status,
+                (row.output_message or "")[:200],
+            )
         if lock_held and instance_lock is not None:
             instance_lock.release()
         _run_cancel_events.pop(run_id, None)

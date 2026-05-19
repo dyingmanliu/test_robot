@@ -21,6 +21,8 @@ export interface WebTestDispatch {
   execution_mode?: WebExecutionMode;
   /** structured 模式下的可执行全文 */
   agent_task?: string;
+  /** 结构化用例拆步后逐步 aiAct（优先于单段 agent_task） */
+  agent_steps?: string[];
   /** Midscene YAML 脚本（须含 tasks:） */
   yaml_script?: string;
   task_text?: string;
@@ -67,6 +69,11 @@ export function parseWebDispatchJson(raw: string): WebTestDispatch {
 
   const agent_task =
     o.agent_task !== undefined ? String(o.agent_task).trim() : undefined;
+  const agent_steps = Array.isArray(o.agent_steps)
+    ? o.agent_steps
+        .map((s) => String(s ?? '').trim())
+        .filter((s) => s.length > 0)
+    : undefined;
   const yaml_script =
     o.yaml_script !== undefined ? String(o.yaml_script).trim() : undefined;
 
@@ -74,8 +81,8 @@ export function parseWebDispatchJson(raw: string): WebTestDispatch {
     if (!yaml_script) {
       throw new Error('YAML 模式缺少 yaml_script');
     }
-  } else if (!agent_task) {
-    throw new Error('自然语言模式缺少 agent_task 或内容为空');
+  } else if (!agent_task && !(agent_steps && agent_steps.length)) {
+    throw new Error('自然语言模式缺少 agent_task / agent_steps 或内容为空');
   }
 
   const rid = o.robot_instance_id;
@@ -101,6 +108,7 @@ export function parseWebDispatchJson(raw: string): WebTestDispatch {
     device_id: o.device_id !== undefined ? String(o.device_id).trim() : undefined,
     execution_mode,
     agent_task,
+    agent_steps: agent_steps?.length ? agent_steps : undefined,
     yaml_script,
     task_text: o.task_text !== undefined ? String(o.task_text) : undefined,
     preconditions:

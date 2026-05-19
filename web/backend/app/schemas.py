@@ -221,6 +221,30 @@ class CaseStepJson(BaseModel):
     expected: str = ""
 
 
+class TestCaseGenerateIn(BaseModel):
+    """一句话生成用例草稿（不写库）。"""
+
+    project_id: int = Field(..., ge=1, description="所属项目空间 ID")
+    prompt: str = Field(..., min_length=1, max_length=2000, description="用户一句话描述")
+
+
+class CaseGenerateMetaOut(BaseModel):
+    model: str = ""
+    similar_case_ids: list[int] = Field(default_factory=list)
+
+
+class TestCaseGenerateOut(BaseModel):
+    """生成草稿，字段与 TestCaseCreate 对齐（无 id）。"""
+
+    title: str
+    task_text: str = ""
+    preconditions: str = ""
+    steps: list[CaseStepJson] = Field(default_factory=list)
+    priority: str = "P2"
+    case_format: Literal["structured"] = "structured"
+    generation_meta: CaseGenerateMetaOut = Field(default_factory=CaseGenerateMetaOut)
+
+
 class TestCaseCreate(BaseModel):
     project_id: int = Field(..., description="所属项目空间 ID")
     title: str = Field(..., min_length=1, max_length=256)

@@ -46,6 +46,39 @@ CLI 入口：仓库根目录 **`main.py`**（`--device-type adb|hdc`），与 We
 - **解析**：`resolve_execution_platform()`、`resolve_execution_device_id()`（`device_platform.py`）。
 - 前端在 `CasesView.vue` 选择机器人 / 平台 / 终端；浏览器 `sessionStorage` 按实例记住上次平台与终端。
 
+### 1.3 用例编写 Agent（一句话生成 structured 草稿）
+
+与 §1.1 **设备执行** 分离：不调用 `PhoneTestAgent` / `midscene_agent`，仅在 Web 后端进程内调用 OpenAI 兼容对话 API。
+
+| 项 | 说明 |
+|----|------|
+| 包 | `analysis_agent/`（`AnalysisAgent`，对齐 `autoglm_phone_agent` 目录约定） |
+| Web 适配 | `app/services/case_generation.py`（KB 检索 + ORM → `ProjectContext`） |
+| 路由 | `POST /api/test-cases/generate`（`TestCaseGenerateIn` → `TestCaseGenerateOut`） |
+| 持久化 | 生成接口**不写库**；用户在前端编辑后 `POST /api/test-cases` 保存 |
+| 输出格式 | 固定 `case_format=structured`（标题、前置条件、步骤 JSON、执行说明、优先级） |
+| 上下文 | `Project.name`、`tested_app_name`、`test_objective` + 用户 `prompt` |
+| RAG | `CASE_GEN_USE_KB=true` 时调用 `case_kb.search_cases_kb`（同项目、同租户 scope） |
+| 执行衔接 | 保存后用 `case_agent_text.build_agent_task_text()` 供 AutoGLM/Midscene 执行 |
+
+```mermaid
+sequenceDiagram
+  participant UI as CasesView
+  participant API as test_cases_router
+  participant Gen as analysis_agent
+  participant LLM as OpenAI_compatible_API
+
+  UI->>API: POST /generate project_id prompt
+  API->>Gen: generate_case_draft
+  Gen->>LLM: chat.completions JSON
+  LLM-->>Gen: draft fields
+  Gen-->>API: validated TestCaseGenerateOut
+  API-->>UI: 预填编辑弹窗
+  UI->>API: POST /test-cases 保存
+```
+
+**配置**：仓库根 `.env` 的 `CASE_GEN_*`。本地调试常用 DeepSeek（`CASE_GEN_BASE_URL=https://api.deepseek.com`、`CASE_GEN_MODEL=deepseek-v4-pro`）；未设 `CASE_GEN_API_KEY` 时回退 `BIGMODEL_API_KEY`。详见 §6 环境变量表。
+
 ## 2. 技术栈总览
 
 | 层级 | 技术 | 语言 |
@@ -110,6 +143,9 @@ autoglm-phone-test-agent/          # 仓库根目录
         │   ├── auth_utils.py      # 密码、JWT
         │   ├── executor.py        # 按引擎×平台路由 AutoGLM / Midscene
         │   ├── services/
+        │   │   ├── case_generation.py   # Web 适配 → analysis_agent
+        │   │   ├── case_agent_text.py   # structured → 执行用自然语言
+        │   │   ├── case_kb.py           # 用例 KB 扁平检索（RAG 参考）
         │   │   ├── device_platform.py   # 平台/终端解析（实例默认 + 本次覆盖）
         │   │   ├── device_discovery.py  # adb devices / hdc list targets
         │   │   └── device_screen.py     # 投屏：ADB / HDC
@@ -170,7 +206,8 @@ flowchart TB
 
 1. 浏览器 → `POST /api/auth/login`（或 register）→ 返回 JWT。  
 2. 前端 `localStorage` 存 token，后续请求 `Authorization: Bearer ...`。  
-3. 用例列表 → `GET /api/test-cases`。  
+3. 用例列表 → `GET /api/test-cases`。
+3b. **AI 生成草稿** → `POST /api/test-cases/generate`；`case_generation.generate_case_draft` 调用 `analysis_agent.AnalysisAgent`（同进程，对齐 `executor` → `PhoneTestAgent`）；KB 在 Web 层检索后注入；**不写库**；前端预填编辑后 `POST /api/test-cases` 保存。
 4. 执行 → `POST /api/test-cases/{id}/run`：请求体含 `robot_instance_id`，可选 `device_platform`、`device_id`；创建 `TestRun` 后**异步**在线程池执行 `executor.execute_test_run`。  
 5. 执行前枚举设备 → `GET /api/devices/connected?platform=…`（用例页「目标终端」下拉）。  
 6. 前端轮询 → `GET /api/test-cases/runs/{run_id}` 获取 `status`、`step_log`、`output_message` 等。
@@ -217,6 +254,11 @@ flowchart TB
 
 | 变量（示例） | 用途 |
 |----------------|------|
+| `CASE_GEN_API_KEY` | 用例编写 Agent API Key；未设则回退 `BIGMODEL_API_KEY` / `ZHIPU_API_KEY` |
+| `CASE_GEN_BASE_URL` | 用例生成网关（如 `https://api.deepseek.com` 或智谱 `OPENAI_BASE_URL`） |
+| `CASE_GEN_MODEL` | 用例生成模型（如 `deepseek-v4-pro`、`glm-4-flash`） |
+| `CASE_GEN_TIMEOUT_SEC` | 生成超时（秒），默认 60 |
+| `CASE_GEN_USE_KB` / `CASE_GEN_KB_LIMIT` | 是否启用同项目用例 RAG 及条数上限 |
 | `BIGMODEL_API_KEY` / `ZHIPU_API_KEY` | AutoGLM（Android / 鸿蒙均使用） |
 | `OPENAI_BASE_URL` | 智谱网关等 |
 | `PHONE_AGENT_MODEL` / `PHONE_AGENT_MAX_STEPS` | AutoGLM 模型与步数上限 |
@@ -226,6 +268,7 @@ flowchart TB
 | `HDC_DEVICE_ID` / `HDC_HOME` | 鸿蒙默认 target / hdc 路径；用例页可覆盖 |
 | `MIDSCENE_DEVICE_PLATFORM` | CLI 覆盖平台：`android` \| `harmonyos` |
 | `MIDSCENE_AGENT_BACKEND` | Web 子进程覆盖：`autoglm` \| `midscene` |
+| `MIDSCENE_REPLANNING_CYCLE_LIMIT` | Midscene 单步 `aiAct` 内部重规划上限（默认 20；复杂任务建议 40–60） |
 | `JWT_SECRET` / `TCM_SQLITE_PATH` | Web 认证与库路径 |
 
 设备要求：
@@ -245,8 +288,9 @@ flowchart TB
 4. **改 Midscene**：`midscene_agent/`；`npm run typecheck`；影响 `test_agent_backend=midscene`；改完后重启 Uvicorn。长时间任务不建议 `uvicorn --reload`。  
 5. **改机器人路由**：`executor.py`、`services/device_platform.py`；实例字段见 `models.RobotInstance`。  
 6. **数据库**：无 Alembic；列迁移在 `database.ensure_schema()`（如 `robot_instances.device_platform`）。  
-7. **排查执行失败**：确认实例 **引擎**、用例页 **平台+终端** 与用例格式（YAML→Midscene）；`adb devices` / `hdc list targets` 与所选 `device_id` 一致；看 `test_runs.device_platform`、`device_id`、`error_trace`、`step_log`；Midscene 报告见 `report_path`。
+7. **排查执行失败**：确认实例 **引擎**、用例页 **平台+终端** 与用例格式（YAML→Midscene）；`adb devices` / `hdc list targets` 与所选 `device_id` 一致；看 `test_runs.device_platform`、`device_id`、`error_trace`、`step_log`；Midscene 报告见 `report_path`。  
+8. **排查 AI 生成失败**：确认 `CASE_GEN_API_KEY`（或回退智谱 Key）与 `CASE_GEN_BASE_URL`/`CASE_GEN_MODEL` 匹配；改 `.env` 后重启 Uvicorn；Swagger `POST /api/test-cases/generate` 可直调；非法 JSON 时服务会自动重试一次修复。
 
 ## 8. 一句话小结
 
-**Vue 3 + FastAPI + SQLite** 管理用例与租用机器人实例；执行前可按实例选择 **Android/鸿蒙平台** 与 **具体终端（多机）**；**AutoGLM** 同进程、**Midscene** 子进程均支持双平台；前端轮询步骤日志、Midscene 报告与按终端投屏。
+**Vue 3 + FastAPI + SQLite** 管理用例与租用机器人实例；**用例编写 Agent**（`CASE_GEN_*`）可一句话生成 structured 草稿并预览保存；执行前可按实例选择 **Android/鸿蒙平台** 与 **具体终端（多机）**；**AutoGLM** 同进程、**Midscene** 子进程均支持双平台；前端轮询步骤日志、Midscene 报告与按终端投屏。
