@@ -22,6 +22,7 @@
         <nav v-else class="nav">
           <router-link :to="{ name: 'platformIntro' }" class="nav-link" @click="closeAllDetails">平台介绍</router-link>
           <router-link to="/" class="nav-link" @click="closeAllDetails">工作台</router-link>
+          <router-link to="/mai-ui" class="nav-link" @click="closeAllDetails">MAI-UI 识图</router-link>
 
           <details class="nav-dd" :class="{ 'nav-dd--current': marketplaceMenuActive }" @toggle="onNavDetailsToggle">
             <summary class="nav-dd-trigger">机器人商城</summary>

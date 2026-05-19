@@ -22,12 +22,19 @@ import MyRobotsShell from "@/views/MyRobotsShell.vue";
 import MyRobotsView from "@/views/MyRobotsView.vue";
 import MyRobotDetailView from "@/views/MyRobotDetailView.vue";
 import MyRentalApplicationsView from "@/views/MyRentalApplicationsView.vue";
+import MaiUiStudioView from "@/views/MaiUiStudioView.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     { path: "/", name: "home", component: HomeDashboardView, meta: { requiresAuth: true } },
     { path: "/cases", name: "cases", component: CasesView, meta: { requiresAuth: true } },
+    {
+      path: "/mai-ui",
+      name: "maiUiStudio",
+      component: MaiUiStudioView,
+      meta: { requiresAuth: true },
+    },
     { path: "/profile", name: "profile", component: ProfileView, meta: { requiresAuth: true } },
     {
       path: "/projects",

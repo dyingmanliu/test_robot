@@ -34,6 +34,7 @@ from app.routers import (
     device_pools_api,
     knowledge,
     marketplace,
+    mai_ui,
     monitor_api,
     platform_api,
     project_functional,
@@ -72,6 +73,7 @@ app.include_router(robot_instances.router, prefix="/api")
 app.include_router(billing.router, prefix="/api")
 app.include_router(dashboard.router, prefix="/api")
 app.include_router(monitor_api.router, prefix="/api")
+app.include_router(mai_ui.router, prefix="/api")
 app.include_router(ws_monitor.router, prefix="/api")
 
 
