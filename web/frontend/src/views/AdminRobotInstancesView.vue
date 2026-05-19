@@ -3,7 +3,7 @@
     <header class="page-head">
       <h1>机器人实例</h1>
       <p class="hint">
-        平台管理员可切换实例<strong>启动 / 停用</strong>。仅<strong>已启动且运行状态为空闲</strong>的实例可在测试用例页被选中执行。
+        平台管理员可切换实例<strong>启动 / 停用</strong>。功能/专项执行类实例在测试用例页用于<strong>执行</strong>；测试分析类实例用于<strong>自动生成用例</strong>。均需<strong>已启动且运行空闲</strong>方可选用。
       </p>
     </header>
 

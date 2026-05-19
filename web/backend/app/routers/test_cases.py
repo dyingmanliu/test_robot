@@ -183,10 +183,15 @@ def generate_case_from_prompt(
 ) -> TestCaseGenerateOut:
     """根据用户一句话生成用例草稿（不写库，供前端预览编辑后保存）。"""
     proj = _resolve_project_for_case(db, body.project_id, user)
+    inst = db.query(RobotInstance).filter(RobotInstance.id == body.robot_instance_id).first()
+    if inst is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="机器人实例不存在")
+
     log.info(
-        "API 用例生成 project_id=%s user_id=%s prompt_len=%s case_format=%s",
+        "API 用例生成 project_id=%s user_id=%s instance_id=%s prompt_len=%s case_format=%s",
         body.project_id,
         user.id,
+        body.robot_instance_id,
         len(body.prompt),
         body.case_format,
     )
@@ -195,6 +200,7 @@ def generate_case_from_prompt(
             db,
             project=proj,
             user=user,
+            robot_instance=inst,
             prompt=body.prompt,
             case_format=body.case_format,
         )

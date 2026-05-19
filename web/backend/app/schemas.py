@@ -225,6 +225,7 @@ class TestCaseGenerateIn(BaseModel):
     """一句话生成用例草稿（不写库）。"""
 
     project_id: int = Field(..., ge=1, description="所属项目空间 ID")
+    robot_instance_id: int = Field(..., ge=1, description="测试分析机器人实例 ID")
     prompt: str = Field(..., min_length=1, max_length=2000, description="用户一句话描述")
     case_format: Literal["structured", "yaml"] = Field(
         default="structured",

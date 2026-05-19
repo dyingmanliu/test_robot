@@ -62,9 +62,9 @@
 - **包**：[`analysis_agent/`](./analysis_agent/)（对齐 [`autoglm_phone_agent/`](./autoglm_phone_agent/) 模式：`AnalysisAgent` + `model/client` + `config`）。
 - **Web 适配**：`web/backend/app/services/case_generation.py` 组装 ORM / KB，调用 `AnalysisAgent.generate_case_draft()`；可选 `case_format=yaml` 时在生成后做格式转换。
 - **格式互转**：`web/backend/app/services/case_format_convert.py` — structured ↔ Midscene YAML（规则转换，编辑弹窗切换格式时调用）。
-- **入口**：测试用例页 **「创建用例」→「自动生成」**（可选生成格式）→ 预览编辑（可再切换格式）→ `POST /api/test-cases` 保存。
+- **入口**：测试用例页 **「创建用例」→「自动生成」**（须选择已租用的 **测试分析** 机器人实例；可选生成格式）→ 预览编辑（可再切换格式）→ `POST /api/test-cases` 保存。
 - **API**（均不写库）：
-  - `POST /api/test-cases/generate` — 请求体 `project_id`、`prompt`、可选 `case_format`（`structured` | `yaml`，默认 `structured`）
+  - `POST /api/test-cases/generate` — 请求体 `project_id`、`robot_instance_id`（`catalog_robot_id=test_analysis`）、`prompt`、可选 `case_format`（`structured` | `yaml`，默认 `structured`）
   - `POST /api/test-cases/convert-format` — 编辑时 structured ↔ yaml 互转
 - **与执行 Agent 分离**：不连手机；执行仍由 AutoGLM / Midscene 在 `executor.py` 路由。YAML 用例须 **Midscene** 引擎执行。
 

@@ -1,3 +1,6 @@
+/** 测试分析机器人 catalog id（用例自动生成） */
+export const CATALOG_TEST_ANALYSIS = "test_analysis";
+
 /** 商城目录 robot id → 机器人类型（中文分类） */
 export const ROBOT_TYPE_LABELS = {
   test_analysis: "测试分析",
@@ -9,6 +12,14 @@ export const ROBOT_TYPE_LABELS = {
 export function robotTypeLabel(catalogRobotId) {
   const id = String(catalogRobotId || "").trim();
   return ROBOT_TYPE_LABELS[id] || id || "—";
+}
+
+export function isAnalysisInstance(ins) {
+  return String(ins?.catalog_robot_id || "").trim() === CATALOG_TEST_ANALYSIS;
+}
+
+export function isExecutionInstance(ins) {
+  return !isAnalysisInstance(ins);
 }
 
 /** 实例运行态 API 值 → 中文 */
@@ -68,5 +79,22 @@ export function robotUnselectableHint(ins, needsMidscene = false) {
     const b = String(ins.test_agent_backend || "autoglm").toLowerCase();
     if (b !== "midscene") return "（不可用于 YAML）";
   }
+  return "";
+}
+
+/** 测试分析机器人是否可用于自动生成用例 */
+export function isRobotRunnableForAnalysis(ins) {
+  if (!ins || !isAnalysisInstance(ins)) return false;
+  if (!isInstanceStarted(ins.status)) return false;
+  return String(ins.runtime_status || "").toLowerCase() === "idle";
+}
+
+export function analysisRobotUnselectableHint(ins) {
+  if (!ins) return "";
+  if (!isAnalysisInstance(ins)) return "（非测试分析）";
+  if (!isInstanceStarted(ins.status)) return "（已停用）";
+  const rt = String(ins.runtime_status || "").toLowerCase();
+  if (rt === "executing") return "（生成中）";
+  if (rt === "abnormal") return "（异常）";
   return "";
 }

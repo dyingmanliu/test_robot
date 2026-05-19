@@ -90,6 +90,26 @@ def run_phone_agent_task(
     return agent.run(task.strip(), on_step=on_step, should_cancel=should_cancel)
 
 
+def _build_midscene_cli_cmd(mid_root: Path, cli_rel: Path) -> list[str]:
+    """启动 Midscene CLI。
+
+    优先 ``node --import tsx``，避免直接跑 ``tsx`` 时在 Cursor/沙箱环境
+    对 ``/var/folders/.../tsx-*/\*.pipe`` 执行 listen 触发 EPERM。
+    """
+    node = shutil.which("node") or "node"
+    cli = str(cli_rel)
+    loader = mid_root / "node_modules" / "tsx" / "dist" / "loader.mjs"
+    if loader.is_file():
+        return [node, f"--import={loader}", cli, "--web-dispatch"]
+    local_tsx = mid_root / "node_modules" / ".bin" / "tsx"
+    if local_tsx.is_file():
+        return [str(local_tsx), cli, "--web-dispatch"]
+    if tsx_which := shutil.which("tsx"):
+        return [tsx_which, str(mid_root / cli_rel), "--web-dispatch"]
+    npx = os.getenv("TCM_NPX_BIN", "npx")
+    return [npx, "--yes", "tsx", cli, "--web-dispatch"]
+
+
 def run_midscene_agent_task(
     dispatch: dict[str, Any],
     *,
@@ -106,14 +126,7 @@ def run_midscene_agent_task(
     if not (mid_root / cli_rel).is_file():
         raise RuntimeError(f"未找到 Midscene CLI：{mid_root / cli_rel}")
 
-    local_tsx = mid_root / "node_modules" / ".bin" / "tsx"
-    if local_tsx.is_file():
-        cmd = [str(local_tsx), str(cli_rel), "--web-dispatch"]
-    elif (tsx_which := shutil.which("tsx")):
-        cmd = [tsx_which, str(mid_root / cli_rel), "--web-dispatch"]
-    else:
-        npx = os.getenv("TCM_NPX_BIN", "npx")
-        cmd = [npx, "--yes", "tsx", str(cli_rel), "--web-dispatch"]
+    cmd = _build_midscene_cli_cmd(mid_root, cli_rel)
 
     env = {**os.environ}
     env.setdefault("FORCE_COLOR", "0")

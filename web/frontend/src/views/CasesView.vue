@@ -83,11 +83,17 @@
     </div>
 
     <div v-if="projectsLoaded && !robotInstances.length" class="banner warn">
-      执行用例需绑定已租用的机器人实例。请先到
+      执行用例或自动生成用例需先租用机器人实例。请先到
       <router-link to="/marketplace">机器人商城</router-link>
-      提交租用申请，管理员审批通过后到
+      提交租用申请（执行类选「功能执行」、生成类选「测试分析」），管理员审批通过后到
       <router-link to="/my-robots">我的机器人</router-link>
-      查看编号与属性，再回到本页选择实例后执行。
+      查看编号与属性。
+    </div>
+    <div
+      v-else-if="projectsLoaded && robotInstances.length && !executionRobotInstances.length"
+      class="banner warn"
+    >
+      当前仅有测试分析机器人，无法执行用例。请在商城租用<strong>功能执行</strong>或<strong>专项执行</strong>类机器人后再执行测试。
     </div>
     <div
       v-else-if="projectsLoaded && needsMidsceneForSelection && !midsceneRobotInstances.length"
@@ -97,7 +103,7 @@
       <router-link to="/my-robots">我的机器人</router-link>
       打开任一实例，将「测试执行引擎」改为 Midscene 后保存；或联系管理员审批新租用单时选择 Midscene 引擎。
     </div>
-    <div v-else-if="projectsLoaded && robotInstances.length" class="robot-pick">
+    <div v-else-if="projectsLoaded && executionRobotInstances.length" class="robot-pick">
       <div class="robot-pick-row">
         <label class="robot-pick-inner">
           <span class="picker-label">执行用例使用的机器人实例</span>
@@ -365,7 +371,36 @@
       <div class="modal">
         <h3>自动生成用例</h3>
         <p class="muted small">
-          用一句话描述要测什么；LLM 先生成结构化步骤，若选择 YAML 将自动转为 Midscene 脚本。保存前可在编辑页核对或切换格式。
+          须选择已租用的<strong>测试分析</strong>机器人实例；用一句话描述要测什么，由分析机器人生成草稿。保存前可在编辑页核对或切换格式。
+        </p>
+        <div v-if="!analysisRobotInstances.length" class="banner warn small">
+          尚无测试分析机器人实例。请到
+          <router-link to="/marketplace">机器人商城</router-link>
+          租用「测试分析数字机器人」，审批通过后再试。
+        </div>
+        <label v-else class="field">
+          <span>测试分析机器人实例</span>
+          <select
+            v-model.number="selectedAnalysisRobotInstanceId"
+            class="robot-select"
+            :disabled="genDialog.loading"
+          >
+            <option
+              v-for="ins in analysisRobotInstances"
+              :key="ins.id"
+              :value="ins.id"
+              :disabled="analysisOptionDisabled(ins)"
+            >
+              {{ ins.instance_code }} · {{ (ins.display_name || "").trim() || ins.catalog_robot_id }}
+              {{ analysisOptionHint(ins) }}
+            </option>
+          </select>
+        </label>
+        <p v-if="analysisRobotInstances.length && !runnableAnalysisCount" class="robot-hint warn small">
+          当前没有可用的测试分析机器人：须<strong>已启动</strong>且<strong>运行空闲</strong>。可在
+          <router-link v-if="auth.role === 'platform_admin'" to="/admin/robot-instances">机器人实例管理</router-link>
+          <template v-else>「我的机器人」</template>
+          中启用或等待生成结束。
         </p>
         <fieldset class="field format-field">
           <span class="format-label">生成格式</span>
@@ -393,7 +428,12 @@
           <button type="button" class="btn ghost" :disabled="genDialog.loading" @click="closeGenerate">
             取消
           </button>
-          <button type="button" class="btn primary" :disabled="genDialog.loading" @click="submitGenerate">
+          <button
+            type="button"
+            class="btn primary"
+            :disabled="genDialog.loading || !canSubmitGenerate"
+            @click="submitGenerate"
+          >
             {{ genDialog.loading ? "生成中…" : "生成" }}
           </button>
         </div>
@@ -539,7 +579,14 @@ import client, { formatApiError } from "@/api/client";
 import DeviceScreenMirror from "@/components/DeviceScreenMirror.vue";
 import { useActiveTestRunStore, getActiveRunProjectId } from "@/stores/activeTestRun";
 import { useAuthStore } from "@/stores/auth";
-import { isRobotRunnableForCase, robotUnselectableHint } from "@/constants/robotCatalog";
+import {
+  analysisRobotUnselectableHint,
+  isAnalysisInstance,
+  isExecutionInstance,
+  isRobotRunnableForAnalysis,
+  isRobotRunnableForCase,
+  robotUnselectableHint,
+} from "@/constants/robotCatalog";
 
 /** 轮询时短暂断网、502 等不应立刻当作「执行失败」；401 等仍应立即失败 */
 const route = useRoute();
@@ -581,6 +628,7 @@ const liveRunVisible = computed(() => {
 
 const robotInstances = ref([]);
 const selectedRobotInstanceId = ref(null);
+const selectedAnalysisRobotInstanceId = ref(null);
 const selectedDevicePlatform = ref("android");
 const selectedDeviceId = ref("");
 const connectedDevices = ref([]);
@@ -612,7 +660,7 @@ const selectedRobotInstance = computed(() =>
 );
 
 const runnableRobotCount = computed(() =>
-  robotInstances.value.filter((ins) =>
+  executionRobotInstances.value.filter((ins) =>
     isRobotRunnableForCase(ins, needsMidsceneForSelection.value),
   ).length,
 );
@@ -797,10 +845,39 @@ const needsMidsceneForSelection = computed(() => {
 });
 
 const midsceneRobotInstances = computed(() =>
-  robotInstances.value.filter((ins) => isMidsceneBackend(ins.test_agent_backend)),
+  robotInstances.value.filter(
+    (ins) => isExecutionInstance(ins) && isMidsceneBackend(ins.test_agent_backend),
+  ),
 );
 
-const robotsForExecution = computed(() => robotInstances.value);
+const analysisRobotInstances = computed(() =>
+  robotInstances.value.filter((ins) => isAnalysisInstance(ins)),
+);
+
+const executionRobotInstances = computed(() =>
+  robotInstances.value.filter((ins) => isExecutionInstance(ins)),
+);
+
+const robotsForExecution = computed(() => executionRobotInstances.value);
+
+const runnableAnalysisCount = computed(() =>
+  analysisRobotInstances.value.filter((ins) => isRobotRunnableForAnalysis(ins)).length,
+);
+
+const canSubmitGenerate = computed(() => {
+  if (!analysisRobotInstances.value.length) return false;
+  if (!selectedAnalysisRobotInstanceId.value) return false;
+  const ins = analysisRobotInstances.value.find((i) => i.id === selectedAnalysisRobotInstanceId.value);
+  return isRobotRunnableForAnalysis(ins);
+});
+
+function analysisOptionDisabled(ins) {
+  return !isRobotRunnableForAnalysis(ins);
+}
+
+function analysisOptionHint(ins) {
+  return analysisRobotUnselectableHint(ins);
+}
 
 function robotOptionDisabled(ins) {
   return !isRobotRunnableForCase(ins, needsMidsceneForSelection.value);
@@ -810,19 +887,36 @@ function robotOptionHint(ins) {
   return robotUnselectableHint(ins, needsMidsceneForSelection.value);
 }
 
+function syncAnalysisRobotSelection() {
+  const runnable = analysisRobotInstances.value.filter((ins) => isRobotRunnableForAnalysis(ins));
+  if (!runnable.length) {
+    selectedAnalysisRobotInstanceId.value = null;
+    return;
+  }
+  const current = analysisRobotInstances.value.find(
+    (ins) => ins.id === selectedAnalysisRobotInstanceId.value,
+  );
+  if (!current || !isRobotRunnableForAnalysis(current)) {
+    selectedAnalysisRobotInstanceId.value = runnable[0].id;
+  }
+}
+
 function syncRobotSelection() {
   const needMid = needsMidsceneForSelection.value;
-  const runnable = robotInstances.value.filter((ins) => isRobotRunnableForCase(ins, needMid));
+  const runnable = executionRobotInstances.value.filter((ins) =>
+    isRobotRunnableForCase(ins, needMid),
+  );
   if (!runnable.length) {
     selectedRobotInstanceId.value = null;
     return;
   }
-  const current = robotInstances.value.find((ins) => ins.id === selectedRobotInstanceId.value);
+  const current = executionRobotInstances.value.find((ins) => ins.id === selectedRobotInstanceId.value);
   if (!current || !isRobotRunnableForCase(current, needMid)) {
     selectedRobotInstanceId.value = runnable[0].id;
   }
   syncDevicePlatformFromInstance();
   loadConnectedDevices();
+  syncAnalysisRobotSelection();
 }
 
 watch([selectedCaseId, cases], () => syncRobotSelection());
@@ -1002,6 +1096,7 @@ function openCreate() {
 
 function openGenerate() {
   if (!selectedProjectId.value) return;
+  syncAnalysisRobotSelection();
   genDialog.open = true;
   genDialog.prompt = "";
   genDialog.case_format = "structured";
@@ -1082,10 +1177,19 @@ async function submitGenerate() {
     genDialog.error = "请先选择项目空间";
     return;
   }
+  if (!selectedAnalysisRobotInstanceId.value) {
+    genDialog.error = "请选择测试分析机器人实例";
+    return;
+  }
+  if (!canSubmitGenerate.value) {
+    genDialog.error = "当前测试分析机器人不可用，请选用已启动且空闲的实例";
+    return;
+  }
   genDialog.loading = true;
   try {
     const { data } = await client.post("/api/test-cases/generate", {
       project_id: selectedProjectId.value,
+      robot_instance_id: selectedAnalysisRobotInstanceId.value,
       prompt,
       case_format: genDialog.case_format || "structured",
     });

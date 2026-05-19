@@ -8,7 +8,8 @@ from datetime import datetime
 
 from sqlalchemy.orm import Session
 
-from app.models import TestRun
+from app.models import RobotInstance, TestRun
+from app.services.robot_catalog import is_analysis_catalog
 
 log = logging.getLogger(__name__)
 
@@ -44,6 +45,8 @@ def find_active_run_for_instance(
 
 def instance_available_for_run(db: Session, inst: RobotInstance) -> tuple[bool, str]:
     """是否允许提交新用例执行（实例已启动且当前空闲）。"""
+    if is_analysis_catalog(inst.catalog_robot_id):
+        return False, "测试分析机器人仅用于自动生成用例，请选用功能/专项执行类实例执行用例"
     if (inst.status or "").strip().lower() != "active":
         return False, "机器人实例已停用，请先在管理端启用后再执行用例"
     busy = find_active_run_for_instance(db, inst.id)
@@ -57,6 +60,10 @@ def resolve_instance_runtime_status(db: Session, inst: RobotInstance) -> str:
     if (inst.status or "").strip().lower() != "active":
         return "abnormal"
     if find_active_run_for_instance(db, inst.id) is not None:
+        return "executing"
+    from app.services.analysis_instance_guard import is_instance_generating
+
+    if is_instance_generating(inst.id):
         return "executing"
     return "idle"
 

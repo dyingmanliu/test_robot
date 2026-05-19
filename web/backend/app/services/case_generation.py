@@ -11,11 +11,19 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.models import Project, User
+from app.models import Project, RobotInstance, User
 from app.rbac import can_view_all_cases
 from app.schemas import CaseStepJson
+from app.services.analysis_instance_guard import (
+    analysis_generation_lock,
+    instance_available_for_generation,
+)
 from app.services.case_kb import search_cases_kb
-from app.services.company_scope import company_shares_projects_cases, enterprise_colleague_user_ids
+from app.services.company_scope import (
+    can_use_robot_instance,
+    company_shares_projects_cases,
+    enterprise_colleague_user_ids,
+)
 
 _REPO_ROOT = Path(__file__).resolve().parents[4]
 if str(_REPO_ROOT) not in sys.path:
@@ -97,9 +105,15 @@ def generate_case_draft(
     *,
     project: Project,
     user: User,
+    robot_instance: RobotInstance,
     prompt: str,
     case_format: str = "structured",
 ) -> GeneratedCaseDraft:
+    if not can_use_robot_instance(db, user, robot_instance):
+        raise AnalysisAgentError("无权使用该测试分析机器人实例，或实例已停用")
+    ok, msg = instance_available_for_generation(db, robot_instance)
+    if not ok:
+        raise AnalysisAgentError(msg)
     kb_snippets: list[str] = []
     similar_ids: list[int] = []
     if kb_enabled():
@@ -113,17 +127,26 @@ def generate_case_draft(
         )
 
     log.info(
-        "调用 analysis_agent 生成用例 project_id=%s user_id=%s prompt_len=%s",
+        "调用 analysis_agent 生成用例 project_id=%s user_id=%s instance_id=%s prompt_len=%s",
         project.id,
         user.id,
+        robot_instance.id,
         len((prompt or "").strip()),
     )
-    agent = AnalysisAgent()
-    draft = agent.generate_case_draft(
-        project=_project_context(project),
-        prompt=prompt,
-        kb_snippets=kb_snippets,
-    )
+    try:
+        with analysis_generation_lock(robot_instance.id):
+            agent = AnalysisAgent()
+            draft = agent.generate_case_draft(
+                project=_project_context(project),
+                prompt=prompt,
+                kb_snippets=kb_snippets,
+            )
+    except RuntimeError as e:
+        if str(e) == "analysis_instance_busy":
+            raise AnalysisAgentError(
+                "该测试分析机器人正在生成用例，请等待当前任务完成后再试"
+            ) from e
+        raise
     draft.similar_case_ids = similar_ids or None
     log.info(
         "用例生成完成 project_id=%s title=%r steps=%s model=%s",
