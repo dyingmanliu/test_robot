@@ -1537,8 +1537,8 @@ onMounted(bootstrapProjectContext);
   grid-template-columns: auto 1fr;
   gap: 1rem;
   margin-top: 0.75rem;
-  height: 480px;
-  min-height: 420px;
+  height: 520px;
+  min-height: 480px;
 }
 
 .exec-console--result {
@@ -1548,6 +1548,7 @@ onMounted(bootstrapProjectContext);
 .exec-screen-pane {
   min-height: 0;
   min-width: 0;
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
