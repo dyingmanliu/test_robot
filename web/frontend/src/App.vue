@@ -66,6 +66,7 @@
               <router-link to="/admin/companies" class="nav-dd-item" @click="closeAllDetails">公司与共享</router-link>
               <router-link to="/admin/rental-orders" class="nav-dd-item" @click="closeAllDetails">租用审批</router-link>
               <router-link to="/admin/users" class="nav-dd-item" @click="closeAllDetails">用户与角色</router-link>
+              <router-link to="/admin/robot-instances" class="nav-dd-item" @click="closeAllDetails">机器人实例</router-link>
             </div>
           </details>
 
@@ -73,6 +74,34 @@
         </nav>
       </div>
     </header>
+
+    <div
+      v-if="showGlobalRunBanner"
+      class="global-run-banner"
+    >
+      <span>用例执行中（运行 ID {{ activeRunStore.runId }}）</span>
+      <router-link
+        class="global-run-link"
+        :to="{
+          name: 'runExecutionLive',
+          params: { runId: String(activeRunStore.runId) },
+        }"
+        @click="closeAllDetails"
+      >
+        查看实时执行进度
+      </router-link>
+      <router-link
+        v-if="activeRunProjectId"
+        class="global-run-link global-run-link--secondary"
+        :to="{
+          name: 'cases',
+          query: { project: activeRunProjectId, run: activeRunStore.runId },
+        }"
+        @click="closeAllDetails"
+      >
+        测试用例
+      </router-link>
+    </div>
 
     <router-view v-slot="{ Component, route }">
       <main class="main" :class="{ 'main--bleed': route.meta.fullBleed }">
@@ -85,11 +114,30 @@
 <script setup>
 import { computed, onMounted, watch } from "vue";
 import { useAuthStore } from "@/stores/auth";
+import { getActiveRunProjectId, useActiveTestRunStore } from "@/stores/activeTestRun";
 import { useRoute, useRouter } from "vue-router";
 
 const auth = useAuthStore();
+const activeRunStore = useActiveTestRunStore();
 const route = useRoute();
 const router = useRouter();
+
+const activeRunProjectId = computed(
+  () => getActiveRunProjectId() || String(route.query.project || ""),
+);
+
+/** 用例页已在当前项目空间展示实时面板时，不重复显示顶栏 */
+const showGlobalRunBanner = computed(() => {
+  if (!auth.token || !activeRunStore.isActive) return false;
+  if (route.name === "runExecutionLive") return false;
+  if (route.name === "cases") {
+    const qProj = route.query.project ? Number(route.query.project) : NaN;
+    if (Number.isFinite(qProj) && activeRunStore.belongsToProject(qProj)) {
+      return false;
+    }
+  }
+  return true;
+});
 
 /** 子路由命中时高亮对应下拉分组标题 */
 const projectSpaceMenuActive = computed(
@@ -131,7 +179,24 @@ onMounted(async () => {
       auth.clear();
     }
   }
+  if (auth.token) {
+    const qRun = route.query.run ? Number(route.query.run) : null;
+    await activeRunStore.resumeIfNeeded(
+      Number.isFinite(qRun) && qRun > 0 ? qRun : null,
+    );
+  }
 });
+
+watch(
+  () => auth.token,
+  (tok) => {
+    if (tok) {
+      activeRunStore.resumeIfNeeded();
+    } else {
+      activeRunStore.clear();
+    }
+  },
+);
 
 function logout() {
   auth.clear();
@@ -359,6 +424,35 @@ function closeAllDetails() {
   color: #1d4ed8;
   background: #eff6ff;
   font-weight: 600;
+}
+
+.global-run-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  padding: 0.5rem 1rem;
+  background: #eff6ff;
+  border-bottom: 1px solid #bfdbfe;
+  color: #1e3a8a;
+  font-size: 0.88rem;
+}
+
+.global-run-link {
+  color: #1d4ed8;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.global-run-link:hover {
+  text-decoration: underline;
+}
+
+.global-run-link--secondary {
+  margin-left: 0.75rem;
+  font-weight: 500;
+  color: #0369a1;
 }
 
 .main {

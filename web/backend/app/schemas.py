@@ -344,6 +344,10 @@ class CaseImportResultOut(BaseModel):
 class TestRunOut(BaseModel):
     id: int
     case_id: int
+    project_id: Optional[int] = Field(
+        default=None,
+        description="所属项目空间（来自 test_cases.project_id）",
+    )
     owner_id: int
     robot_instance_id: Optional[int] = None
     device_platform: Optional[str] = None
@@ -560,6 +564,14 @@ class RobotInstanceOut(BaseModel):
     display_name: str
     display_bio: str
     status: str
+    runtime_status: Literal["executing", "idle", "abnormal"] = Field(
+        default="idle",
+        description="运行态：executing=执行中，idle=空闲，abnormal=异常",
+    )
+    active_run_id: Optional[int] = Field(
+        default=None,
+        description="当前 pending/running 的 test_run.id；无则 null",
+    )
     test_agent_backend: str = Field(
         default="autoglm",
         description="执行用例时使用的引擎：autoglm 或 midscene",
@@ -571,6 +583,13 @@ class RobotInstanceOut(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class RobotInstanceStatusPatch(BaseModel):
+    status: Literal["active", "suspended"] = Field(
+        ...,
+        description="active=启动；suspended=停用",
+    )
 
 
 class RobotInstancePatch(BaseModel):

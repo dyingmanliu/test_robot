@@ -9,7 +9,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from fastapi.responses import FileResponse
 from sqlalchemy import desc
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
 from app.deps import get_current_user
@@ -37,11 +37,11 @@ from app.services.case_format_convert import structured_to_yaml, yaml_to_structu
 from app.services.case_generation import CaseGeneratorError, generate_case_draft
 from app.services.case_agent_text import parse_steps_json
 from app.services.case_import import parse_import_file, row_to_create
-from app.services.robot_run_guard import busy_run_detail_message, find_active_run_for_instance
+from app.services.robot_run_guard import instance_available_for_run
 from app.services.run_report import resolve_report_file
 from app.services.case_kb import upsert_case_kb
 from app.services.run_metrics import count_recognition_steps
-from app.test_case_io import revision_to_out, steps_to_json, test_case_to_out
+from app.test_case_io import revision_to_out, steps_to_json, test_case_to_out, test_run_to_out
 
 router = APIRouter(prefix="/test-cases", tags=["test-cases"])
 
@@ -342,11 +342,16 @@ def get_run(
     run_id: int,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
-) -> TestRun:
-    r = run_scope_query(db, user).filter(TestRun.id == run_id).first()
+) -> TestRunOut:
+    r = (
+        run_scope_query(db, user)
+        .options(joinedload(TestRun.test_case))
+        .filter(TestRun.id == run_id)
+        .first()
+    )
     if r is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="执行记录不存在")
-    return r
+    return test_run_to_out(r)
 
 
 @router.get("/runs/{run_id}/report")
@@ -373,8 +378,13 @@ def cancel_run(
     run_id: int,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
-) -> TestRun:
-    r = run_scope_query(db, user).filter(TestRun.id == run_id).first()
+) -> TestRunOut:
+    r = (
+        run_scope_query(db, user)
+        .options(joinedload(TestRun.test_case))
+        .filter(TestRun.id == run_id)
+        .first()
+    )
     if r is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="执行记录不存在")
     if r.status not in ("pending", "running"):
@@ -384,7 +394,7 @@ def cancel_run(
         )
     signal_cancel(run_id)
     db.refresh(r)
-    return r
+    return test_run_to_out(r)
 
 
 @router.get("/{case_id}/versions", response_model=list[TestCaseRevisionOut])
@@ -465,6 +475,8 @@ def delete_case(
     tc = _get_case_for_write(db, case_id, user)
     if tc is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="用例不存在")
+    # 先删执行记录，避免 ORM 将 test_runs.case_id 置空触发 NOT NULL / 外键错误
+    db.query(TestRun).filter(TestRun.case_id == case_id).delete(synchronize_session=False)
     db.delete(tc)
     db.commit()
 
@@ -475,7 +487,7 @@ async def run_case(
     body: RunCaseBody,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
-) -> TestRun:
+) -> TestRunOut:
     tc = _get_case_for_read(db, case_id, user)
     if tc is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="用例不存在")
@@ -486,14 +498,14 @@ async def run_case(
     if not can_use_robot_instance(db, user, inst):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="无权使用该公司下的该机器人实例，或实例不可用",
+            detail="无权使用该公司下的该机器人实例，或实例已停用",
         )
 
-    busy = find_active_run_for_instance(db, inst.id)
-    if busy is not None:
+    ok, msg = instance_available_for_run(db, inst)
+    if not ok:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=busy_run_detail_message(busy),
+            detail=msg,
         )
 
     from app.services.device_platform import resolve_execution_platform
@@ -528,4 +540,4 @@ async def run_case(
         device_id or "(默认)",
     )
     asyncio.get_running_loop().run_in_executor(_executor, _run_in_thread, run.id)
-    return run
+    return test_run_to_out(run, project_id=tc.project_id)

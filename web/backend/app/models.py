@@ -121,7 +121,10 @@ class TestCase(Base):
 
     owner: Mapped["User"] = relationship(back_populates="test_cases")
     project: Mapped[Optional["Project"]] = relationship(back_populates="test_cases")
-    runs: Mapped[list["TestRun"]] = relationship(back_populates="test_case")
+    runs: Mapped[list["TestRun"]] = relationship(
+        back_populates="test_case",
+        cascade="all, delete-orphan",
+    )
 
 
 class TestCaseRevision(Base):
@@ -281,7 +284,10 @@ class TestRun(Base):
     __tablename__ = "test_runs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    case_id: Mapped[int] = mapped_column(ForeignKey("test_cases.id"), index=True)
+    case_id: Mapped[int] = mapped_column(
+        ForeignKey("test_cases.id", ondelete="CASCADE"),
+        index=True,
+    )
     owner_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     robot_instance_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("robot_instances.id", ondelete="SET NULL"),

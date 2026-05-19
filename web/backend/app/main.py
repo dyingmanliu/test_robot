@@ -139,6 +139,16 @@ def on_startup() -> None:
     ensure_personal_spaces()
     ensure_projects_bootstrap()
     bootstrap_rbac()
+    from app.database import SessionLocal
+    from app.services.robot_run_guard import reconcile_stale_runs_on_startup
+
+    db = SessionLocal()
+    try:
+        n = reconcile_stale_runs_on_startup(db)
+        if n:
+            _startup_log.info("已清理残留执行任务 %s 条", n)
+    finally:
+        db.close()
     _startup_log.info("应用启动完成")
 
 

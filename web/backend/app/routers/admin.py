@@ -21,7 +21,10 @@ from app.schemas import (
     RentalApproveBody,
     RentalOrderOut,
     RentalRejectBody,
+    RobotInstanceOut,
+    RobotInstanceStatusPatch,
 )
+from app.services.robot_instance_out import robot_instance_to_out
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -142,6 +145,31 @@ def patch_company_share_internal(
         share_projects_cases_internally=bool(c.share_projects_cases_internally),
         user_count=int(n_users),
     )
+
+
+@router.get("/robot-instances", response_model=list[RobotInstanceOut])
+def list_robot_instances_admin(
+    db: Session = Depends(get_db),
+    _: User = Depends(require_roles(ROLE_PLATFORM_ADMIN)),
+) -> list[RobotInstanceOut]:
+    rows = db.query(RobotInstance).order_by(RobotInstance.id.desc()).limit(500).all()
+    return [robot_instance_to_out(db, inst) for inst in rows]
+
+
+@router.patch("/robot-instances/{instance_id}/status", response_model=RobotInstanceOut)
+def set_robot_instance_status_admin(
+    instance_id: int,
+    body: RobotInstanceStatusPatch,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_roles(ROLE_PLATFORM_ADMIN)),
+) -> RobotInstanceOut:
+    inst = db.query(RobotInstance).filter(RobotInstance.id == instance_id).first()
+    if inst is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="机器人实例不存在")
+    inst.status = body.status
+    db.commit()
+    db.refresh(inst)
+    return robot_instance_to_out(db, inst)
 
 
 @router.get("/users", response_model=list[AdminUserOut])

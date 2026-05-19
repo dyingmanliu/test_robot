@@ -25,9 +25,10 @@
           <tr>
             <th>实例编号</th>
             <th>展示名称</th>
-            <th>目录类型</th>
             <th>执行引擎</th>
-            <th>状态</th>
+            <th>机器人类型</th>
+            <th>运行状态</th>
+            <th>实例状态</th>
             <th>提交人（用户 ID）</th>
             <th>创建时间</th>
             <th></th>
@@ -42,18 +43,39 @@
           >
             <td class="mono strong">{{ r.instance_code }}</td>
             <td>{{ r.display_name || "—" }}</td>
-            <td><span class="pill">{{ r.catalog_robot_id }}</span></td>
             <td class="muted small">
               {{ engineLabel(r.test_agent_backend) }} · {{ platformLabel(r.device_platform) }}
             </td>
-            <td>{{ r.status }}</td>
+            <td>
+              <span class="pill pill-type">{{ robotTypeLabel(r.catalog_robot_id) }}</span>
+            </td>
+            <td>
+              <span class="runtime-pill" :class="`runtime-pill--${r.runtime_status || 'idle'}`">
+                {{ runtimeStatusLabel(r.runtime_status) }}
+              </span>
+            </td>
+            <td>
+              <span class="instance-pill" :class="`instance-pill--${instanceStatusClass(r.status)}`">
+                {{ instanceStatusLabel(r.status) }}
+              </span>
+            </td>
             <td class="muted small mono">{{ r.leasing_user_id }}</td>
             <td class="muted small">{{ fmt(r.created_at) }}</td>
-            <td class="link-cell">
+            <td class="link-cell" @click.stop>
+              <router-link
+                v-if="r.runtime_status === 'executing' && r.active_run_id"
+                class="row-link row-link--primary"
+                :to="{
+                  name: 'runExecutionLive',
+                  params: { runId: String(r.active_run_id) },
+                }"
+              >
+                执行详情
+              </router-link>
               <router-link
                 class="row-link"
+                :class="{ 'row-link--secondary': r.runtime_status === 'executing' && r.active_run_id }"
                 :to="{ name: 'myRobotDetail', params: { instanceId: String(r.id) } }"
-                @click.stop
               >
                 详情
               </router-link>
@@ -70,9 +92,15 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from "vue";
+import { onMounted, onUnmounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import client, { formatApiError } from "@/api/client";
+import {
+  instanceStatusClass,
+  instanceStatusLabel,
+  robotTypeLabel,
+  runtimeStatusLabel,
+} from "@/constants/robotCatalog";
 
 const router = useRouter();
 const instances = ref([]);
@@ -104,20 +132,31 @@ function goDetail(id) {
   router.push({ name: "myRobotDetail", params: { instanceId: String(n) } }).catch(() => {});
 }
 
-async function load() {
-  loading.value = true;
-  error.value = "";
+async function load(silent = false) {
+  if (!silent) {
+    loading.value = true;
+    error.value = "";
+  }
   try {
     const { data } = await client.get("/api/robot-instances/mine");
     instances.value = data || [];
   } catch (e) {
-    error.value = formatApiError(e);
+    if (!silent) error.value = formatApiError(e);
   } finally {
-    loading.value = false;
+    if (!silent) loading.value = false;
   }
 }
 
-onMounted(load);
+let refreshTimer = null;
+
+onMounted(() => {
+  load();
+  refreshTimer = setInterval(() => load(true), 5000);
+});
+
+onUnmounted(() => {
+  if (refreshTimer) clearInterval(refreshTimer);
+});
 </script>
 
 <style scoped>
@@ -211,15 +250,77 @@ onMounted(load);
   color: #1e40af;
 }
 
+.pill-type {
+  white-space: nowrap;
+}
+
+.runtime-pill {
+  display: inline-block;
+  font-size: 0.72rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.runtime-pill--executing {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.runtime-pill--idle {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.runtime-pill--abnormal {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.instance-pill {
+  display: inline-block;
+  font-size: 0.72rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.instance-pill--started {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.instance-pill--stopped {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
 .link-cell {
-  text-align: right;
-  width: 4rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.65rem;
+  justify-content: flex-end;
+  min-width: 7rem;
 }
 
 .row-link {
   color: #2563eb;
   font-size: 0.88rem;
   text-decoration: none;
+  white-space: nowrap;
+}
+
+.row-link--primary {
+  font-weight: 600;
+  color: #1d4ed8;
+}
+
+.row-link--secondary {
+  font-size: 0.82rem;
+  color: #64748b;
+  font-weight: 400;
 }
 
 .row-link:hover {

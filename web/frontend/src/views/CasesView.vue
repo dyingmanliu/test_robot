@@ -74,7 +74,7 @@
         <button
           type="button"
           class="btn"
-          :disabled="!selectedProjectId || !selectedIds.length || running || !canStartExecution"
+          :disabled="!selectedProjectId || !selectedCaseId || running || !canStartExecution"
           @click="runSelected"
         >
           {{ running ? "执行中…" : "执行测试" }}
@@ -110,7 +110,7 @@
             >
               {{ ins.instance_code }} · {{ (ins.display_name || "").trim() || ins.catalog_robot_id }} ·
               {{ agentEngineLabel(ins.test_agent_backend) }}
-              <template v-if="robotOptionDisabled(ins)">（不可用于 YAML）</template>
+              {{ robotOptionHint(ins) }}
             </option>
           </select>
         </label>
@@ -155,6 +155,15 @@
       <p v-if="needsMidsceneForSelection" class="robot-hint muted small">
         已选 YAML 用例，请选用标注为 <strong>Midscene</strong> 的机器人（如 DR-000008 · 机器人贾维斯）。
       </p>
+      <p v-if="!runnableRobotCount" class="robot-hint warn small">
+        当前没有可执行用例的机器人：须为<strong>已启动</strong>且<strong>运行状态空闲</strong>；YAML 用例还须 Midscene 引擎。可在
+        <router-link v-if="auth.role === 'platform_admin'" to="/admin/robot-instances">机器人实例管理</router-link>
+        <template v-else>「我的机器人」</template>
+        中启用实例或等待执行结束。
+      </p>
+      <p v-else class="robot-hint muted small">
+        仅<strong>已启动</strong>且<strong>运行空闲</strong>的机器人可选；执行中或已停用的实例将灰显。
+      </p>
     </div>
 
     <div v-if="loadError" class="banner err">{{ loadError }}</div>
@@ -163,9 +172,7 @@
       <table class="table">
         <thead>
           <tr>
-            <th class="narrow">
-              <input type="checkbox" :checked="allSelected" @change="toggleAll" />
-            </th>
+            <th class="narrow">选择</th>
             <th>标题</th>
             <th>优先级</th>
             <th>格式</th>
@@ -177,7 +184,12 @@
         <tbody>
           <tr v-for="c in cases" :key="c.id">
             <td>
-              <input type="checkbox" :value="c.id" v-model="selectedIds" />
+              <input
+                type="radio"
+                name="case-run-select"
+                :value="c.id"
+                v-model.number="selectedCaseId"
+              />
             </td>
             <td>{{ c.title }}</td>
             <td>{{ c.priority || "—" }}</td>
@@ -199,7 +211,11 @@
 
     <p v-if="loading" class="muted">加载中…</p>
 
-    <div v-if="liveRun" class="panel live-panel">
+    <p v-if="showResumeHint && liveRunVisible" class="banner share-hint">
+      已恢复进行中的执行任务（运行 ID {{ liveRun.id }}）。离开本页后后台仍会继续拉取进度，返回即可继续查看。
+    </p>
+
+    <div v-if="liveRunVisible" class="panel live-panel">
       <div class="panel-head">
         <h2>执行进度（实时）</h2>
         <button
@@ -466,8 +482,20 @@
         </template>
         <p v-if="dialog.error" class="err">{{ dialog.error }}</p>
         <div class="modal-actions">
-          <button type="button" class="btn ghost" @click="dialog.open = false">取消</button>
-          <button type="button" class="btn primary" @click="saveDialog">保存</button>
+          <button type="button" class="btn ghost" :disabled="dialog.saving" @click="dialog.open = false">
+            取消
+          </button>
+          <button type="button" class="btn primary" :disabled="dialog.saving" @click="saveDialog(false)">
+            {{ dialog.saving ? "保存中…" : "保存" }}
+          </button>
+          <button
+            type="button"
+            class="btn primary btn-run"
+            :disabled="dialog.saving || running"
+            @click="saveDialog(true)"
+          >
+            {{ dialog.saving ? "处理中…" : "保存并执行" }}
+          </button>
         </div>
       </div>
     </div>
@@ -504,24 +532,21 @@
 </template>
 
 <script setup>
-import axios from "axios";
 import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from "vue";
+import { storeToRefs } from "pinia";
 import { useRoute, useRouter } from "vue-router";
 import client, { formatApiError } from "@/api/client";
 import DeviceScreenMirror from "@/components/DeviceScreenMirror.vue";
+import { useActiveTestRunStore, getActiveRunProjectId } from "@/stores/activeTestRun";
 import { useAuthStore } from "@/stores/auth";
+import { isRobotRunnableForCase, robotUnselectableHint } from "@/constants/robotCatalog";
 
 /** 轮询时短暂断网、502 等不应立刻当作「执行失败」；401 等仍应立即失败 */
-function isTransientPollError(e) {
-  if (!axios.isAxiosError(e)) return false;
-  if (!e.response) return true;
-  const s = e.response.status;
-  return s >= 500 || s === 408 || s === 429;
-}
-
 const route = useRoute();
 const router = useRouter();
 const auth = useAuthStore();
+const activeRunStore = useActiveTestRunStore();
+const { liveRun, polling: running } = storeToRefs(activeRunStore);
 
 const projects = ref([]);
 const projectsLoaded = ref(false);
@@ -530,11 +555,29 @@ const selectedProjectId = ref(null);
 const cases = ref([]);
 const loading = ref(false);
 const loadError = ref("");
-const selectedIds = ref([]);
-const running = ref(false);
+const selectedCaseId = ref(null);
 const stopBusy = ref(false);
-const liveRun = ref(null);
+const showResumeHint = ref(false);
 const resultRuns = ref([]);
+
+function runBelongsToCurrentProject(run) {
+  if (!selectedProjectId.value || !run) return false;
+  const pid =
+    run.project_id != null
+      ? Number(run.project_id)
+      : activeRunStore.projectId != null
+        ? Number(activeRunStore.projectId)
+        : Number(getActiveRunProjectId()) || NaN;
+  if (Number.isFinite(pid) && pid === selectedProjectId.value) return true;
+  return cases.value.some((c) => c.id === run.case_id);
+}
+
+const liveRunVisible = computed(() => {
+  if (!liveRun.value) return false;
+  if (!runBelongsToCurrentProject(liveRun.value)) return false;
+  const st = liveRun.value.status;
+  return st === "pending" || st === "running";
+});
 
 const robotInstances = ref([]);
 const selectedRobotInstanceId = ref(null);
@@ -564,8 +607,21 @@ const onlineDevices = computed(() =>
   connectedDevices.value.filter((d) => String(d.state || "").toLowerCase() === "device"),
 );
 
+const selectedRobotInstance = computed(() =>
+  robotInstances.value.find((i) => i.id === selectedRobotInstanceId.value),
+);
+
+const runnableRobotCount = computed(() =>
+  robotInstances.value.filter((ins) =>
+    isRobotRunnableForCase(ins, needsMidsceneForSelection.value),
+  ).length,
+);
+
 const canStartExecution = computed(() => {
   if (!selectedRobotInstanceId.value) return false;
+  if (!isRobotRunnableForCase(selectedRobotInstance.value, needsMidsceneForSelection.value)) {
+    return false;
+  }
   if (devicesLoading.value) return false;
   return onlineDevices.value.length > 0 && !!selectedDeviceId.value;
 });
@@ -647,19 +703,53 @@ function scrollLiveLogToBottom() {
 watch(
   () => liveRun.value?.step_log,
   () => {
-    if (liveRun.value) scrollLiveLogToBottom();
+    if (liveRunVisible.value) scrollLiveLogToBottom();
+  },
+);
+
+function absorbTerminalRunToResults() {
+  const run = liveRun.value;
+  if (!run || !runBelongsToCurrentProject(run)) return;
+  if (!["success", "failed", "cancelled"].includes(run.status)) return;
+  resultRuns.value = [run];
+  showResumeHint.value = false;
+  syncRunQuery(null);
+  activeRunStore.clear();
+}
+
+watch(
+  () => liveRun.value?.status,
+  (st) => {
+    if (st && ["success", "failed", "cancelled"].includes(st)) {
+      absorbTerminalRunToResults();
+    }
   },
 );
 
 const importMsg = ref("");
 
-const DEFAULT_YAML_TEMPLATE = `# Midscene HarmonyOS 用例（runYaml 仅执行 tasks 段；设备由服务端 HDC 连接）
+const DEFAULT_YAML_TEMPLATE = `# Midscene YAML 用例（仅 tasks 段由 runYaml 执行）
+# - 设备：由用例页所选「平台 + 目标终端」连接（Android ADB / 鸿蒙 HDC）
+# - 须使用 test_agent_backend=midscene 的机器人实例执行
+# - flow 常用指令：ai（自然语言操作）、aiAssert（断言）、sleep（毫秒）
+# 文档：https://midscenejs.com/automate-with-scripts-in-yaml
+
 tasks:
-  - name: 示例任务
+  - name: 美团搜索火锅并进入商户详情
     flow:
-      - ai: 打开设置应用
+      - ai: 确保满足前置条件：已登录美团 App，网络正常
+      - ai: 打开美团 App；若不在首页则返回首页
+      - sleep: 2000
+      - aiAssert: 当前为美团首页，能看到顶部搜索框或「搜索」入口
+      - ai: 点击首页搜索框
       - sleep: 1000
-      - aiAssert: 页面显示设置项列表
+      - aiAssert: 已进入搜索页，能看到搜索输入框
+      - ai: 在搜索框输入「火锅」并点击搜索或键盘确认
+      - sleep: 2000
+      - aiAssert: 已进入搜索结果页，列表中有火锅相关商户
+      - ai: 点击列表中第一家火锅店，进入商户详情
+      - sleep: 1500
+      - aiAssert: 已进入商户详情页，能看到店名、评分或「加入购物车」等入口
 `;
 
 const dialog = reactive({
@@ -675,6 +765,7 @@ const dialog = reactive({
   steps: [],
   error: "",
   formatConverting: false,
+  saving: false,
 });
 
 const genDialog = reactive({
@@ -696,19 +787,13 @@ const verDialog = reactive({
   caseTitle: "",
 });
 
-const allSelected = computed(() => {
-  return cases.value.length > 0 && selectedIds.value.length === cases.value.length;
-});
-
 function isMidsceneBackend(backend) {
   return String(backend || "autoglm").toLowerCase() === "midscene";
 }
 
 const needsMidsceneForSelection = computed(() => {
-  const idSet = new Set(selectedIds.value);
-  return cases.value.some(
-    (c) => idSet.has(c.id) && String(c.case_format || "").toLowerCase() === "yaml",
-  );
+  const c = cases.value.find((x) => x.id === selectedCaseId.value);
+  return !!c && String(c.case_format || "").toLowerCase() === "yaml";
 });
 
 const midsceneRobotInstances = computed(() =>
@@ -718,34 +803,29 @@ const midsceneRobotInstances = computed(() =>
 const robotsForExecution = computed(() => robotInstances.value);
 
 function robotOptionDisabled(ins) {
-  return needsMidsceneForSelection.value && !isMidsceneBackend(ins.test_agent_backend);
+  return !isRobotRunnableForCase(ins, needsMidsceneForSelection.value);
+}
+
+function robotOptionHint(ins) {
+  return robotUnselectableHint(ins, needsMidsceneForSelection.value);
 }
 
 function syncRobotSelection() {
-  if (!robotInstances.value.length) {
+  const needMid = needsMidsceneForSelection.value;
+  const runnable = robotInstances.value.filter((ins) => isRobotRunnableForCase(ins, needMid));
+  if (!runnable.length) {
     selectedRobotInstanceId.value = null;
     return;
   }
   const current = robotInstances.value.find((ins) => ins.id === selectedRobotInstanceId.value);
-  if (needsMidsceneForSelection.value) {
-    const midscene = midsceneRobotInstances.value;
-    if (!midscene.length) {
-      selectedRobotInstanceId.value = null;
-      return;
-    }
-    if (!current || !isMidsceneBackend(current.test_agent_backend)) {
-      selectedRobotInstanceId.value = midscene[0].id;
-    }
-    return;
-  }
-  if (!current) {
-    selectedRobotInstanceId.value = robotInstances.value[0].id;
+  if (!current || !isRobotRunnableForCase(current, needMid)) {
+    selectedRobotInstanceId.value = runnable[0].id;
   }
   syncDevicePlatformFromInstance();
   loadConnectedDevices();
 }
 
-watch([selectedIds, cases], () => syncRobotSelection(), { deep: true });
+watch([selectedCaseId, cases], () => syncRobotSelection());
 
 watch(selectedRobotInstanceId, () => syncDevicePlatformFromInstance());
 
@@ -785,7 +865,9 @@ async function load() {
       params: { project_id: selectedProjectId.value },
     });
     cases.value = data;
-    selectedIds.value = selectedIds.value.filter((id) => data.some((c) => c.id === id));
+    if (selectedCaseId.value && !data.some((c) => c.id === selectedCaseId.value)) {
+      selectedCaseId.value = null;
+    }
   } catch (e) {
     loadError.value = formatApiError(e);
   } finally {
@@ -793,10 +875,13 @@ async function load() {
   }
 }
 
-function onProjectChange() {
-  router.replace({ path: "/cases", query: { project: String(selectedProjectId.value) } });
-  load();
-  loadRobotInstances();
+async function onProjectChange() {
+  showResumeHint.value = false;
+  const q = { project: String(selectedProjectId.value) };
+  router.replace({ path: "/cases", query: q });
+  await load();
+  await loadRobotInstances();
+  await tryResumeActiveRun();
 }
 
 async function loadRobotInstances() {
@@ -830,14 +915,7 @@ async function bootstrapProjectContext() {
   if (selectedRobotInstanceId.value) {
     await loadConnectedDevices();
   }
-}
-
-function toggleAll(e) {
-  if (e.target.checked) {
-    selectedIds.value = cases.value.map((c) => c.id);
-  } else {
-    selectedIds.value = [];
-  }
+  await tryResumeActiveRun();
 }
 
 function truncate(s, n) {
@@ -856,9 +934,11 @@ function stepPreview(c) {
 }
 
 function fillYamlTemplate() {
-  if (!dialog.case_yaml.trim()) {
-    dialog.case_yaml = DEFAULT_YAML_TEMPLATE;
+  if (dialog.case_yaml.trim()) {
+    const ok = window.confirm("将覆盖当前 YAML 内容，是否填入完整示例模板？");
+    if (!ok) return;
   }
+  dialog.case_yaml = DEFAULT_YAML_TEMPLATE;
 }
 
 function fmtTime(iso) {
@@ -917,6 +997,7 @@ function openCreate() {
   dialog.case_yaml = "";
   dialog.steps = [{ description: "", expected: "" }];
   dialog.error = "";
+  dialog.saving = false;
 }
 
 function openGenerate() {
@@ -959,6 +1040,7 @@ function openCreateWithDraft(draft) {
   applyDraftToDialog(draft);
   dialog.error = "";
   dialog.formatConverting = false;
+  dialog.saving = false;
 }
 
 async function switchCaseFormat(target) {
@@ -1034,6 +1116,7 @@ function openEdit(c) {
       }))
     : [{ description: "", expected: "" }];
   dialog.error = "";
+  dialog.saving = false;
 }
 
 async function openVersions(c) {
@@ -1062,44 +1145,92 @@ function buildStepsPayload() {
     .filter((s) => s.description || s.expected);
 }
 
-async function saveDialog() {
-  dialog.error = "";
-  if (!dialog.title.trim()) {
-    dialog.error = "请填写标题";
-    return;
-  }
+function validateDialogForm() {
+  if (!dialog.title.trim()) return "请填写标题";
   const stepsPayload = buildStepsPayload();
   if (dialog.case_format === "yaml") {
-    if (!dialog.case_yaml.trim()) {
-      dialog.error = "请填写 Midscene YAML 脚本";
-      return;
-    }
+    if (!dialog.case_yaml.trim()) return "请填写 Midscene YAML 脚本";
   } else if (!dialog.task_text.trim() && stepsPayload.length === 0) {
-    dialog.error = "请填写执行说明或至少一条步骤";
+    return "请填写执行说明或至少一条步骤";
+  }
+  return null;
+}
+
+function validateExecutionReady(caseFormat) {
+  const needMid = String(caseFormat || "structured").toLowerCase() === "yaml";
+  if (!selectedRobotInstanceId.value) {
+    return needMid
+      ? "YAML 用例须选择 Midscene 机器人；请到「我的机器人」将实例引擎改为 Midscene"
+      : "请先选择要使用的机器人实例";
+  }
+  const picked = robotInstances.value.find((ins) => ins.id === selectedRobotInstanceId.value);
+  if (!picked || !isRobotRunnableForCase(picked, needMid)) {
+    return "请选择已启动且运行空闲的机器人实例";
+  }
+  if (needMid && !isMidsceneBackend(picked.test_agent_backend)) {
+    return "YAML 用例须绑定 Midscene 机器人实例执行";
+  }
+  if (!selectedDeviceId.value) {
+    return devicesError.value || "请先选择已连接的目标终端，或点击「刷新」重新扫描设备";
+  }
+  return null;
+}
+
+function buildSaveBody() {
+  return {
+    title: dialog.title.trim(),
+    task_text: dialog.task_text.trim(),
+    preconditions: (dialog.preconditions || "").trim(),
+    priority: dialog.priority,
+    case_format: dialog.case_format,
+    case_yaml: dialog.case_format === "yaml" ? dialog.case_yaml : "",
+    steps: buildStepsPayload(),
+  };
+}
+
+async function persistCase() {
+  const body = buildSaveBody();
+  if (dialog.editing && dialog.id) {
+    const { data } = await client.patch(`/api/test-cases/${dialog.id}`, body);
+    return data;
+  }
+  const { data } = await client.post("/api/test-cases", {
+    project_id: selectedProjectId.value,
+    ...body,
+  });
+  return data;
+}
+
+async function saveDialog(andRun = false) {
+  dialog.error = "";
+  const formErr = validateDialogForm();
+  if (formErr) {
+    dialog.error = formErr;
     return;
   }
-  try {
-    const body = {
-      title: dialog.title.trim(),
-      task_text: dialog.task_text.trim(),
-      preconditions: (dialog.preconditions || "").trim(),
-      priority: dialog.priority,
-      case_format: dialog.case_format,
-      case_yaml: dialog.case_format === "yaml" ? dialog.case_yaml : "",
-      steps: stepsPayload,
-    };
-    if (dialog.editing && dialog.id) {
-      await client.patch(`/api/test-cases/${dialog.id}`, body);
-    } else {
-      await client.post("/api/test-cases", {
-        project_id: selectedProjectId.value,
-        ...body,
-      });
+  if (andRun) {
+    const runErr = validateExecutionReady(dialog.case_format);
+    if (runErr) {
+      dialog.error = runErr;
+      return;
     }
+  }
+  dialog.saving = true;
+  try {
+    const saved = await persistCase();
     dialog.open = false;
     await load();
+    if (saved?.id) {
+      selectedCaseId.value = saved.id;
+    }
+    if (andRun && saved?.id) {
+      loadError.value = "";
+      await runCaseById(saved.id);
+    }
   } catch (e) {
     dialog.error = formatApiError(e);
+  } finally {
+    dialog.saving = false;
   }
 }
 
@@ -1124,9 +1255,18 @@ async function onImportFile(ev) {
 
 async function remove(c) {
   if (!confirm(`确定删除「${c.title}」？`)) return;
-  await client.delete(`/api/test-cases/${c.id}`);
-  selectedIds.value = selectedIds.value.filter((id) => id !== c.id);
-  await load();
+  try {
+    await client.delete(`/api/test-cases/${c.id}`);
+    if (selectedCaseId.value === c.id) {
+      selectedCaseId.value = null;
+    }
+    if (liveRun.value?.case_id === c.id) {
+      activeRunStore.clear();
+    }
+    await load();
+  } catch (e) {
+    window.alert(formatApiError(e));
+  }
 }
 
 function agentEngineLabel(backend) {
@@ -1178,7 +1318,7 @@ async function stopRun() {
   if (!id) return;
   stopBusy.value = true;
   try {
-    await client.post(`/api/test-cases/runs/${id}/cancel`);
+    await activeRunStore.cancelCurrent();
   } catch (e) {
     window.alert(e.response?.data?.detail || String(e.message || e));
   } finally {
@@ -1229,99 +1369,102 @@ async function downloadReport(runId) {
   }
 }
 
-async function pollRun(runId, onTick) {
-  const deadline = Date.now() + 2 * 60 * 60 * 1000;
-  let transientStreak = 0;
-  while (Date.now() < deadline) {
-    try {
-      const { data } = await client.get(`/api/test-cases/runs/${runId}`);
-      transientStreak = 0;
-      if (typeof onTick === "function") onTick(data);
-      if (data.status === "success" || data.status === "failed" || data.status === "cancelled") {
-        return data;
-      }
-    } catch (e) {
-      if (isTransientPollError(e)) {
-        transientStreak++;
-        if (transientStreak > 120) {
-          throw new Error(
-            "长时间无法连接后端（网络或服务异常）。若正在使用 uvicorn --reload，保存文件会重启进程并中断未完成的自动化任务；长时间跑测时请去掉 --reload。"
-          );
-        }
-      } else {
-        throw e;
-      }
-    }
-    await new Promise((r) => setTimeout(r, 1000));
+function syncRunQuery(runId) {
+  const q = { ...route.query };
+  if (runId) {
+    q.run = String(runId);
+  } else {
+    delete q.run;
   }
-  throw new Error("等待执行结果超时（超过 2 小时）");
+  router.replace({ path: route.path, query: q });
 }
 
-async function runSelected() {
-  if (!selectedIds.value.length) return;
-  if (!selectedRobotInstanceId.value) {
-    loadError.value = needsMidsceneForSelection.value
-      ? "YAML 用例须选择 Midscene 机器人；请到「我的机器人」将实例引擎改为 Midscene"
-      : "请先选择要使用的机器人实例";
+async function tryResumeActiveRun() {
+  const qRun = route.query.run ? Number(route.query.run) : null;
+  const preferred = Number.isFinite(qRun) && qRun > 0 ? qRun : null;
+  const hadStored = !!(preferred || sessionStorage.getItem("tcm_active_run_id"));
+  const data = await activeRunStore.resumeIfNeeded(preferred);
+  if (!data) return;
+  if (!runBelongsToCurrentProject(data)) {
+    showResumeHint.value = false;
+    if (route.query.run) syncRunQuery(null);
     return;
   }
-  if (!selectedDeviceId.value) {
-    loadError.value = devicesError.value || "请先选择已连接的目标终端，或点击「刷新」重新扫描设备";
+  selectedCaseId.value = data.case_id;
+  if (["success", "failed", "cancelled"].includes(data.status)) {
+    resultRuns.value = [data];
+    activeRunStore.clear();
     return;
+  } else if (hadStored) {
+    showResumeHint.value = true;
+    syncRunQuery(data.id);
   }
-  const picked = robotInstances.value.find((ins) => ins.id === selectedRobotInstanceId.value);
-  if (needsMidsceneForSelection.value && picked && !isMidsceneBackend(picked.test_agent_backend)) {
-    loadError.value = "YAML 用例须绑定 Midscene 机器人实例执行，请在下拉框中选择 Midscene 引擎的机器人";
-    return;
-  }
-  running.value = true;
-  liveRun.value = null;
+  await nextTick();
+  scrollLiveLogToBottom();
+}
+
+async function runCaseById(caseId) {
   resultRuns.value = [];
+  loadError.value = "";
+  showResumeHint.value = false;
+  activeRunStore.pollError = null;
   try {
-    for (const caseId of selectedIds.value) {
-      liveRun.value = null;
-      const { data: started } = await client.post(`/api/test-cases/${caseId}/run`, {
-        robot_instance_id: selectedRobotInstanceId.value,
-        device_platform: normalizeDevicePlatform(selectedDevicePlatform.value),
-        device_id: selectedDeviceId.value,
-      });
-      liveRun.value = { ...started };
-      scrollLiveLogToBottom();
-      const final = await pollRun(started.id, (data) => {
-        liveRun.value = data;
-        scrollLiveLogToBottom();
-      });
-      liveRun.value = final;
-      if (["success", "failed", "cancelled"].includes(final.status)) {
-        await new Promise((r) => setTimeout(r, 500));
-      }
-      resultRuns.value.push(final);
-    }
+    const final = await activeRunStore.executeCase({
+      caseId,
+      projectId: selectedProjectId.value,
+      robotInstanceId: selectedRobotInstanceId.value,
+      devicePlatform: normalizeDevicePlatform(selectedDevicePlatform.value),
+      deviceId: selectedDeviceId.value,
+    });
+    syncRunQuery(null);
+    resultRuns.value = [final];
+    activeRunStore.clear();
+    await nextTick();
+    scrollLiveLogToBottom();
   } catch (e) {
+    const msg =
+      activeRunStore.pollError ||
+      e.response?.data?.detail ||
+      String(e.message || e);
+    loadError.value = typeof msg === "string" ? msg : formatApiError(e);
     resultRuns.value.push({
-      id: 0,
-      case_id: 0,
+      id: activeRunStore.runId || 0,
+      case_id: caseId,
       owner_id: 0,
       status: "failed",
-      step_log: null,
+      step_log: activeRunStore.liveRun?.step_log || null,
       output_message: null,
-      error_trace: e.response?.data?.detail || String(e.message || e),
+      error_trace: loadError.value,
       started_at: null,
       finished_at: null,
     });
-  } finally {
-    liveRun.value = null;
-    running.value = false;
   }
 }
+
+async function runSelected() {
+  const caseId = selectedCaseId.value;
+  if (!caseId) return;
+  const pickedCase = cases.value.find((c) => c.id === caseId);
+  const runErr = validateExecutionReady(pickedCase?.case_format);
+  if (runErr) {
+    loadError.value = runErr;
+    return;
+  }
+  loadError.value = "";
+  await runCaseById(caseId);
+}
+
+let robotRefreshTimer = null;
 
 onMounted(() => {
   bootstrapProjectContext();
   document.addEventListener("click", onDocumentClick);
+  robotRefreshTimer = setInterval(() => loadRobotInstances(), 5000);
 });
 
 onUnmounted(() => {
   document.removeEventListener("click", onDocumentClick);
+  if (robotRefreshTimer) clearInterval(robotRefreshTimer);
 });
 </script>
 
@@ -1361,6 +1504,10 @@ onUnmounted(() => {
 
 .robot-hint {
   margin: 0.5rem 0 0;
+}
+
+.robot-hint.warn {
+  color: #92400e;
 }
 
 .robot-pick-row {
@@ -1797,12 +1944,14 @@ onUnmounted(() => {
 }
 
 .exec-console {
+  --exec-mirror-width: 280px;
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: var(--exec-mirror-width) 1fr;
   gap: 1rem;
   margin-top: 0.75rem;
   height: 520px;
   min-height: 480px;
+  align-items: stretch;
 }
 
 .exec-console--result {
@@ -1810,6 +1959,8 @@ onUnmounted(() => {
 }
 
 .exec-screen-pane {
+  width: var(--exec-mirror-width, 280px);
+  max-width: var(--exec-mirror-width, 280px);
   min-height: 0;
   min-width: 0;
   height: 100%;
@@ -1817,6 +1968,7 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
+  overflow: hidden;
 }
 
 .exec-log-pane {
@@ -1920,7 +2072,9 @@ onUnmounted(() => {
   }
 
   .exec-screen-pane {
-    min-height: 280px;
+    width: 100%;
+    max-width: 100%;
+    min-height: 320px;
   }
 
   .exec-log-scroll {
@@ -1989,8 +2143,19 @@ textarea {
 .modal-actions {
   display: flex;
   justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 0.5rem;
   margin-top: 0.5rem;
+}
+
+.btn-run {
+  background: #0d9488;
+  border-color: #0d9488;
+}
+
+.btn-run:hover:not(:disabled) {
+  background: #0f766e;
+  border-color: #0f766e;
 }
 
 .err {

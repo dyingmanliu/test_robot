@@ -10,6 +10,7 @@ from app.deps import get_current_user
 from app.models import RobotInstance, User
 from app.schemas import DeviceScreenOut, RobotInstanceOut, RobotInstancePatch
 from app.services.company_scope import can_use_robot_instance
+from app.services.robot_instance_out import robot_instance_to_out
 from app.services.device_platform import resolve_execution_device_id, resolve_execution_platform
 from app.services.device_screen import capture_device_screen
 
@@ -26,13 +27,14 @@ def _instance_readable(user: User, inst: RobotInstance) -> bool:
 def list_my_instances(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> list[RobotInstance]:
+) -> list[RobotInstanceOut]:
     q = db.query(RobotInstance)
     if user.company_id is not None:
         q = q.filter(RobotInstance.company_id == user.company_id)
     else:
         q = q.filter(RobotInstance.user_id == user.id)
-    return q.order_by(RobotInstance.id.desc()).all()
+    rows = q.order_by(RobotInstance.id.desc()).all()
+    return [robot_instance_to_out(db, inst) for inst in rows]
 
 
 @router.get("/{instance_id}", response_model=RobotInstanceOut)
@@ -40,13 +42,13 @@ def get_my_instance(
     instance_id: int,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> RobotInstance:
+) -> RobotInstanceOut:
     inst = db.query(RobotInstance).filter(RobotInstance.id == instance_id).first()
     if inst is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="机器人实例不存在")
     if not _instance_readable(user, inst):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权查看该实例")
-    return inst
+    return robot_instance_to_out(db, inst)
 
 
 @router.get("/{instance_id}/device-screen", response_model=DeviceScreenOut)
@@ -95,7 +97,7 @@ def patch_my_instance(
     body: RobotInstancePatch,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> RobotInstance:
+) -> RobotInstanceOut:
     inst = db.query(RobotInstance).filter(RobotInstance.id == instance_id).first()
     if inst is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="机器人实例不存在")
@@ -111,4 +113,4 @@ def patch_my_instance(
         inst.device_platform = body.device_platform
     db.commit()
     db.refresh(inst)
-    return inst
+    return robot_instance_to_out(db, inst)

@@ -11,8 +11,10 @@
             <h1>{{ inst.instance_code }}</h1>
             <p class="sub">
               {{ inst.display_name || "未命名展示名称" }} ·
-              <span class="pill">{{ inst.catalog_robot_id }}</span>
-              <span class="pill pill--muted">{{ inst.status }}</span>
+              <span class="pill">{{ robotTypeLabel(inst.catalog_robot_id) }}</span>
+              <span class="runtime-pill" :class="`runtime-pill--${inst.runtime_status || 'idle'}`">
+                {{ runtimeStatusLabel(inst.runtime_status) }}
+              </span>
             </p>
           </div>
           <RobotMascotAvatar class="mascot" inline :robot-id="inst.catalog_robot_id" />
@@ -24,8 +26,10 @@
         <dl class="kv">
           <dt>实例编号</dt>
           <dd class="mono">{{ inst.instance_code }}</dd>
+          <dt>机器人类型</dt>
+          <dd>{{ robotTypeLabel(inst.catalog_robot_id) }}</dd>
           <dt>目录机器人 ID</dt>
-          <dd>{{ inst.catalog_robot_id }}</dd>
+          <dd class="muted small mono">{{ inst.catalog_robot_id }}</dd>
           <dt>关联租用单</dt>
           <dd class="mono">#{{ inst.rental_order_id }}</dd>
           <dt>提交租用用户 ID</dt>
@@ -35,7 +39,13 @@
           <dt>默认执行设备</dt>
           <dd>{{ devicePlatformLabel(inst.device_platform) }}</dd>
           <dt>运行状态</dt>
-          <dd>{{ inst.status }}</dd>
+          <dd>{{ runtimeStatusLabel(inst.runtime_status) }}</dd>
+          <dt>实例状态</dt>
+          <dd>
+            <span class="instance-pill" :class="`instance-pill--${instanceStatusClass(inst.status)}`">
+              {{ instanceStatusLabel(inst.status) }}
+            </span>
+          </dd>
           <dt>创建时间</dt>
           <dd>{{ fmt(inst.created_at) }}</dd>
         </dl>
@@ -94,6 +104,12 @@ import { useRoute } from "vue-router";
 import client, { formatApiError } from "@/api/client";
 import { useAuthStore } from "@/stores/auth";
 import RobotMascotAvatar from "@/components/RobotMascotAvatar.vue";
+import {
+  instanceStatusClass,
+  instanceStatusLabel,
+  robotTypeLabel,
+  runtimeStatusLabel,
+} from "@/constants/robotCatalog";
 
 const route = useRoute();
 const auth = useAuthStore();
@@ -247,6 +263,48 @@ watch(
 .pill--muted {
   background: #f1f5f9;
   color: #475569;
+}
+
+.runtime-pill {
+  display: inline-block;
+  font-size: 0.72rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-weight: 600;
+  margin-right: 0.35rem;
+}
+
+.runtime-pill--executing {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.runtime-pill--idle {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.runtime-pill--abnormal {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.instance-pill {
+  display: inline-block;
+  font-size: 0.72rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.instance-pill--started {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.instance-pill--stopped {
+  background: #f1f5f9;
+  color: #64748b;
 }
 
 .card {

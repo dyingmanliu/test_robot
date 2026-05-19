@@ -4,8 +4,8 @@
       <span class="mirror-title">手机投屏</span>
       <span v-if="polling" class="mirror-badge">刷新中</span>
     </div>
-    <div ref="bodyEl" class="mirror-body">
-      <div class="mirror-frame" :style="frameStyle">
+    <div class="mirror-body">
+      <div class="mirror-frame">
         <img
           v-if="imageSrc"
           :src="imageSrc"
@@ -28,7 +28,7 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { onBeforeUnmount, ref, watch } from "vue";
 import client from "@/api/client";
 
 const props = defineProps({
@@ -39,54 +39,18 @@ const props = defineProps({
   intervalMs: { type: Number, default: 1500 },
 });
 
-const bodyEl = ref(null);
 const imageSrc = ref("");
 const meta = ref(null);
 const loading = ref(false);
 const polling = ref(false);
 const placeholderText = ref("等待画面…");
-/** 首次截屏后锁定宽高比，避免轮询时外框尺寸变化 */
-const lockedRatio = ref(9 / 19.5);
-const hostBounds = ref({ width: 260, height: 420 });
-
 const backendLabel = (b) => {
   const p = String(b || "").toLowerCase();
   if (p === "harmonyos" || p === "midscene") return "鸿蒙 / HDC";
   return "Android / ADB";
 };
 
-const frameStyle = computed(() => {
-  const maxW = hostBounds.value.width;
-  const maxH = hostBounds.value.height;
-  const ratio = lockedRatio.value;
-  let height = maxH;
-  let width = height * ratio;
-  if (width > maxW) {
-    width = maxW;
-    height = width / ratio;
-  }
-  width = Math.max(100, Math.round(width));
-  height = Math.max(160, Math.round(height));
-  return {
-    width: `${width}px`,
-    height: `${height}px`,
-  };
-});
-
 let timer = null;
-let resizeObserver = null;
-
-function measureHost() {
-  const el = bodyEl.value;
-  if (!el) return;
-  const rect = el.getBoundingClientRect();
-  const height = Math.max(160, Math.floor(rect.height));
-  const widthCap = Math.floor(height * lockedRatio.value);
-  hostBounds.value = {
-    width: Math.max(100, Math.min(Math.floor(rect.width) || widthCap, widthCap)),
-    height,
-  };
-}
 
 async function fetchFrame() {
   if (!props.robotInstanceId) return;
@@ -102,9 +66,6 @@ async function fetchFrame() {
     const mime = data.mime_type || "image/png";
     imageSrc.value = `data:${mime};base64,${data.image_base64}`;
     if (data.width && data.height) {
-      if (!meta.value) {
-        lockedRatio.value = data.width / data.height;
-      }
       meta.value = { width: data.width, height: data.height, backend: data.backend };
     }
     placeholderText.value = "";
@@ -137,7 +98,6 @@ function startPoll() {
 function resetMirrorState() {
   imageSrc.value = "";
   meta.value = null;
-  lockedRatio.value = 9 / 19.5;
 }
 
 watch(
@@ -156,15 +116,8 @@ watch(
   { immediate: true },
 );
 
-onMounted(() => {
-  measureHost();
-  resizeObserver = new ResizeObserver(() => measureHost());
-  if (bodyEl.value) resizeObserver.observe(bodyEl.value);
-});
-
 onBeforeUnmount(() => {
   stopPoll();
-  resizeObserver?.disconnect();
 });
 </script>
 
@@ -174,9 +127,8 @@ onBeforeUnmount(() => {
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  width: fit-content;
-  max-width: 100%;
-  margin: 0 auto;
+  width: 100%;
+  max-width: 280px;
 }
 
 .mirror-head {
@@ -207,13 +159,17 @@ onBeforeUnmount(() => {
   flex: 1;
   min-height: 0;
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: stretch;
 }
 
 .mirror-frame {
   position: relative;
   flex-shrink: 0;
+  height: 100%;
+  width: auto;
+  max-width: 100%;
+  aspect-ratio: 9 / 19.5;
   background: #0f172a;
   border-radius: 10px;
   border: 1px solid #334155;
@@ -222,15 +178,18 @@ onBeforeUnmount(() => {
 }
 
 .mirror-img {
+  position: absolute;
+  inset: 0;
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: fill;
+  object-fit: contain;
+  pointer-events: none;
 }
 
 .mirror-placeholder {
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
