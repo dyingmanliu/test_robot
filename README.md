@@ -58,12 +58,15 @@
 
 ### 1e. 用例编写 Agent（`analysis_agent/`，Web 同进程调用）
 
-- **职责**：根据项目上下文与用户一句话，调用大模型生成 **structured** 用例草稿（`title` / `preconditions` / `steps` / `task_text` / `priority`）。
+- **职责**：根据项目上下文与用户一句话，调用大模型生成 **structured** 用例草稿（`title` / `preconditions` / `steps` / `task_text` / `priority`）。LLM 始终产出结构化字段；若前端选择 YAML，由 `case_format_convert.py` 转为 Midscene `tasks:` 脚本。
 - **包**：[`analysis_agent/`](./analysis_agent/)（对齐 [`autoglm_phone_agent/`](./autoglm_phone_agent/) 模式：`AnalysisAgent` + `model/client` + `config`）。
-- **Web 适配**：`web/backend/app/services/case_generation.py` 组装 ORM / KB，调用 `AnalysisAgent.generate_case_draft()`。
-- **入口**：测试用例页 **「创建用例」→「自动生成」** → 预览编辑 → `POST /api/test-cases` 保存。
-- **API**：`POST /api/test-cases/generate`（不写库）。
-- **与执行 Agent 分离**：不连手机；执行仍由 AutoGLM / Midscene 在 `executor.py` 路由。
+- **Web 适配**：`web/backend/app/services/case_generation.py` 组装 ORM / KB，调用 `AnalysisAgent.generate_case_draft()`；可选 `case_format=yaml` 时在生成后做格式转换。
+- **格式互转**：`web/backend/app/services/case_format_convert.py` — structured ↔ Midscene YAML（规则转换，编辑弹窗切换格式时调用）。
+- **入口**：测试用例页 **「创建用例」→「自动生成」**（可选生成格式）→ 预览编辑（可再切换格式）→ `POST /api/test-cases` 保存。
+- **API**（均不写库）：
+  - `POST /api/test-cases/generate` — 请求体 `project_id`、`prompt`、可选 `case_format`（`structured` | `yaml`，默认 `structured`）
+  - `POST /api/test-cases/convert-format` — 编辑时 structured ↔ yaml 互转
+- **与执行 Agent 分离**：不连手机；执行仍由 AutoGLM / Midscene 在 `executor.py` 路由。YAML 用例须 **Midscene** 引擎执行。
 
 **环境变量（仓库根 `.env`）**
 
@@ -95,7 +98,7 @@ CASE_GEN_TIMEOUT_SEC=120
 | **项目空间** | `/api/projects` | 项目 CRUD；绑定被测应用与测试目标；多租户按 `owner_id` 隔离；`/projects/{id}/dashboard` 聚合执行次数、报告摘要、活跃机器人、缺陷趋势；`/reports`、`/task-summary` 等 |
 | **功能测试下发** | `/api/projects/{id}/app-packages`、`case-sets`、`functional-dispatches` | 上传 APK/AAB；维护用例集；`/functional-dispatches` POST 组装载荷写入 Kafka（未配置 `KAFKA_BOOTSTRAP_SERVERS` 时仅落库 `queued_local`）；`/api/device-pools` 设备池占位目录 |
 | **数据聚合服务（进程内）** | `app/services/project_dashboard.py` | 从执行记录、`project_reports`、`defects` 等表组装项目看板 JSON（后续可拆独立数据服务） |
-| **测试用例与执行** | `/api/test-cases` | 结构化用例与 Midscene YAML；`POST /generate` 一句话 AI 生成草稿（预览后保存）；`POST /{id}/run` 支持 `robot_instance_id`、`device_platform`、`device_id`；异步 Agent；`test_runs` 记录本次平台与终端 |
+| **测试用例与执行** | `/api/test-cases` | 结构化用例与 Midscene YAML；`POST /generate`（可选 `case_format`）AI 生成草稿；`POST /convert-format` 格式互转；`POST /{id}/run` 支持 `robot_instance_id`、`device_platform`、`device_id`；异步 Agent；`test_runs` 记录本次平台与终端 |
 | **已连接设备** | `/api/devices/connected` | 按平台枚举本机 ADB/HDC 在线设备（供用例页「目标终端」） |
 | **知识库检索（用例）** | `/api/knowledge/cases/search` | 关键词检索扁平文本（可对接 Agent/RAG）；支持 `project_id` 与租户隔离 |
 | **RBAC 管理** | `/api/admin` | 平台管理员：用户列表、角色分配、角色字典 |
@@ -116,7 +119,7 @@ CASE_GEN_TIMEOUT_SEC=120
 |------|------|
 | **登录 / 注册** | 手机号或邮箱；请求可走 API 网关（`VITE_API_BASE`） |
 | **项目空间** | 创建/编辑项目；「项目看板」展示度量；「功能测试任务」向导：上传/选用安装包 → 用例集（自建或 AI 占位草稿）→ 设备池 → 下发至 Kafka 队列 |
-| **测试用例** | 结构化或 **Midscene YAML**；**AI 生成**一句话草稿（预览后保存）；执行前选机器人、**本次平台**（Android/鸿蒙）、**目标终端**（多机时指定 serial/target）；YAML 须 Midscene 引擎；步骤日志与报告 |
+| **测试用例** | 结构化或 **Midscene YAML**；**AI 生成**可选输出格式（结构化 / YAML）；编辑弹窗可 **structured ↔ YAML 互转**；执行前选机器人、**本次平台**（Android/鸿蒙）、**目标终端**（多机时指定 serial/target）；YAML 须 Midscene 引擎；步骤日志与报告 |
 | **我的机器人** | 查看实例编号；配置 **执行引擎** 与 **默认执行设备**（平台）；用例页可临时覆盖 |
 | **个人中心** | 昵称、头像 URL、公司及改密 |
 | **机器人商城** | `/marketplace`：四大数字机器人（测试分析 / 功能执行 / 专项执行 / 质量评估）卡片；「立即租用」选择按时长或按次数后在计费模块生成预订单，并跳转 `/payment` |

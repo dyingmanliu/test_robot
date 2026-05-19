@@ -349,8 +349,19 @@
       <div class="modal">
         <h3>自动生成用例</h3>
         <p class="muted small">
-          用一句话描述要测什么，系统将生成结构化用例草稿，保存前可在编辑页核对步骤与预期。
+          用一句话描述要测什么；LLM 先生成结构化步骤，若选择 YAML 将自动转为 Midscene 脚本。保存前可在编辑页核对或切换格式。
         </p>
+        <fieldset class="field format-field">
+          <span class="format-label">生成格式</span>
+          <label class="format-opt">
+            <input v-model="genDialog.case_format" type="radio" value="structured" :disabled="genDialog.loading" />
+            结构化（步骤 + 执行说明）
+          </label>
+          <label class="format-opt">
+            <input v-model="genDialog.case_format" type="radio" value="yaml" :disabled="genDialog.loading" />
+            Midscene YAML（须使用 Midscene 机器人执行）
+          </label>
+        </fieldset>
         <label class="field">
           <span>测试描述</span>
           <textarea
@@ -392,13 +403,26 @@
         <fieldset class="field format-field">
           <span class="format-label">用例格式</span>
           <label class="format-opt">
-            <input v-model="dialog.case_format" type="radio" value="structured" />
+            <input
+              :checked="dialog.case_format === 'structured'"
+              type="radio"
+              value="structured"
+              :disabled="dialog.formatConverting"
+              @change="switchCaseFormat('structured')"
+            />
             结构化（步骤 + 执行说明）
           </label>
           <label class="format-opt">
-            <input v-model="dialog.case_format" type="radio" value="yaml" />
+            <input
+              :checked="dialog.case_format === 'yaml'"
+              type="radio"
+              value="yaml"
+              :disabled="dialog.formatConverting"
+              @change="switchCaseFormat('yaml')"
+            />
             Midscene YAML（须使用 Midscene 机器人执行）
           </label>
+          <span v-if="dialog.formatConverting" class="muted small">格式转换中…</span>
         </fieldset>
         <template v-if="dialog.case_format === 'yaml'">
           <label class="field">
@@ -650,11 +674,13 @@ const dialog = reactive({
   case_yaml: "",
   steps: [],
   error: "",
+  formatConverting: false,
 });
 
 const genDialog = reactive({
   open: false,
   prompt: "",
+  case_format: "structured",
   loading: false,
   error: "",
 });
@@ -897,6 +923,7 @@ function openGenerate() {
   if (!selectedProjectId.value) return;
   genDialog.open = true;
   genDialog.prompt = "";
+  genDialog.case_format = "structured";
   genDialog.loading = false;
   genDialog.error = "";
 }
@@ -907,17 +934,14 @@ function closeGenerate() {
   genDialog.error = "";
 }
 
-function openCreateWithDraft(draft) {
-  if (!selectedProjectId.value) return;
-  dialog.open = true;
-  dialog.editing = false;
-  dialog.id = null;
+function applyDraftToDialog(draft) {
+  const fmt = String(draft.case_format || "structured").toLowerCase();
   dialog.title = draft.title || "";
   dialog.task_text = draft.task_text || "";
   dialog.preconditions = draft.preconditions || "";
   dialog.priority = draft.priority || "P2";
-  dialog.case_format = "structured";
-  dialog.case_yaml = "";
+  dialog.case_format = fmt === "yaml" ? "yaml" : "structured";
+  dialog.case_yaml = draft.case_yaml || "";
   const st = Array.isArray(draft.steps) ? draft.steps : [];
   dialog.steps = st.length
     ? st.map((x) => ({
@@ -925,7 +949,44 @@ function openCreateWithDraft(draft) {
         expected: x.expected || "",
       }))
     : [{ description: "", expected: "" }];
+}
+
+function openCreateWithDraft(draft) {
+  if (!selectedProjectId.value) return;
+  dialog.open = true;
+  dialog.editing = false;
+  dialog.id = null;
+  applyDraftToDialog(draft);
   dialog.error = "";
+  dialog.formatConverting = false;
+}
+
+async function switchCaseFormat(target) {
+  if (!dialog.open || dialog.formatConverting) return;
+  const current = dialog.case_format;
+  if (current === target) return;
+  const ok = window.confirm(
+    `将用例从「${formatLabel(current)}」转为「${formatLabel(target)}」，会按规则转换当前内容（可再手动修改）。是否继续？`,
+  );
+  if (!ok) return;
+  dialog.formatConverting = true;
+  dialog.error = "";
+  try {
+    const { data } = await client.post("/api/test-cases/convert-format", {
+      target_format: target,
+      title: dialog.title.trim(),
+      preconditions: (dialog.preconditions || "").trim(),
+      steps: buildStepsPayload(),
+      task_text: dialog.task_text.trim(),
+      case_yaml: dialog.case_yaml || "",
+    });
+    applyDraftToDialog(data);
+    dialog.case_format = target;
+  } catch (e) {
+    dialog.error = formatApiError(e);
+  } finally {
+    dialog.formatConverting = false;
+  }
 }
 
 async function submitGenerate() {
@@ -944,6 +1005,7 @@ async function submitGenerate() {
     const { data } = await client.post("/api/test-cases/generate", {
       project_id: selectedProjectId.value,
       prompt,
+      case_format: genDialog.case_format || "structured",
     });
     genDialog.open = false;
     openCreateWithDraft(data);

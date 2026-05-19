@@ -86,7 +86,8 @@ class GeneratedCaseDraft:
         self.steps = _draft_to_schema_steps(draft)
         self.task_text = draft.task_text
         self.priority = draft.priority
-        self.case_format = draft.case_format
+        self.case_format = getattr(draft, "case_format", None) or "structured"
+        self.case_yaml = ""
         self.model = draft.model
         self.similar_case_ids = draft.similar_case_ids
 
@@ -97,6 +98,7 @@ def generate_case_draft(
     project: Project,
     user: User,
     prompt: str,
+    case_format: str = "structured",
 ) -> GeneratedCaseDraft:
     kb_snippets: list[str] = []
     similar_ids: list[int] = []
@@ -130,4 +132,15 @@ def generate_case_draft(
         len(draft.steps),
         draft.model,
     )
-    return GeneratedCaseDraft(draft)
+    out = GeneratedCaseDraft(draft)
+    if (case_format or "structured").strip().lower() == "yaml":
+        from app.services.case_format_convert import structured_to_yaml
+
+        out.case_format = "yaml"
+        out.case_yaml = structured_to_yaml(
+            title=out.title,
+            preconditions=out.preconditions,
+            steps=out.steps,
+            task_text=out.task_text,
+        )
+    return out

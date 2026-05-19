@@ -46,34 +46,55 @@ CLI 入口：仓库根目录 **`main.py`**（`--device-type adb|hdc`），与 We
 - **解析**：`resolve_execution_platform()`、`resolve_execution_device_id()`（`device_platform.py`）。
 - 前端在 `CasesView.vue` 选择机器人 / 平台 / 终端；浏览器 `sessionStorage` 按实例记住上次平台与终端。
 
-### 1.3 用例编写 Agent（一句话生成 structured 草稿）
+### 1.3 用例编写 Agent 与用例格式（structured / YAML）
 
-与 §1.1 **设备执行** 分离：不调用 `PhoneTestAgent` / `midscene_agent`，仅在 Web 后端进程内调用 OpenAI 兼容对话 API。
+与 §1.1 **设备执行** 分离：不调用 `PhoneTestAgent` / `midscene_agent`；LLM 仅在 Web 后端进程内通过 OpenAI 兼容 API 生成 **structured** 字段。
 
 | 项 | 说明 |
 |----|------|
 | 包 | `analysis_agent/`（`AnalysisAgent`，对齐 `autoglm_phone_agent` 目录约定） |
 | Web 适配 | `app/services/case_generation.py`（KB 检索 + ORM → `ProjectContext`） |
-| 路由 | `POST /api/test-cases/generate`（`TestCaseGenerateIn` → `TestCaseGenerateOut`） |
-| 持久化 | 生成接口**不写库**；用户在前端编辑后 `POST /api/test-cases` 保存 |
-| 输出格式 | 固定 `case_format=structured`（标题、前置条件、步骤 JSON、执行说明、优先级） |
-| 上下文 | `Project.name`、`tested_app_name`、`test_objective` + 用户 `prompt` |
+| 格式转换 | `app/services/case_format_convert.py`（structured ↔ Midscene YAML，无 LLM） |
+| 生成路由 | `POST /api/test-cases/generate`（`TestCaseGenerateIn` → `TestCaseGenerateOut`） |
+| 互转路由 | `POST /api/test-cases/convert-format`（`CaseFormatConvertIn` → `CaseFormatConvertOut`） |
+| 持久化 | 上述接口**不写库**；用户在前端编辑后 `POST /api/test-cases` 保存 |
+| LLM 输出 | 始终 structured（标题、前置条件、步骤 JSON、执行说明、优先级） |
+| 生成可选格式 | 请求体 `case_format`：`structured`（默认）或 `yaml`；为 `yaml` 时在 `case_generation` 内调用 `structured_to_yaml()` |
+| 编辑互转 | 前端 `CasesView` 切换格式单选 → 确认 → `convert-format` |
+| 上下文 | `Project.name`、`tested_app_name`、`test_objective` + 用户 `prompt`（用户描述优先于项目被测应用名） |
 | RAG | `CASE_GEN_USE_KB=true` 时调用 `case_kb.search_cases_kb`（同项目、同租户 scope） |
-| 执行衔接 | 保存后用 `case_agent_text.build_agent_task_text()` 供 AutoGLM/Midscene 执行 |
+| 执行衔接 | structured → `case_agent_text.build_agent_task_text()`（AutoGLM / Midscene natural）；yaml → Midscene `runYaml`（仅 `test_agent_backend=midscene`） |
+
+**structured → YAML 约定**（`structured_to_yaml`）：前置条件 → `ai: 确保满足前置条件：…`；步骤 `description` → `ai:`，`expected` → `aiAssert:`；执行说明 → `ai: 【执行说明】…`；汇总为单条 `tasks[0].flow`。
+
+**YAML → structured**（`yaml_to_structured`）：按上述前缀/标记反向解析；手写或非约定 YAML 为最佳努力，复杂 `flow` 可能需手调。
 
 ```mermaid
 sequenceDiagram
   participant UI as CasesView
   participant API as test_cases_router
-  participant Gen as analysis_agent
+  participant Gen as case_generation
+  participant AA as analysis_agent
+  participant Conv as case_format_convert
   participant LLM as OpenAI_compatible_API
 
-  UI->>API: POST /generate project_id prompt
+  UI->>API: POST /generate project_id prompt case_format
   API->>Gen: generate_case_draft
-  Gen->>LLM: chat.completions JSON
-  LLM-->>Gen: draft fields
-  Gen-->>API: validated TestCaseGenerateOut
+  Gen->>AA: generate_case_draft
+  AA->>LLM: chat.completions JSON
+  LLM-->>AA: structured draft
+  AA-->>Gen: CaseDraft
+  alt case_format=yaml
+    Gen->>Conv: structured_to_yaml
+    Conv-->>Gen: case_yaml
+  end
+  Gen-->>API: TestCaseGenerateOut
   API-->>UI: 预填编辑弹窗
+  opt 编辑时切换格式
+    UI->>API: POST /convert-format
+    API->>Conv: structured_to_yaml or yaml_to_structured
+    Conv-->>UI: 更新字段
+  end
   UI->>API: POST /test-cases 保存
 ```
 
@@ -143,9 +164,11 @@ autoglm-phone-test-agent/          # 仓库根目录
         │   ├── auth_utils.py      # 密码、JWT
         │   ├── executor.py        # 按引擎×平台路由 AutoGLM / Midscene
         │   ├── services/
-        │   │   ├── case_generation.py   # Web 适配 → analysis_agent
+        │   │   ├── case_generation.py   # Web 适配 → analysis_agent；可选转 YAML
+        │   │   ├── case_format_convert.py  # structured ↔ Midscene YAML
         │   │   ├── case_agent_text.py   # structured → 执行用自然语言
         │   │   ├── case_kb.py           # 用例 KB 扁平检索（RAG 参考）
+        │   │   ├── case_yaml.py         # YAML 校验与默认模板
         │   │   ├── device_platform.py   # 平台/终端解析（实例默认 + 本次覆盖）
         │   │   ├── device_discovery.py  # adb devices / hdc list targets
         │   │   └── device_screen.py     # 投屏：ADB / HDC
@@ -207,7 +230,7 @@ flowchart TB
 1. 浏览器 → `POST /api/auth/login`（或 register）→ 返回 JWT。  
 2. 前端 `localStorage` 存 token，后续请求 `Authorization: Bearer ...`。  
 3. 用例列表 → `GET /api/test-cases`。
-3b. **AI 生成草稿** → `POST /api/test-cases/generate`；`case_generation.generate_case_draft` 调用 `analysis_agent.AnalysisAgent`（同进程，对齐 `executor` → `PhoneTestAgent`）；KB 在 Web 层检索后注入；**不写库**；前端预填编辑后 `POST /api/test-cases` 保存。
+3b. **AI 生成草稿** → `POST /api/test-cases/generate`（可选 `case_format`）；`case_generation.generate_case_draft` 调用 `analysis_agent.AnalysisAgent`；若需 YAML 则 `case_format_convert.structured_to_yaml`；KB 在 Web 层检索后注入；**不写库**；前端预填编辑后 `POST /api/test-cases` 保存。编辑时切换格式 → `POST /api/test-cases/convert-format`。
 4. 执行 → `POST /api/test-cases/{id}/run`：请求体含 `robot_instance_id`，可选 `device_platform`、`device_id`；创建 `TestRun` 后**异步**在线程池执行 `executor.execute_test_run`。  
 5. 执行前枚举设备 → `GET /api/devices/connected?platform=…`（用例页「目标终端」下拉）。  
 6. 前端轮询 → `GET /api/test-cases/runs/{run_id}` 获取 `status`、`step_log`、`output_message` 等。
@@ -289,8 +312,9 @@ flowchart TB
 5. **改机器人路由**：`executor.py`、`services/device_platform.py`；实例字段见 `models.RobotInstance`。  
 6. **数据库**：无 Alembic；列迁移在 `database.ensure_schema()`（如 `robot_instances.device_platform`）。  
 7. **排查执行失败**：确认实例 **引擎**、用例页 **平台+终端** 与用例格式（YAML→Midscene）；`adb devices` / `hdc list targets` 与所选 `device_id` 一致；看 `test_runs.device_platform`、`device_id`、`error_trace`、`step_log`；Midscene 报告见 `report_path`。  
-8. **排查 AI 生成失败**：确认 `CASE_GEN_API_KEY`（或回退智谱 Key）与 `CASE_GEN_BASE_URL`/`CASE_GEN_MODEL` 匹配；改 `.env` 后重启 Uvicorn；Swagger `POST /api/test-cases/generate` 可直调；非法 JSON 时服务会自动重试一次修复。
+8. **排查 AI 生成失败**：确认 `CASE_GEN_API_KEY`（或回退智谱 Key）与 `CASE_GEN_BASE_URL`/`CASE_GEN_MODEL` 匹配；改 `.env` 后重启 Uvicorn；Swagger `POST /api/test-cases/generate` 可直调；非法 JSON 时服务会自动重试一次修复。  
+9. **排查格式转换**：`convert-format` 返回 400 时检查 YAML 是否含 `tasks:` 且语法合法；YAML→structured 对非约定脚本可能不完整，可改回 structured 或手改 YAML。
 
 ## 8. 一句话小结
 
-**Vue 3 + FastAPI + SQLite** 管理用例与租用机器人实例；**用例编写 Agent**（`CASE_GEN_*`）可一句话生成 structured 草稿并预览保存；执行前可按实例选择 **Android/鸿蒙平台** 与 **具体终端（多机）**；**AutoGLM** 同进程、**Midscene** 子进程均支持双平台；前端轮询步骤日志、Midscene 报告与按终端投屏。
+**Vue 3 + FastAPI + SQLite** 管理用例与租用机器人实例；**用例编写 Agent**（`CASE_GEN_*`）可一句话生成草稿（可选 structured / YAML），编辑时可 **structured ↔ YAML 互转**；执行前可按实例选择 **Android/鸿蒙平台** 与 **具体终端（多机）**；**AutoGLM** 同进程、**Midscene** 子进程均支持双平台；前端轮询步骤日志、Midscene 报告与按终端投屏。

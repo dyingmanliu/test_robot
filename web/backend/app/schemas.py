@@ -226,6 +226,10 @@ class TestCaseGenerateIn(BaseModel):
 
     project_id: int = Field(..., ge=1, description="所属项目空间 ID")
     prompt: str = Field(..., min_length=1, max_length=2000, description="用户一句话描述")
+    case_format: Literal["structured", "yaml"] = Field(
+        default="structured",
+        description="生成结果格式：structured 表单；yaml 在 LLM 生成 structured 后自动转换",
+    )
 
 
 class CaseGenerateMetaOut(BaseModel):
@@ -241,8 +245,29 @@ class TestCaseGenerateOut(BaseModel):
     preconditions: str = ""
     steps: list[CaseStepJson] = Field(default_factory=list)
     priority: str = "P2"
-    case_format: Literal["structured"] = "structured"
+    case_format: Literal["structured", "yaml"] = "structured"
+    case_yaml: str = ""
     generation_meta: CaseGenerateMetaOut = Field(default_factory=CaseGenerateMetaOut)
+
+
+class CaseFormatConvertIn(BaseModel):
+    """编辑弹窗内 structured ↔ yaml 互转。"""
+
+    target_format: Literal["structured", "yaml"]
+    title: str = ""
+    preconditions: str = ""
+    steps: list[CaseStepJson] = Field(default_factory=list)
+    task_text: str = ""
+    case_yaml: str = ""
+
+
+class CaseFormatConvertOut(BaseModel):
+    title: str
+    preconditions: str = ""
+    steps: list[CaseStepJson] = Field(default_factory=list)
+    task_text: str = ""
+    case_format: Literal["structured", "yaml"]
+    case_yaml: str = ""
 
 
 class TestCaseCreate(BaseModel):

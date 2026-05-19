@@ -56,9 +56,10 @@ The central concept: each robot instance combines a **test agent backend** (`aut
 
 Separate from device execution; same in-process import pattern as `autoglm_phone_agent` in `executor.py`.
 
-- **Package**: `analysis_agent/` — `AnalysisAgent`, `model/client.py`, `config/`, `parser.py`
-- **Web bridge**: `web/backend/app/services/case_generation.py` — KB + ORM → `ProjectContext` → `AnalysisAgent.generate_case_draft()`
-- **API**: `POST /api/test-cases/generate` — draft only (no DB write)
+- **Package**: `analysis_agent/` — `AnalysisAgent`, `model/client.py`, `config/`, `parser.py` (LLM output is always **structured**)
+- **Web bridge**: `case_generation.py` — KB + ORM → `AnalysisAgent.generate_case_draft()`; optional `case_format=yaml` → `case_format_convert.structured_to_yaml()`
+- **Format convert**: `case_format_convert.py` — structured ↔ Midscene YAML; `POST /api/test-cases/convert-format` for edit-dialog switching
+- **API**: `POST /api/test-cases/generate` (body: `project_id`, `prompt`, optional `case_format`); draft only, no DB write
 - **Env**: `CASE_GEN_*` in repo root `.env` (see `analysis_agent/README.md`)
 
 ### Directory Layout
