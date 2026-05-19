@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
@@ -54,11 +56,11 @@ def get_my_instance(
 @router.get("/{instance_id}/device-screen", response_model=DeviceScreenOut)
 def get_device_screen(
     instance_id: int,
-    device_platform: str | None = Query(
+    device_platform: Optional[str] = Query(
         None,
         description="本次投屏目标平台 android|harmonyos；不传则用实例默认",
     ),
-    device_id: str | None = Query(None, description="ADB serial 或 HDC target；不传则用环境默认"),
+    device_id: Optional[str] = Query(None, description="ADB serial 或 HDC target；不传则用环境默认"),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> DeviceScreenOut:
