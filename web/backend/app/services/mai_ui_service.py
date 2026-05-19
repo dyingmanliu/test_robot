@@ -3,13 +3,19 @@
 from __future__ import annotations
 
 import base64
+import logging
 import sys
+import time
 from io import BytesIO
 from pathlib import Path
 from typing import Any
 
 import httpx
 from PIL import Image
+
+from app.services.llm_usage_log import estimate_tokens, log_llm_usage
+
+logger = logging.getLogger("app.llm")
 
 _REPO_ROOT = Path(__file__).resolve().parents[4]
 _MAI_UI_PKG_ROOT = _REPO_ROOT / "mai_ui_agent"
@@ -148,8 +154,19 @@ def run_grounding(image_bytes: bytes, instructions: list[str]) -> dict[str, Any]
         raise ValueError("请至少提供一条定位描述")
 
     cfg = load_config()
+    t0 = time.perf_counter()
     if _grounding_worker_reachable(cfg.grounding_url):
-        return _run_grounding_via_worker(image_bytes, instructions, cfg.grounding_url)
+        out = _run_grounding_via_worker(image_bytes, instructions, cfg.grounding_url)
+        duration_ms = int((time.perf_counter() - t0) * 1000)
+        log_llm_usage(
+            "mai_ui",
+            f"grounding/worker x{len(instructions)}",
+            model=cfg.model_name,
+            duration_ms=duration_ms,
+            estimated=True,
+            extra={"via": "grounding_server"},
+        )
+        return out
 
     if cfg.backend == "mlx_vlm" and not _mlx_vlm_available():
         raise RuntimeError(
@@ -162,7 +179,21 @@ def run_grounding(image_bytes: bytes, instructions: list[str]) -> dict[str, Any]
         img = img.convert("RGB")
 
     agent = MaiUiGroundingAgent(cfg)
-    results = [agent.ground(q.strip(), img).to_dict() for q in instructions if q.strip()]
+    results = []
+    for q in instructions:
+        if not q.strip():
+            continue
+        q0 = time.perf_counter()
+        results.append(agent.ground(q.strip(), img).to_dict())
+        duration_ms = int((time.perf_counter() - q0) * 1000)
+        log_llm_usage(
+            "mai_ui",
+            "grounding/in_process",
+            model=cfg.model_name,
+            duration_ms=duration_ms,
+            prompt_tokens=estimate_tokens(q),
+            estimated=True,
+        )
     return {
         "image_width": img.size[0],
         "image_height": img.size[1],
@@ -207,9 +238,21 @@ def run_menu_detect(image_bytes: bytes) -> dict[str, Any]:
     from mai_ui_agent.menu_detect import MaiUiMenuDetectAgent
 
     cfg = load_config()
+    t0 = time.perf_counter()
     if _grounding_worker_reachable(cfg.grounding_url):
         try:
-            return _run_menu_detect_via_worker(image_bytes, cfg.grounding_url)
+            out = _run_menu_detect_via_worker(image_bytes, cfg.grounding_url)
+            duration_ms = int((time.perf_counter() - t0) * 1000)
+            n = len(out.get("menus") or [])
+            log_llm_usage(
+                "mai_ui",
+                "detect-menus/worker",
+                model=cfg.model_name,
+                duration_ms=duration_ms,
+                estimated=True,
+                extra={"menus": n},
+            )
+            return out
         except RuntimeError as e:
             err = str(e)
             if "404" not in err and "not found" not in err.lower():
@@ -228,4 +271,14 @@ def run_menu_detect(image_bytes: bytes) -> dict[str, Any]:
         )
 
     agent = MaiUiMenuDetectAgent(cfg)
-    return agent.detect(image_bytes).to_dict()
+    out = agent.detect(image_bytes).to_dict()
+    duration_ms = int((time.perf_counter() - t0) * 1000)
+    log_llm_usage(
+        "mai_ui",
+        "detect-menus/in_process",
+        model=cfg.model_name,
+        duration_ms=duration_ms,
+        estimated=True,
+        extra={"menus": len(out.get("menus") or [])},
+    )
+    return out

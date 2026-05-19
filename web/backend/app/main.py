@@ -31,6 +31,7 @@ from app.database import (
 )
 from app.routers import (
     admin,
+    app_explore,
     auth,
     companies,
     billing,
@@ -125,6 +126,7 @@ app.include_router(billing.router, prefix="/api")
 app.include_router(dashboard.router, prefix="/api")
 app.include_router(monitor_api.router, prefix="/api")
 app.include_router(mai_ui.router, prefix="/api")
+app.include_router(app_explore.router, prefix="/api")
 app.include_router(ws_monitor.router, prefix="/api")
 
 

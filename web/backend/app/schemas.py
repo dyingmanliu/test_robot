@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Literal, Optional
 
-from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
+from pydantic import BaseModel, EmailStr, Field, computed_field, field_validator, model_validator
 
 from app.rbac import ROLES
 
@@ -637,6 +637,52 @@ class DeviceScreenOut(BaseModel):
     height: int
     backend: str
     mime_type: str = "image/jpeg"
+
+
+class InstalledAppOut(BaseModel):
+    """与 hdc shell bm dump -a 中的 bundleName 一致。"""
+
+    bundle_id: str
+    label: str = ""
+
+
+class AppExploreRunCreate(BaseModel):
+    robot_instance_id: int = Field(..., ge=1)
+    bundle_id: str = Field(
+        ...,
+        min_length=3,
+        max_length=256,
+        description="APP ID（bundleName），来自 bm dump -a",
+    )
+    app_name: str = Field(default="", max_length=256, description="APP 显示名称（可选，用于报告）")
+    max_screens: int = Field(default=30, ge=1, le=80)
+    max_depth: int = Field(default=4, ge=1, le=10)
+
+
+class AppExploreRunOut(BaseModel):
+    id: int
+    owner_id: int
+    robot_instance_id: int
+    bundle_id: str
+    app_name: str
+    max_screens: int
+    max_depth: int
+    status: str
+    feature_count: int
+    screens_visited: int
+    output_message: Optional[str] = None
+    step_log: Optional[str] = None
+    excel_path: Optional[str] = None
+    started_at: Optional[datetime] = None
+    finished_at: Optional[datetime] = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+    @computed_field
+    @property
+    def has_excel(self) -> bool:
+        return bool((self.excel_path or "").strip())
 
 
 class RunCaseBody(BaseModel):

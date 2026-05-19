@@ -5,8 +5,10 @@ from __future__ import annotations
 
 import base64
 import json
+import logging
 import re
 import sys
+import time
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
@@ -18,6 +20,18 @@ from PIL import Image
 from mai_ui_agent.config import MaiUiConfig, load_config
 from mai_ui_agent.coords import SCALE_FACTOR, norm999_to_norm1000, norm_to_pixel
 from mai_ui_agent.prompt import MAI_MOBILE_SYS_PROMPT_GROUNDING
+
+_llm_logger = logging.getLogger("mai_ui.llm")
+
+
+def _estimate_tokens(text: str) -> int:
+    s = (text or "").strip()
+    if not s:
+        return 0
+    total = 0.0
+    for ch in s:
+        total += 1.2 if ord(ch) > 127 else 0.25
+    return max(0, int(round(total)))
 
 
 def parse_grounding_response(text: str) -> dict[str, Any]:
@@ -167,8 +181,35 @@ class MaiUiGroundingAgent:
                         "repetition_penalty": 1.0,
                         "top_k": self.config.top_k,
                     }
+                t0 = time.perf_counter()
                 response = self._client.chat.completions.create(**kwargs)
-                return (response.choices[0].message.content or "").strip()
+                duration_ms = int((time.perf_counter() - t0) * 1000)
+                content = (response.choices[0].message.content or "").strip()
+                usage = getattr(response, "usage", None)
+                if usage is not None:
+                    pt = getattr(usage, "prompt_tokens", None)
+                    ct = getattr(usage, "completion_tokens", None)
+                    tt = getattr(usage, "total_tokens", None)
+                    _llm_logger.info(
+                        "[mai_ui/openai] grounding %sms tokens=%s prompt=%s completion=%s model=%s",
+                        duration_ms,
+                        tt,
+                        pt,
+                        ct,
+                        self.config.model_name,
+                    )
+                else:
+                    pt = _estimate_tokens(instruction)
+                    ct = _estimate_tokens(content)
+                    _llm_logger.info(
+                        "[mai_ui/openai] grounding %sms tokens=%s (估算) prompt=%s completion=%s model=%s",
+                        duration_ms,
+                        pt + ct,
+                        pt,
+                        ct,
+                        self.config.model_name,
+                    )
+                return content
             except Exception as e:
                 last_err = e
                 if self.config.verbose:

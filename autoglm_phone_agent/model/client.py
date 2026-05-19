@@ -4,11 +4,14 @@
 from __future__ import annotations
 
 import json
+import logging
 import time
 from dataclasses import dataclass, field
 from typing import Any
 
 from openai import OpenAI
+
+_llm_logger = logging.getLogger("app.llm")
 
 
 @dataclass
@@ -110,6 +113,20 @@ class ModelClient:
 
         total_time = time.time() - start_time
         thinking, action = self._parse_response(raw_content)
+
+        est_prompt = sum(
+            len(str(m.get("content", ""))) for m in messages
+        )
+        est_pt = max(1, est_prompt // 3)
+        est_ct = max(1, len(raw_content) // 2)
+        _llm_logger.info(
+            "[autoglm] chat.completions stream %sms tokens≈%s (估算) prompt≈%s completion≈%s model=%s",
+            int(total_time * 1000),
+            est_pt + est_ct,
+            est_pt,
+            est_ct,
+            self.config.model_name,
+        )
 
         if self.print_stream:
             print()

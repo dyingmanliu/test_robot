@@ -273,6 +273,13 @@ flowchart TB
   - `defects`：缺陷（开放/已解决时间），供看板「未处理缺陷存量」趋势。  
   - `billing_preorders`：机器人商城「立即租用」生成的预订单（`pending_payment` 等），对接支付网关前由计费模块写入。  
   - `project_app_artifacts`：项目内上传的安装包路径；`test_case_sets` / `test_case_set_items`：用例集合；`functional_dispatch_tasks`：功能测试下发任务及 Kafka 投递状态快照。
+  - `app_explore_runs`：Midscene 功能清单 DFS 探索（`bundle_id`、`feature_json`、`excel_path`、`step_log`）。
+
+### 4.5 APP 功能清单探索（Midscene）
+
+1. 前端 `/app-explore` → `POST /api/app-explore/runs`（`bundle_id` 与 `hdc shell bm dump -a` 一致；`GET /installed-apps` 拉列表）。  
+2. `app_explore_service` 子进程调用 `midscene_agent`：`execution_mode: "explore"`（`explore.ts` DFS，路径去重，无下级则停止递归）。  
+3. 结果写入 `feature_json` 并导出 Excel；机器人须 `test_agent_backend=midscene`，与同实例用例执行互斥。
 
 ## 6. 外部依赖与环境变量
 
@@ -293,6 +300,7 @@ flowchart TB
 | `MIDSCENE_DEVICE_PLATFORM` | CLI 覆盖平台：`android` \| `harmonyos` |
 | `MIDSCENE_AGENT_BACKEND` | Web 子进程覆盖：`autoglm` \| `midscene` |
 | `MIDSCENE_REPLANNING_CYCLE_LIMIT` | Midscene 单步 `aiAct` 内部重规划上限（默认 20；复杂任务建议 40–60） |
+| `MIDSCENE_APP_NAME_MAP` | 可选：APP 显示名 → 包名/Ability（功能探索推荐 Web 直接选 bundle_id） |
 | `JWT_SECRET` / `TCM_SQLITE_PATH` | Web 认证与库路径 |
 
 设备要求：

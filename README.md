@@ -27,7 +27,7 @@
 
 - **职责**：基于字节跳动 **[Midscene.js](https://midscenejs.com/)**，在 **Android**（`@midscene/android` + ADB）与 **鸿蒙**（`@midscene/harmony` + HDC）上做视觉驱动的自然语言 / YAML 自动化。
 - **依赖**：Node.js ≥ 18；[`midscene_agent/package.json`](./midscene_agent/package.json)；模型变量 `MIDSCENE_MODEL_*`（或 DashScope 千问）、设备变量 `ADB_DEVICE_ID` / `HDC_*`。
-- **CLI**：`cd midscene_agent && npm install && npm run task -- "自然语言任务"`；详见 [`midscene_agent/README.md`](./midscene_agent/README.md)。
+- **CLI**：`cd midscene_agent && npm install && npm run task -- "自然语言任务"`；`npm run explore -- --app-id <bundleName> --name 显示名` 遍历功能菜单树；详见 [`midscene_agent/README.md`](./midscene_agent/README.md)。
 
 ### 1c. 执行引擎 × 设备平台（Web 机器人实例）
 
@@ -100,6 +100,7 @@ CASE_GEN_TIMEOUT_SEC=120
 | **数据聚合服务（进程内）** | `app/services/project_dashboard.py` | 从执行记录、`project_reports`、`defects` 等表组装项目看板 JSON（后续可拆独立数据服务） |
 | **测试用例与执行** | `/api/test-cases` | 结构化用例与 Midscene YAML；`POST /generate`（可选 `case_format`）AI 生成草稿；`POST /convert-format` 格式互转；`POST /{id}/run` 支持 `robot_instance_id`、`device_platform`、`device_id`；异步 Agent；`test_runs` 记录本次平台与终端 |
 | **已连接设备** | `/api/devices/connected` | 按平台枚举本机 ADB/HDC 在线设备（供用例页「目标终端」） |
+| **APP 功能清单探索** | `/api/app-explore` | Midscene + HDC DFS 遍历导航菜单；`GET /installed-apps`（`hdc shell bm dump -a`）；`POST /runs` 需 `bundle_id`；完成后导出 Excel |
 | **知识库检索（用例）** | `/api/knowledge/cases/search` | 关键词检索扁平文本（可对接 Agent/RAG）；支持 `project_id` 与租户隔离 |
 | **RBAC 管理** | `/api/admin` | 平台管理员：用户列表、角色分配、角色字典 |
 | **数据看板** | `/api/dashboard` | 按角色返回全平台或租户范围的统计（含项目数、用例数、执行数） |
@@ -126,6 +127,7 @@ CASE_GEN_TIMEOUT_SEC=120
 | **数据看板** | 展示统计摘要；部分角色可拉取内部机器人目录与企业用量占位 |
 | **运行监控大屏** | `/monitor`：仅 `platform_admin` / `tse`；WebSocket 实时指标；本地 **localhost** 开发时默认 **直连 `127.0.0.1:8000` WS**（不经 Vite，避免与 HMR WebSocket 冲突）；详见 `web/frontend/.env.example`（`VITE_WS_DIRECT` / `VITE_WS_HOST`） |
 | **用户与角色** | 仅 `platform_admin`：分配用户 RBAC 角色 |
+| **功能清单探索** | `/app-explore` | 选择 APP ID（bundleName）、Midscene 机器人实例；实时步骤日志与功能树预览；下载 Excel |
 
 构建与开发依赖：[`web/frontend/package.json`](./web/frontend/package.json)。
 

@@ -17,6 +17,8 @@ import logging
 from dotenv import load_dotenv
 from sqlalchemy.orm import Session
 
+from app.services.llm_usage_log import log_midscene_machine_line
+
 log = logging.getLogger("app.executor")
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -115,6 +117,7 @@ def run_midscene_agent_task(
     *,
     on_machine_line: Callable[[dict[str, Any]], None] | None = None,
     should_cancel: Callable[[], bool] | None = None,
+    log_run_id: int | None = None,
 ) -> tuple[bool, str, str | None]:
     """通过子进程运行 midscene_agent CLI（--web-dispatch：stdin 为 Web 下发 JSON）。
 
@@ -190,6 +193,8 @@ def run_midscene_agent_task(
         except json.JSONDecodeError:
             non_json_lines.append(line)
             return
+        if obj.get("kind") == "model_usage":
+            log_midscene_machine_line(obj, run_id=log_run_id)
         if on_machine_line:
             on_machine_line(obj)
         if obj.get("kind") == "done":
@@ -580,6 +585,7 @@ def execute_test_run(db: Session, run_id: int) -> None:
                 web_dispatch,
                 on_machine_line=midscene_obj_to_step,
                 should_cancel=should_cancel,
+                log_run_id=run_id,
             )
             row = db.query(TestRun).filter(TestRun.id == run_id).first()
             if row:

@@ -5,7 +5,7 @@
  * Usage:
  *   cd midscene_agent && npm install
  *   npm run task -- "打开设置并进入关于本机"
- *   npm run task -- --steps "打开设置" "向下滑动一屏"
+ *   npm run explore -- --name 设置
  *
  * Web 后端下发（stdin 为 JSON，见 web_dispatch.ts）：
  *   printf '%s' '{"version":1,"agent_task":"..."}' | npm run task -- --web-dispatch
@@ -15,6 +15,7 @@ import { parseArgs } from 'node:util';
 import './config.js';
 import { MidsceneTestAgent } from './agent.js';
 import { applyAgentBackendModelEnv } from './config.js';
+import { runAppFeatureExplore } from './explore.js';
 import { checkHdcVersion, listHdcTargets } from './hdc.js';
 import { parseAgentBackend, parseDevicePlatform } from './platform.js';
 import { parseWebDispatchJson, type WebTestDispatch } from './web_dispatch.js';
@@ -33,10 +34,13 @@ async function main(): Promise<number> {
     options: {
       device: { type: 'string', short: 'd' },
       steps: { type: 'boolean', short: 's', default: false },
+      explore: { type: 'boolean', default: false },
+      name: { type: 'string', short: 'n', description: 'APP 显示名称（报告用）' },
+      'app-id': { type: 'string', description: 'APP ID（bundleName，bm dump -a）' },
+      'max-screens': { type: 'string' },
+      'max-depth': { type: 'string' },
       'check-hdc': { type: 'boolean', default: false },
-      /** 供 Web 后端子进程解析：stdout 每行一条 JSON，含 kind: step | done */
       'machine-out': { type: 'boolean', default: false },
-      /** stdin 读入 WebTestDispatch JSON，执行 agent_task；stdout 固定为 machine 协议（含 meta） */
       'web-dispatch': { type: 'boolean', default: false },
     },
   });
@@ -45,21 +49,26 @@ async function main(): Promise<number> {
     const ver = await checkHdcVersion(process.env.HDC_HOME);
     console.log('HDC version:', ver);
     const targets = await listHdcTargets(process.env.HDC_HOME);
-    console.log('Targets:', targets.length ? targets.map((t) => t.deviceId).join(', ') : '(none)');
+    console.log(
+      'Targets:',
+      targets.length ? targets.map((t) => t.deviceId).join(', ') : '(none)',
+    );
     return targets.length ? 0 : 1;
   }
 
   const webDispatch = Boolean(values['web-dispatch']);
   const machineOut = Boolean(values['machine-out']) || webDispatch;
+  const cliExplore = Boolean(values.explore);
 
-  if (webDispatch && values.steps) {
-    console.error('错误: --web-dispatch 不能与 --steps 同时使用');
+  if (webDispatch && (values.steps || cliExplore)) {
+    console.error('错误: --web-dispatch 不能与 --steps / --explore 同时使用');
     return 1;
   }
 
   let task = '';
   let webPayload: WebTestDispatch | null = null;
   let webYamlMode = false;
+  let webExploreMode = false;
 
   if (webDispatch) {
     const raw = await readStdinAll();
@@ -70,9 +79,12 @@ async function main(): Promise<number> {
       return 1;
     }
     webYamlMode = webPayload.execution_mode === 'yaml';
+    webExploreMode = webPayload.execution_mode === 'explore';
     task = webYamlMode
       ? (webPayload.yaml_script ?? '')
       : (webPayload.agent_task ?? '');
+  } else if (cliExplore) {
+    webExploreMode = true;
   } else {
     task = positionals.join(' ').trim();
     if (!task) {
@@ -80,14 +92,14 @@ async function main(): Promise<number> {
     }
   }
 
-  if (!task && !values.steps) {
+  if (!webExploreMode && !task && !values.steps) {
     console.error('用法: npm run task -- "自然语言任务"');
     console.error('  或多步: npm run task -- --steps "步骤1" "步骤2"');
     console.error(
-      '  Web 自然语言: printf \'%s\' \'{"version":1,"execution_mode":"natural","agent_task":"..."}\' | npm run task -- --web-dispatch',
+      '  功能遍历: npm run explore -- --bundle com.example.app --name 应用名',
     );
     console.error(
-      '  Web YAML: printf \'%s\' \'{"version":1,"execution_mode":"yaml","yaml_script":"tasks:\\n  - ..."}\' | npm run task -- --web-dispatch',
+      '  Web explore: printf \'%s\' \'{"version":1,"execution_mode":"explore","app_name":"设置"}\' | npm run task -- --web-dispatch',
     );
     return 1;
   }
@@ -112,25 +124,22 @@ async function main(): Promise<number> {
         run_id: webPayload.run_id,
         case_id: webPayload.case_id,
         robot_instance_id: webPayload.robot_instance_id,
+        app_name: webPayload.app_name,
       })}\n`,
     );
   }
 
-  const agent = new MidsceneTestAgent({
-    devicePlatform,
-    agentBackend,
-    deviceId:
-      values.device ??
-      (webPayload?.device_id?.trim() ||
-        (devicePlatform === 'android'
-          ? process.env.ADB_DEVICE_ID
-          : process.env.HDC_DEVICE_ID)),
-    hdcHome: process.env.HDC_HOME,
-  });
+  const resolvedDeviceId =
+    values.device ??
+    (webPayload?.device_id?.trim() ||
+      (devicePlatform === 'android'
+        ? process.env.ADB_DEVICE_ID
+        : process.env.HDC_DEVICE_ID));
+  const hdcHome = process.env.HDC_HOME;
 
-  if (devicePlatform === 'harmonyos') {
+  if (devicePlatform === 'harmonyos' || webExploreMode || cliExplore) {
     try {
-      await checkHdcVersion(process.env.HDC_HOME);
+      await checkHdcVersion(hdcHome);
     } catch (e) {
       console.warn(String(e instanceof Error ? e.message : e));
     }
@@ -148,19 +157,73 @@ async function main(): Promise<number> {
     error?: string;
   }) => {
     if (machineOut) {
-      const line = JSON.stringify({
-        kind: 'step',
-        step,
-        phase,
-        task: t,
-        error,
-      });
-      process.stdout.write(`${line}\n`);
+      process.stdout.write(
+        `${JSON.stringify({ kind: 'step', step, phase, task: t, error })}\n`,
+      );
       return;
     }
     if (phase === 'start') console.log(`\n[步骤 ${step}] ${t}`);
     if (phase === 'error') console.error(`[步骤 ${step} 失败] ${error}`);
   };
+
+  if (webExploreMode || cliExplore) {
+    const bundleId = (webPayload?.bundle_id ?? values['app-id'] ?? '').trim();
+    const appName = (webPayload?.app_name ?? values.name ?? bundleId).trim();
+    if (!bundleId) {
+      console.error('explore 模式需要 --app-id 或 bundle_id（hdc shell bm dump -a）');
+      return 1;
+    }
+    const maxScreens = webPayload?.max_screens ?? numOpt(values['max-screens'], 30);
+    const maxDepth = webPayload?.max_depth ?? numOpt(values['max-depth'], 4);
+
+    const exploreOutcome = await runAppFeatureExplore({
+      appName: appName || bundleId,
+      bundleId,
+      maxScreens,
+      maxDepth,
+      deviceId: resolvedDeviceId,
+      hdcHome,
+      machineOut,
+      onEvent: (ev) => {
+        if (machineOut) {
+          process.stdout.write(`${JSON.stringify(ev)}\n`);
+        } else if (ev.kind === 'explore_page') {
+          console.log(
+            `[页面 depth=${ev.depth}] ${ev.screen_title} (${ev.path.join(' > ') || '根'})`,
+          );
+        } else if (ev.kind === 'explore_feature') {
+          console.log(`  + ${ev.feature.path.join(' > ')}`);
+        } else if (ev.kind === 'step' && ev.phase === 'start') {
+          console.log(`  … ${ev.task}`);
+        }
+      },
+    });
+
+    if (machineOut) {
+      process.stdout.write(
+        `${JSON.stringify({
+          kind: 'done',
+          ok: exploreOutcome.ok,
+          message: exploreOutcome.message,
+          reportFile: exploreOutcome.reportFile,
+          feature_count: exploreOutcome.tree.features.length,
+          tree: exploreOutcome.tree,
+        })}\n`,
+      );
+    } else {
+      console.log('\n--- 探索结果 ---\n', exploreOutcome.message);
+      console.log(`功能项: ${exploreOutcome.tree.features.length}`);
+      if (exploreOutcome.reportFile) console.log('报告:', exploreOutcome.reportFile);
+    }
+    return exploreOutcome.ok ? 0 : 1;
+  }
+
+  const agent = new MidsceneTestAgent({
+    devicePlatform,
+    agentBackend,
+    deviceId: resolvedDeviceId,
+    hdcHome,
+  });
 
   const webSteps =
     webPayload?.agent_steps?.length ? webPayload.agent_steps : undefined;
@@ -188,11 +251,15 @@ async function main(): Promise<number> {
     );
   } else {
     console.log('\n--- 最终结果 ---\n', outcome.message);
-    if (outcome.reportFile) {
-      console.log('报告文件:', outcome.reportFile);
-    }
+    if (outcome.reportFile) console.log('报告文件:', outcome.reportFile);
   }
   return outcome.ok ? 0 : 1;
+}
+
+function numOpt(v: string | undefined, fallback: number): number {
+  if (v === undefined || v === '') return fallback;
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
 }
 
 async function readStdinTask(): Promise<string> {

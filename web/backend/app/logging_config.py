@@ -71,6 +71,18 @@ def configure_logging() -> None:
         },
     )
 
+    for name in (
+        "uvicorn",
+        "uvicorn.error",
+        "uvicorn.access",
+        "fastapi",
+        "starlette",
+        "app",
+        "app.llm",
+        "mai_ui.llm",
+    ):
+        logging.getLogger(name).setLevel(level)
+
     logging.getLogger(__name__).info(
         "日志已初始化 level=%s format=%s LOG_SQL=%s",
         logging.getLevelName(level),

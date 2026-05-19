@@ -37,6 +37,10 @@ from app.services.case_format_convert import structured_to_yaml, yaml_to_structu
 from app.services.case_generation import CaseGeneratorError, generate_case_draft
 from app.services.case_agent_text import parse_steps_json
 from app.services.case_import import parse_import_file, row_to_create
+from app.services.app_explore_service import (
+    explore_busy_message,
+    find_active_explore_for_instance,
+)
 from app.services.robot_run_guard import instance_available_for_run
 from app.services.run_report import resolve_report_file
 from app.services.case_kb import upsert_case_kb
@@ -512,6 +516,13 @@ async def run_case(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=msg,
+        )
+
+    busy_explore = find_active_explore_for_instance(db, inst.id)
+    if busy_explore is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=explore_busy_message(busy_explore),
         )
 
     from app.services.device_platform import resolve_execution_platform

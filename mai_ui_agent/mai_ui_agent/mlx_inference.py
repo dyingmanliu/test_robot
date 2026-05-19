@@ -3,8 +3,10 @@
 
 from __future__ import annotations
 
+import logging
 import tempfile
 import threading
+import time
 from pathlib import Path
 
 from PIL import Image
@@ -20,6 +22,18 @@ _INFERENCE_LOCK = threading.Lock()
 
 # Grounding 输出很短，限制生成长度以节省显存
 _GROUNDING_MAX_TOKENS_CAP = 512
+
+_llm_logger = logging.getLogger("mai_ui.llm")
+
+
+def _estimate_tokens(text: str) -> int:
+    s = (text or "").strip()
+    if not s:
+        return 0
+    total = 0.0
+    for ch in s:
+        total += 1.2 if ord(ch) > 127 else 0.25
+    return max(0, int(round(total)))
 
 
 def resolve_mlx_model_path(config: MaiUiConfig) -> str:
@@ -122,6 +136,7 @@ def _run_generate(
 
     try:
         prompt = build_vision_prompt(processor, system_prompt, user_text, path)
+        t0 = time.perf_counter()
         result = generate(
             model,
             processor,
@@ -131,8 +146,20 @@ def _run_generate(
             temperature=config.temperature,
             verbose=config.verbose,
         )
+        duration_ms = int((time.perf_counter() - t0) * 1000)
         text = getattr(result, "text", result)
-        return (text or "").strip()
+        out = (text or "").strip()
+        pt = _estimate_tokens(system_prompt + user_text + prompt)
+        ct = _estimate_tokens(out)
+        _llm_logger.info(
+            "[mai_ui/mlx_vlm] generate %sms tokens=%s (估算) prompt≈%s completion≈%s max_tokens=%s",
+            duration_ms,
+            pt + ct,
+            pt,
+            ct,
+            max_tokens,
+        )
+        return out
     finally:
         Path(path).unlink(missing_ok=True)
 

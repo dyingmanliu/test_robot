@@ -70,6 +70,9 @@ MIDSCENE_DEVICE_PLATFORM=android npm run task -- "打开设置"
 # 多步
 npm run task -- --steps "打开设置" "向下滑动一屏"
 
+# APP 功能清单遍历（输出 JSONL，含 explore_feature / done.tree）
+npm run explore -- --app-id com.huawei.hmos.settings --name 设置
+
 # 鸿蒙 Demo
 npm run demo
 
@@ -103,6 +106,7 @@ await android.run('打开浏览器并搜索 Headphones');
 | `src/device_runtime.ts` | Android / 鸿蒙 Device+Agent 创建 |
 | `src/platform.ts` | `DevicePlatform`、`AgentBackend` 解析 |
 | `src/cli.ts` | CLI；`--web-dispatch` 供 Web 后端 |
+| `src/explore.ts` | APP 功能菜单 DFS 遍历（aiQuery + aiAct） |
 | `src/web_dispatch.ts` | Web 下发 JSON 协议 |
 | `src/yaml_runner.ts` | YAML 脚本执行 |
 | `src/hdc.ts` | HDC 工具链 |

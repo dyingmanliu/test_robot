@@ -24,3 +24,10 @@ export {
   type WebTestDispatch,
 } from './web_dispatch.js';
 export { runMidsceneYamlScript, runHarmonyYamlScript } from './yaml_runner.js';
+export { runAppFeatureExplore } from './explore.js';
+export type {
+  ExploreOptions,
+  ExploreRunOutcome,
+  ExploreTreeResult,
+  FeatureEntry,
+} from './explore_types.js';

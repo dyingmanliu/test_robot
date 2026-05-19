@@ -85,6 +85,81 @@ export async function listHdcTargets(hdcHome?: string): Promise<HdcTarget[]> {
     .map((deviceId) => ({ deviceId }));
 }
 
+/** 在设备上执行 shell 命令（通过 hdc shell）。 */
+export async function hdcShell(
+  command: string,
+  hdcHome?: string,
+  deviceId?: string,
+): Promise<string> {
+  const bin = hdcBin(hdcHome);
+  const args = deviceId
+    ? ['-t', deviceId, 'shell', command]
+    : ['shell', command];
+  try {
+    const { stdout, stderr } = await execFileAsync(bin, args, {
+      timeout: 60_000,
+      env: hdcHome ? { ...process.env, HDC_HOME: hdcHome } : process.env,
+    });
+    return `${stdout || ''}${stderr || ''}`.trim();
+  } catch (err: unknown) {
+    const e = err as NodeJS.ErrnoException & { stderr?: string };
+    throw new Error(
+      `hdc shell 失败: ${e.stderr?.trim() || e.message || String(err)}`,
+    );
+  }
+}
+
+/** 从 bm dump 解析可启动的主 Ability（与 @midscene/harmony 逻辑一致）。 */
+export async function queryMainAbility(
+  bundleName: string,
+  hdcHome?: string,
+): Promise<string | undefined> {
+  const output = await hdcShell(`bm dump -n ${bundleName}`, hdcHome);
+  const names: string[] = [];
+  for (const match of output.matchAll(/"name"\s*:\s*"([^"]+)"/g)) {
+    names.push(match[1]);
+  }
+  for (const candidate of [
+    'EntryAbility',
+    'MainAbility',
+    `${bundleName}.MainAbility`,
+  ]) {
+    if (names.includes(candidate)) return candidate;
+  }
+  return names.find(
+    (n) =>
+      n !== bundleName &&
+      n.endsWith('Ability') &&
+      !n.includes('Extension') &&
+      !n.includes('Service') &&
+      !n.includes('Form') &&
+      !n.includes('Dialog'),
+  );
+}
+
+/** 解析 `hdc shell bm dump -a` 输出，返回已安装应用的 bundleName 列表。 */
+export async function listInstalledBundleIds(
+  hdcHome?: string,
+  deviceId?: string,
+): Promise<string[]> {
+  const out = await hdcShell('bm dump -a', hdcHome, deviceId);
+  const bundles: string[] = [];
+  const seen = new Set<string>();
+  for (const line of out.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('ID:') || trimmed.startsWith('[')) {
+      continue;
+    }
+    if (/^[a-zA-Z][a-zA-Z0-9._-]*$/.test(trimmed) && trimmed.includes('.')) {
+      if (!seen.has(trimmed)) {
+        seen.add(trimmed);
+        bundles.push(trimmed);
+      }
+    }
+  }
+  return bundles.sort((a, b) => a.localeCompare(b));
+}
+
 export async function resolveDeviceId(
   preferred?: string,
   hdcHome?: string,

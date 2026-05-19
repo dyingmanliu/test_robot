@@ -4,7 +4,7 @@
 
 export const WEB_DISPATCH_VERSION = 1;
 
-export type WebExecutionMode = 'natural' | 'yaml';
+export type WebExecutionMode = 'natural' | 'yaml' | 'explore';
 
 export interface WebTestDispatch {
   version: number;
@@ -17,7 +17,7 @@ export interface WebTestDispatch {
   device_platform?: string;
   /** ADB serial 或 HDC target ID */
   device_id?: string;
-  /** natural：自然语言 agent_task；yaml：执行 yaml_script */
+  /** natural：自然语言 agent_task；yaml：执行 yaml_script；explore：APP 功能遍历 */
   execution_mode?: WebExecutionMode;
   /** structured 模式下的可执行全文 */
   agent_task?: string;
@@ -25,6 +25,12 @@ export interface WebTestDispatch {
   agent_steps?: string[];
   /** Midscene YAML 脚本（须含 tasks:） */
   yaml_script?: string;
+  /** explore 模式：APP ID（bundleName，bm dump -a） */
+  bundle_id?: string;
+  app_name?: string;
+  max_screens?: number;
+  max_depth?: number;
+  max_taps_per_screen?: number;
   task_text?: string;
   preconditions?: string;
   steps_json?: string | unknown[];
@@ -37,9 +43,17 @@ function optUInt(v: unknown): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
+function optPositiveInt(v: unknown, fallback?: number): number | undefined {
+  if (v === undefined || v === null) return fallback;
+  const n = Number(v);
+  if (!Number.isFinite(n) || n < 1) return fallback;
+  return Math.floor(n);
+}
+
 function parseExecutionMode(v: unknown): WebExecutionMode {
   const m = String(v ?? 'natural').toLowerCase();
   if (m === 'yaml') return 'yaml';
+  if (m === 'explore') return 'explore';
   return 'natural';
 }
 
@@ -76,10 +90,18 @@ export function parseWebDispatchJson(raw: string): WebTestDispatch {
     : undefined;
   const yaml_script =
     o.yaml_script !== undefined ? String(o.yaml_script).trim() : undefined;
+  const bundle_id =
+    o.bundle_id !== undefined ? String(o.bundle_id).trim() : undefined;
+  const app_name =
+    o.app_name !== undefined ? String(o.app_name).trim() : undefined;
 
   if (execution_mode === 'yaml') {
     if (!yaml_script) {
       throw new Error('YAML 模式缺少 yaml_script');
+    }
+  } else if (execution_mode === 'explore') {
+    if (!bundle_id) {
+      throw new Error('explore 模式缺少 bundle_id（APP ID）');
     }
   } else if (!agent_task && !(agent_steps && agent_steps.length)) {
     throw new Error('自然语言模式缺少 agent_task / agent_steps 或内容为空');
@@ -110,6 +132,11 @@ export function parseWebDispatchJson(raw: string): WebTestDispatch {
     agent_task,
     agent_steps: agent_steps?.length ? agent_steps : undefined,
     yaml_script,
+    bundle_id,
+    app_name,
+    max_screens: optPositiveInt(o.max_screens, 30),
+    max_depth: optPositiveInt(o.max_depth, 4),
+    max_taps_per_screen: optPositiveInt(o.max_taps_per_screen, 8),
     task_text: o.task_text !== undefined ? String(o.task_text) : undefined,
     preconditions:
       o.preconditions !== undefined ? String(o.preconditions) : undefined,

@@ -314,3 +314,34 @@ class TestRun(Base):
     def has_report(self) -> bool:
         return bool((self.report_path or "").strip())
 
+
+class AppExploreRun(Base):
+    """Midscene + HDC 遍历 APP 功能菜单，导出 Excel 功能清单。"""
+
+    __tablename__ = "app_explore_runs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    robot_instance_id: Mapped[int] = mapped_column(
+        ForeignKey("robot_instances.id", ondelete="CASCADE"),
+        index=True,
+    )
+    bundle_id: Mapped[str] = mapped_column(String(256))
+    app_name: Mapped[str] = mapped_column(String(256), default="")
+    max_screens: Mapped[int] = mapped_column(Integer, default=30)
+    max_depth: Mapped[int] = mapped_column(Integer, default=4)
+    status: Mapped[str] = mapped_column(String(32), default="pending", index=True)
+    feature_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    excel_path: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    step_log: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    output_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    error_trace: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    report_path: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    feature_count: Mapped[int] = mapped_column(Integer, default=0)
+    screens_visited: Mapped[int] = mapped_column(Integer, default=0)
+    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    robot_instance: Mapped["RobotInstance"] = relationship()
+
