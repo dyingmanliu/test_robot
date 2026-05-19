@@ -13,8 +13,10 @@
 import { parseArgs } from 'node:util';
 
 import './config.js';
-import { HarmonyTestAgent } from './agent.js';
+import { MidsceneTestAgent } from './agent.js';
+import { applyAgentBackendModelEnv } from './config.js';
 import { checkHdcVersion, listHdcTargets } from './hdc.js';
+import { parseAgentBackend, parseDevicePlatform } from './platform.js';
 import { parseWebDispatchJson, type WebTestDispatch } from './web_dispatch.js';
 
 async function readStdinAll(): Promise<string> {
@@ -90,6 +92,14 @@ async function main(): Promise<number> {
     return 1;
   }
 
+  const devicePlatform = parseDevicePlatform(
+    webPayload?.device_platform ?? process.env.MIDSCENE_DEVICE_PLATFORM,
+  );
+  const agentBackend = parseAgentBackend(
+    webPayload?.agent_backend ?? process.env.MIDSCENE_AGENT_BACKEND,
+  );
+  applyAgentBackendModelEnv(agentBackend);
+
   if (webDispatch && webPayload && machineOut) {
     process.stdout.write(
       `${JSON.stringify({
@@ -97,6 +107,8 @@ async function main(): Promise<number> {
         source: 'web',
         version: webPayload.version,
         execution_mode: webPayload.execution_mode ?? 'natural',
+        agent_backend: agentBackend,
+        device_platform: devicePlatform,
         run_id: webPayload.run_id,
         case_id: webPayload.case_id,
         robot_instance_id: webPayload.robot_instance_id,
@@ -104,15 +116,24 @@ async function main(): Promise<number> {
     );
   }
 
-  const agent = new HarmonyTestAgent({
-    deviceId: values.device ?? process.env.HDC_DEVICE_ID,
+  const agent = new MidsceneTestAgent({
+    devicePlatform,
+    agentBackend,
+    deviceId:
+      values.device ??
+      (webPayload?.device_id?.trim() ||
+        (devicePlatform === 'android'
+          ? process.env.ADB_DEVICE_ID
+          : process.env.HDC_DEVICE_ID)),
     hdcHome: process.env.HDC_HOME,
   });
 
-  try {
-    await checkHdcVersion(process.env.HDC_HOME);
-  } catch (e) {
-    console.warn(String(e instanceof Error ? e.message : e));
+  if (devicePlatform === 'harmonyos') {
+    try {
+      await checkHdcVersion(process.env.HDC_HOME);
+    } catch (e) {
+      console.warn(String(e instanceof Error ? e.message : e));
+    }
   }
 
   const onStep = ({
@@ -141,10 +162,15 @@ async function main(): Promise<number> {
     if (phase === 'error') console.error(`[步骤 ${step} 失败] ${error}`);
   };
 
+  const webSteps =
+    webPayload?.agent_steps?.length ? webPayload.agent_steps : undefined;
+
   let outcome;
   if (values.steps) {
     const steps = positionals.map((s) => s.trim()).filter(Boolean);
     outcome = await agent.runSteps(steps, { onStep });
+  } else if (webSteps?.length) {
+    outcome = await agent.runSteps(webSteps, { onStep });
   } else if (webYamlMode) {
     outcome = await agent.runYamlScript(task, { onStep });
   } else {

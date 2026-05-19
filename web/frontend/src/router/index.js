@@ -17,11 +17,13 @@ import MonitorOpsView from "@/views/MonitorOpsView.vue";
 import FunctionalTaskWizardView from "@/views/FunctionalTaskWizardView.vue";
 import AdminCompaniesView from "@/views/AdminCompaniesView.vue";
 import AdminRentalOrdersView from "@/views/AdminRentalOrdersView.vue";
+import AdminRobotInstancesView from "@/views/AdminRobotInstancesView.vue";
 import PlatformIntroView from "@/views/PlatformIntroView.vue";
 import MyRobotsShell from "@/views/MyRobotsShell.vue";
 import MyRobotsView from "@/views/MyRobotsView.vue";
 import MyRobotDetailView from "@/views/MyRobotDetailView.vue";
 import MyRentalApplicationsView from "@/views/MyRentalApplicationsView.vue";
+import RunExecutionLiveView from "@/views/RunExecutionLiveView.vue";
 import MaiUiStudioView from "@/views/MaiUiStudioView.vue";
 
 const router = createRouter({
@@ -29,6 +31,12 @@ const router = createRouter({
   routes: [
     { path: "/", name: "home", component: HomeDashboardView, meta: { requiresAuth: true } },
     { path: "/cases", name: "cases", component: CasesView, meta: { requiresAuth: true } },
+    {
+      path: "/runs/:runId/live",
+      name: "runExecutionLive",
+      component: RunExecutionLiveView,
+      meta: { requiresAuth: true },
+    },
     {
       path: "/mai-ui",
       name: "maiUiStudio",
@@ -119,6 +127,12 @@ const router = createRouter({
       path: "/admin/users",
       name: "adminUsers",
       component: AdminUsersView,
+      meta: { requiresAuth: true, roles: ["platform_admin"] },
+    },
+    {
+      path: "/admin/robot-instances",
+      name: "adminRobotInstances",
+      component: AdminRobotInstancesView,
       meta: { requiresAuth: true, roles: ["platform_admin"] },
     },
     {

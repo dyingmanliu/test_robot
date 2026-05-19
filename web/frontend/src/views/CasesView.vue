@@ -34,14 +34,33 @@
         >
           项目看板
         </router-link>
-        <button
-          type="button"
-          class="btn primary"
-          :disabled="!selectedProjectId"
-          @click="openCreate"
-        >
-          新建用例
-        </button>
+        <div ref="createMenuRef" class="create-case-wrap">
+          <button
+            type="button"
+            class="btn primary create-case-trigger"
+            :disabled="!selectedProjectId"
+            :aria-expanded="createMenuOpen"
+            aria-haspopup="menu"
+            @click.stop="toggleCreateMenu"
+          >
+            创建用例
+            <span class="create-case-caret" aria-hidden="true">▾</span>
+          </button>
+          <div v-if="createMenuOpen && selectedProjectId" class="create-case-menu" role="menu">
+            <button type="button" class="create-case-item" role="menuitem" @click="startManualCreate">
+              手工创建
+            </button>
+            <button
+              type="button"
+              class="create-case-item"
+              role="menuitem"
+              :disabled="genDialog.loading"
+              @click="startAutoCreate"
+            >
+              自动生成
+            </button>
+          </div>
+        </div>
         <label class="btn import-label">
           导入 CSV/Excel
           <input
@@ -55,31 +74,102 @@
         <button
           type="button"
           class="btn"
-          :disabled="!selectedProjectId || !selectedIds.length || running || !selectedRobotInstanceId"
+          :disabled="!selectedProjectId || !selectedCaseId || running || !canStartExecution"
           @click="runSelected"
         >
-          {{ running ? "执行中…" : "自动化执行选中" }}
+          {{ running ? "执行中…" : "执行测试" }}
         </button>
       </div>
     </div>
 
     <div v-if="projectsLoaded && !robotInstances.length" class="banner warn">
-      执行用例需绑定已租用的机器人实例。请先到
+      执行用例或自动生成用例需先租用机器人实例。请先到
       <router-link to="/marketplace">机器人商城</router-link>
-      提交租用申请，管理员审批通过后到
+      提交租用申请（执行类选「功能执行」、生成类选「测试分析」），管理员审批通过后到
       <router-link to="/my-robots">我的机器人</router-link>
-      查看编号与属性，再回到本页选择实例后执行。
+      查看编号与属性。
     </div>
-    <div v-else-if="projectsLoaded && robotInstances.length" class="robot-pick">
-      <label class="robot-pick-inner">
-        <span class="picker-label">执行用例使用的机器人实例</span>
-        <select v-model.number="selectedRobotInstanceId" class="robot-select">
-          <option v-for="ins in robotInstances" :key="ins.id" :value="ins.id">
-            {{ ins.instance_code }} · {{ (ins.display_name || "").trim() || ins.catalog_robot_id }} ·
-            {{ agentEngineLabel(ins.test_agent_backend) }}
-          </option>
-        </select>
-      </label>
+    <div
+      v-else-if="projectsLoaded && robotInstances.length && !executionRobotInstances.length"
+      class="banner warn"
+    >
+      当前仅有测试分析机器人，无法执行用例。请在商城租用<strong>功能执行</strong>或<strong>专项执行</strong>类机器人后再执行测试。
+    </div>
+    <div
+      v-else-if="projectsLoaded && needsMidsceneForSelection && !midsceneRobotInstances.length"
+      class="banner warn"
+    >
+      已选 YAML 用例须使用 <strong>Midscene（HarmonyOS / HDC）</strong> 机器人执行。当前公司下尚无 Midscene 实例，请到
+      <router-link to="/my-robots">我的机器人</router-link>
+      打开任一实例，将「测试执行引擎」改为 Midscene 后保存；或联系管理员审批新租用单时选择 Midscene 引擎。
+    </div>
+    <div v-else-if="projectsLoaded && executionRobotInstances.length" class="robot-pick">
+      <div class="robot-pick-row">
+        <label class="robot-pick-inner">
+          <span class="picker-label">执行用例使用的机器人实例</span>
+          <select v-model.number="selectedRobotInstanceId" class="robot-select" @change="onRobotInstanceChange">
+            <option
+              v-for="ins in robotsForExecution"
+              :key="ins.id"
+              :value="ins.id"
+              :disabled="robotOptionDisabled(ins)"
+            >
+              {{ ins.instance_code }} · {{ (ins.display_name || "").trim() || ins.catalog_robot_id }} ·
+              {{ agentEngineLabel(ins.test_agent_backend) }}
+              {{ robotOptionHint(ins) }}
+            </option>
+          </select>
+        </label>
+        <label class="robot-pick-inner">
+          <span class="picker-label">本次执行设备</span>
+          <select v-model="selectedDevicePlatform" class="robot-select">
+            <option value="android">Android / ADB</option>
+            <option value="harmonyos">鸿蒙 HarmonyOS / HDC</option>
+          </select>
+        </label>
+        <label class="robot-pick-inner robot-pick-inner--device">
+          <span class="picker-label">
+            目标终端
+            <button
+              type="button"
+              class="link-btn"
+              :disabled="devicesLoading"
+              @click="loadConnectedDevices"
+            >
+              {{ devicesLoading ? "刷新中…" : "刷新" }}
+            </button>
+          </span>
+          <select
+            v-model="selectedDeviceId"
+            class="robot-select"
+            :disabled="devicesLoading || !onlineDevices.length"
+          >
+            <option v-if="!onlineDevices.length" value="">
+              {{ devicesError || "未检测到在线设备" }}
+            </option>
+            <option v-for="d in onlineDevices" :key="d.device_id" :value="d.device_id">
+              {{ d.label }}
+              <template v-if="d.state !== 'device'">（{{ d.state }}）</template>
+            </option>
+          </select>
+        </label>
+      </div>
+      <p class="robot-hint muted small">
+        同一机器人可在执行前选择平台与具体终端（ADB 序列号 / HDC target）；默认平台取自「我的机器人」（当前：
+        <strong>{{ defaultPlatformLabel }}</strong>）。
+      </p>
+      <p v-if="needsMidsceneForSelection" class="robot-hint muted small">
+        已选 YAML 用例，请选用标注为 <strong>Midscene</strong> 的机器人（如 DR-000008 · 机器人贾维斯）。
+      </p>
+      <p v-if="!runnableRobotCount" class="robot-hint warn small">
+        当前没有可执行用例的机器人：须为<strong>已启动</strong>且<strong>运行状态空闲</strong>；YAML 用例还须 Midscene 引擎。可在
+        <router-link v-if="auth.role === 'platform_admin'" to="/admin/robot-instances">机器人实例管理</router-link>
+        <template v-else>「我的机器人」</template>
+        中启用实例或等待执行结束。
+      </p>
+      <p v-else class="robot-hint muted small">
+        仅<strong>已启动</strong>且<strong>运行空闲</strong>的机器人可选；执行中或已停用的实例将灰显。
+      </p>
     </div>
 
     <div v-if="loadError" class="banner err">{{ loadError }}</div>
@@ -88,9 +178,7 @@
       <table class="table">
         <thead>
           <tr>
-            <th class="narrow">
-              <input type="checkbox" :checked="allSelected" @change="toggleAll" />
-            </th>
+            <th class="narrow">选择</th>
             <th>标题</th>
             <th>优先级</th>
             <th>格式</th>
@@ -102,7 +190,12 @@
         <tbody>
           <tr v-for="c in cases" :key="c.id">
             <td>
-              <input type="checkbox" :value="c.id" v-model="selectedIds" />
+              <input
+                type="radio"
+                name="case-run-select"
+                :value="c.id"
+                v-model.number="selectedCaseId"
+              />
             </td>
             <td>{{ c.title }}</td>
             <td>{{ c.priority || "—" }}</td>
@@ -116,7 +209,7 @@
             </td>
           </tr>
           <tr v-if="!cases.length && !loading">
-            <td colspan="7" class="empty">暂无数据，点击「新建用例」开始。</td>
+            <td colspan="7" class="empty">暂无数据，点击「创建用例」开始。</td>
           </tr>
         </tbody>
       </table>
@@ -124,7 +217,11 @@
 
     <p v-if="loading" class="muted">加载中…</p>
 
-    <div v-if="liveRun" class="panel live-panel">
+    <p v-if="showResumeHint && liveRunVisible" class="banner share-hint">
+      已恢复进行中的执行任务（运行 ID {{ liveRun.id }}）。离开本页后后台仍会继续拉取进度，返回即可继续查看。
+    </p>
+
+    <div v-if="liveRunVisible" class="panel live-panel">
       <div class="panel-head">
         <h2>执行进度（实时）</h2>
         <button
@@ -167,6 +264,8 @@
         <aside class="exec-screen-pane">
           <DeviceScreenMirror
             :robot-instance-id="selectedRobotInstanceId"
+            :device-platform="selectedDevicePlatform"
+            :device-id="selectedDeviceId"
             :active="screenMirrorActive"
           />
         </aside>
@@ -212,6 +311,8 @@
           <aside class="exec-screen-pane">
             <DeviceScreenMirror
               :robot-instance-id="selectedRobotInstanceId"
+              :device-platform="selectedDevicePlatform"
+              :device-id="selectedDeviceId"
               :active="false"
             />
           </aside>
@@ -266,6 +367,79 @@
 
     <p v-if="importMsg" class="banner ok">{{ importMsg }}</p>
 
+    <div v-if="genDialog.open" class="modal-overlay" @click.self="closeGenerate">
+      <div class="modal">
+        <h3>自动生成用例</h3>
+        <p class="muted small">
+          须选择已租用的<strong>测试分析</strong>机器人实例；用一句话描述要测什么，由分析机器人生成草稿。保存前可在编辑页核对或切换格式。
+        </p>
+        <div v-if="!analysisRobotInstances.length" class="banner warn small">
+          尚无测试分析机器人实例。请到
+          <router-link to="/marketplace">机器人商城</router-link>
+          租用「测试分析数字机器人」，审批通过后再试。
+        </div>
+        <label v-else class="field">
+          <span>测试分析机器人实例</span>
+          <select
+            v-model.number="selectedAnalysisRobotInstanceId"
+            class="robot-select"
+            :disabled="genDialog.loading"
+          >
+            <option
+              v-for="ins in analysisRobotInstances"
+              :key="ins.id"
+              :value="ins.id"
+              :disabled="analysisOptionDisabled(ins)"
+            >
+              {{ ins.instance_code }} · {{ (ins.display_name || "").trim() || ins.catalog_robot_id }}
+              {{ analysisOptionHint(ins) }}
+            </option>
+          </select>
+        </label>
+        <p v-if="analysisRobotInstances.length && !runnableAnalysisCount" class="robot-hint warn small">
+          当前没有可用的测试分析机器人：须<strong>已启动</strong>且<strong>运行空闲</strong>。可在
+          <router-link v-if="auth.role === 'platform_admin'" to="/admin/robot-instances">机器人实例管理</router-link>
+          <template v-else>「我的机器人」</template>
+          中启用或等待生成结束。
+        </p>
+        <fieldset class="field format-field">
+          <span class="format-label">生成格式</span>
+          <label class="format-opt">
+            <input v-model="genDialog.case_format" type="radio" value="structured" :disabled="genDialog.loading" />
+            结构化（步骤 + 执行说明）
+          </label>
+          <label class="format-opt">
+            <input v-model="genDialog.case_format" type="radio" value="yaml" :disabled="genDialog.loading" />
+            Midscene YAML（须使用 Midscene 机器人执行）
+          </label>
+        </fieldset>
+        <label class="field">
+          <span>测试描述</span>
+          <textarea
+            v-model="genDialog.prompt"
+            rows="4"
+            maxlength="2000"
+            placeholder="例如：已登录用户从首页进入购物车并完成结算"
+            :disabled="genDialog.loading"
+          ></textarea>
+        </label>
+        <p v-if="genDialog.error" class="err">{{ genDialog.error }}</p>
+        <div class="modal-actions">
+          <button type="button" class="btn ghost" :disabled="genDialog.loading" @click="closeGenerate">
+            取消
+          </button>
+          <button
+            type="button"
+            class="btn primary"
+            :disabled="genDialog.loading || !canSubmitGenerate"
+            @click="submitGenerate"
+          >
+            {{ genDialog.loading ? "生成中…" : "生成" }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div v-if="dialog.open" class="modal-overlay" @click.self="dialog.open = false">
       <div class="modal modal-wide">
         <h3>{{ dialog.editing ? "编辑用例" : "新建用例" }}</h3>
@@ -285,13 +459,26 @@
         <fieldset class="field format-field">
           <span class="format-label">用例格式</span>
           <label class="format-opt">
-            <input v-model="dialog.case_format" type="radio" value="structured" />
+            <input
+              :checked="dialog.case_format === 'structured'"
+              type="radio"
+              value="structured"
+              :disabled="dialog.formatConverting"
+              @change="switchCaseFormat('structured')"
+            />
             结构化（步骤 + 执行说明）
           </label>
           <label class="format-opt">
-            <input v-model="dialog.case_format" type="radio" value="yaml" />
+            <input
+              :checked="dialog.case_format === 'yaml'"
+              type="radio"
+              value="yaml"
+              :disabled="dialog.formatConverting"
+              @change="switchCaseFormat('yaml')"
+            />
             Midscene YAML（须使用 Midscene 机器人执行）
           </label>
+          <span v-if="dialog.formatConverting" class="muted small">格式转换中…</span>
         </fieldset>
         <template v-if="dialog.case_format === 'yaml'">
           <label class="field">
@@ -335,8 +522,20 @@
         </template>
         <p v-if="dialog.error" class="err">{{ dialog.error }}</p>
         <div class="modal-actions">
-          <button type="button" class="btn ghost" @click="dialog.open = false">取消</button>
-          <button type="button" class="btn primary" @click="saveDialog">保存</button>
+          <button type="button" class="btn ghost" :disabled="dialog.saving" @click="dialog.open = false">
+            取消
+          </button>
+          <button type="button" class="btn primary" :disabled="dialog.saving" @click="saveDialog(false)">
+            {{ dialog.saving ? "保存中…" : "保存" }}
+          </button>
+          <button
+            type="button"
+            class="btn primary btn-run"
+            :disabled="dialog.saving || running"
+            @click="saveDialog(true)"
+          >
+            {{ dialog.saving ? "处理中…" : "保存并执行" }}
+          </button>
         </div>
       </div>
     </div>
@@ -373,24 +572,28 @@
 </template>
 
 <script setup>
-import axios from "axios";
-import { computed, nextTick, onMounted, reactive, ref, watch } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from "vue";
+import { storeToRefs } from "pinia";
 import { useRoute, useRouter } from "vue-router";
 import client, { formatApiError } from "@/api/client";
 import DeviceScreenMirror from "@/components/DeviceScreenMirror.vue";
+import { useActiveTestRunStore, getActiveRunProjectId } from "@/stores/activeTestRun";
 import { useAuthStore } from "@/stores/auth";
+import {
+  analysisRobotUnselectableHint,
+  isAnalysisInstance,
+  isExecutionInstance,
+  isRobotRunnableForAnalysis,
+  isRobotRunnableForCase,
+  robotUnselectableHint,
+} from "@/constants/robotCatalog";
 
 /** 轮询时短暂断网、502 等不应立刻当作「执行失败」；401 等仍应立即失败 */
-function isTransientPollError(e) {
-  if (!axios.isAxiosError(e)) return false;
-  if (!e.response) return true;
-  const s = e.response.status;
-  return s >= 500 || s === 408 || s === 429;
-}
-
 const route = useRoute();
 const router = useRouter();
 const auth = useAuthStore();
+const activeRunStore = useActiveTestRunStore();
+const { liveRun, polling: running } = storeToRefs(activeRunStore);
 
 const projects = ref([]);
 const projectsLoaded = ref(false);
@@ -399,14 +602,131 @@ const selectedProjectId = ref(null);
 const cases = ref([]);
 const loading = ref(false);
 const loadError = ref("");
-const selectedIds = ref([]);
-const running = ref(false);
+const selectedCaseId = ref(null);
 const stopBusy = ref(false);
-const liveRun = ref(null);
+const showResumeHint = ref(false);
 const resultRuns = ref([]);
+
+function runBelongsToCurrentProject(run) {
+  if (!selectedProjectId.value || !run) return false;
+  const pid =
+    run.project_id != null
+      ? Number(run.project_id)
+      : activeRunStore.projectId != null
+        ? Number(activeRunStore.projectId)
+        : Number(getActiveRunProjectId()) || NaN;
+  if (Number.isFinite(pid) && pid === selectedProjectId.value) return true;
+  return cases.value.some((c) => c.id === run.case_id);
+}
+
+const liveRunVisible = computed(() => {
+  if (!liveRun.value) return false;
+  if (!runBelongsToCurrentProject(liveRun.value)) return false;
+  const st = liveRun.value.status;
+  return st === "pending" || st === "running";
+});
 
 const robotInstances = ref([]);
 const selectedRobotInstanceId = ref(null);
+const selectedAnalysisRobotInstanceId = ref(null);
+const selectedDevicePlatform = ref("android");
+const selectedDeviceId = ref("");
+const connectedDevices = ref([]);
+const devicesLoading = ref(false);
+const devicesError = ref("");
+
+const PLATFORM_STORAGE_PREFIX = "tcm_exec_platform_";
+const DEVICE_ID_STORAGE_PREFIX = "tcm_exec_device_";
+
+function normalizeDevicePlatform(value) {
+  const p = String(value || "android").toLowerCase();
+  return p === "harmonyos" ? "harmonyos" : "android";
+}
+
+function platformStorageKey(instanceId) {
+  return `${PLATFORM_STORAGE_PREFIX}${instanceId}`;
+}
+
+function deviceIdStorageKey(instanceId, platform) {
+  return `${DEVICE_ID_STORAGE_PREFIX}${instanceId}_${normalizeDevicePlatform(platform)}`;
+}
+
+const onlineDevices = computed(() =>
+  connectedDevices.value.filter((d) => String(d.state || "").toLowerCase() === "device"),
+);
+
+const selectedRobotInstance = computed(() =>
+  robotInstances.value.find((i) => i.id === selectedRobotInstanceId.value),
+);
+
+const runnableRobotCount = computed(() =>
+  executionRobotInstances.value.filter((ins) =>
+    isRobotRunnableForCase(ins, needsMidsceneForSelection.value),
+  ).length,
+);
+
+const canStartExecution = computed(() => {
+  if (!selectedRobotInstanceId.value) return false;
+  if (!isRobotRunnableForCase(selectedRobotInstance.value, needsMidsceneForSelection.value)) {
+    return false;
+  }
+  if (devicesLoading.value) return false;
+  return onlineDevices.value.length > 0 && !!selectedDeviceId.value;
+});
+
+function syncDevicePlatformFromInstance() {
+  const ins = robotInstances.value.find((i) => i.id === selectedRobotInstanceId.value);
+  if (!ins) return;
+  const saved = sessionStorage.getItem(platformStorageKey(ins.id));
+  selectedDevicePlatform.value = saved
+    ? normalizeDevicePlatform(saved)
+    : normalizeDevicePlatform(ins.device_platform);
+}
+
+async function loadConnectedDevices() {
+  devicesLoading.value = true;
+  devicesError.value = "";
+  try {
+    const { data } = await client.get("/api/devices/connected", {
+      params: { platform: normalizeDevicePlatform(selectedDevicePlatform.value) },
+    });
+    connectedDevices.value = Array.isArray(data.devices) ? data.devices : [];
+    const online = connectedDevices.value.filter(
+      (d) => String(d.state || "").toLowerCase() === "device",
+    );
+    const insId = selectedRobotInstanceId.value;
+    const saved =
+      insId != null
+        ? sessionStorage.getItem(deviceIdStorageKey(insId, selectedDevicePlatform.value))
+        : null;
+    if (saved && online.some((d) => d.device_id === saved)) {
+      selectedDeviceId.value = saved;
+    } else if (online.length) {
+      selectedDeviceId.value = online[0].device_id;
+    } else {
+      selectedDeviceId.value = "";
+    }
+  } catch (e) {
+    connectedDevices.value = [];
+    selectedDeviceId.value = "";
+    devicesError.value =
+      typeof e.response?.data?.detail === "string"
+        ? e.response.data.detail
+        : "无法枚举设备，请确认 ADB/HDC 已安装且设备已连接";
+  } finally {
+    devicesLoading.value = false;
+  }
+}
+
+function onRobotInstanceChange() {
+  syncDevicePlatformFromInstance();
+  loadConnectedDevices();
+}
+
+const defaultPlatformLabel = computed(() => {
+  const ins = robotInstances.value.find((i) => i.id === selectedRobotInstanceId.value);
+  return devicePlatformLabel(ins?.device_platform || selectedDevicePlatform.value);
+});
 
 const canStopRun = computed(() => {
   const r = liveRun.value;
@@ -431,19 +751,53 @@ function scrollLiveLogToBottom() {
 watch(
   () => liveRun.value?.step_log,
   () => {
-    if (liveRun.value) scrollLiveLogToBottom();
+    if (liveRunVisible.value) scrollLiveLogToBottom();
+  },
+);
+
+function absorbTerminalRunToResults() {
+  const run = liveRun.value;
+  if (!run || !runBelongsToCurrentProject(run)) return;
+  if (!["success", "failed", "cancelled"].includes(run.status)) return;
+  resultRuns.value = [run];
+  showResumeHint.value = false;
+  syncRunQuery(null);
+  activeRunStore.clear();
+}
+
+watch(
+  () => liveRun.value?.status,
+  (st) => {
+    if (st && ["success", "failed", "cancelled"].includes(st)) {
+      absorbTerminalRunToResults();
+    }
   },
 );
 
 const importMsg = ref("");
 
-const DEFAULT_YAML_TEMPLATE = `# Midscene HarmonyOS 用例（runYaml 仅执行 tasks 段；设备由服务端 HDC 连接）
+const DEFAULT_YAML_TEMPLATE = `# Midscene YAML 用例（仅 tasks 段由 runYaml 执行）
+# - 设备：由用例页所选「平台 + 目标终端」连接（Android ADB / 鸿蒙 HDC）
+# - 须使用 test_agent_backend=midscene 的机器人实例执行
+# - flow 常用指令：ai（自然语言操作）、aiAssert（断言）、sleep（毫秒）
+# 文档：https://midscenejs.com/automate-with-scripts-in-yaml
+
 tasks:
-  - name: 示例任务
+  - name: 美团搜索火锅并进入商户详情
     flow:
-      - ai: 打开设置应用
+      - ai: 确保满足前置条件：已登录美团 App，网络正常
+      - ai: 打开美团 App；若不在首页则返回首页
+      - sleep: 2000
+      - aiAssert: 当前为美团首页，能看到顶部搜索框或「搜索」入口
+      - ai: 点击首页搜索框
       - sleep: 1000
-      - aiAssert: 页面显示设置项列表
+      - aiAssert: 已进入搜索页，能看到搜索输入框
+      - ai: 在搜索框输入「火锅」并点击搜索或键盘确认
+      - sleep: 2000
+      - aiAssert: 已进入搜索结果页，列表中有火锅相关商户
+      - ai: 点击列表中第一家火锅店，进入商户详情
+      - sleep: 1500
+      - aiAssert: 已进入商户详情页，能看到店名、评分或「加入购物车」等入口
 `;
 
 const dialog = reactive({
@@ -458,7 +812,20 @@ const dialog = reactive({
   case_yaml: "",
   steps: [],
   error: "",
+  formatConverting: false,
+  saving: false,
 });
+
+const genDialog = reactive({
+  open: false,
+  prompt: "",
+  case_format: "structured",
+  loading: false,
+  error: "",
+});
+
+const createMenuOpen = ref(false);
+const createMenuRef = ref(null);
 
 const verDialog = reactive({
   open: false,
@@ -468,8 +835,106 @@ const verDialog = reactive({
   caseTitle: "",
 });
 
-const allSelected = computed(() => {
-  return cases.value.length > 0 && selectedIds.value.length === cases.value.length;
+function isMidsceneBackend(backend) {
+  return String(backend || "autoglm").toLowerCase() === "midscene";
+}
+
+const needsMidsceneForSelection = computed(() => {
+  const c = cases.value.find((x) => x.id === selectedCaseId.value);
+  return !!c && String(c.case_format || "").toLowerCase() === "yaml";
+});
+
+const midsceneRobotInstances = computed(() =>
+  robotInstances.value.filter(
+    (ins) => isExecutionInstance(ins) && isMidsceneBackend(ins.test_agent_backend),
+  ),
+);
+
+const analysisRobotInstances = computed(() =>
+  robotInstances.value.filter((ins) => isAnalysisInstance(ins)),
+);
+
+const executionRobotInstances = computed(() =>
+  robotInstances.value.filter((ins) => isExecutionInstance(ins)),
+);
+
+const robotsForExecution = computed(() => executionRobotInstances.value);
+
+const runnableAnalysisCount = computed(() =>
+  analysisRobotInstances.value.filter((ins) => isRobotRunnableForAnalysis(ins)).length,
+);
+
+const canSubmitGenerate = computed(() => {
+  if (!analysisRobotInstances.value.length) return false;
+  if (!selectedAnalysisRobotInstanceId.value) return false;
+  const ins = analysisRobotInstances.value.find((i) => i.id === selectedAnalysisRobotInstanceId.value);
+  return isRobotRunnableForAnalysis(ins);
+});
+
+function analysisOptionDisabled(ins) {
+  return !isRobotRunnableForAnalysis(ins);
+}
+
+function analysisOptionHint(ins) {
+  return analysisRobotUnselectableHint(ins);
+}
+
+function robotOptionDisabled(ins) {
+  return !isRobotRunnableForCase(ins, needsMidsceneForSelection.value);
+}
+
+function robotOptionHint(ins) {
+  return robotUnselectableHint(ins, needsMidsceneForSelection.value);
+}
+
+function syncAnalysisRobotSelection() {
+  const runnable = analysisRobotInstances.value.filter((ins) => isRobotRunnableForAnalysis(ins));
+  if (!runnable.length) {
+    selectedAnalysisRobotInstanceId.value = null;
+    return;
+  }
+  const current = analysisRobotInstances.value.find(
+    (ins) => ins.id === selectedAnalysisRobotInstanceId.value,
+  );
+  if (!current || !isRobotRunnableForAnalysis(current)) {
+    selectedAnalysisRobotInstanceId.value = runnable[0].id;
+  }
+}
+
+function syncRobotSelection() {
+  const needMid = needsMidsceneForSelection.value;
+  const runnable = executionRobotInstances.value.filter((ins) =>
+    isRobotRunnableForCase(ins, needMid),
+  );
+  if (!runnable.length) {
+    selectedRobotInstanceId.value = null;
+    return;
+  }
+  const current = executionRobotInstances.value.find((ins) => ins.id === selectedRobotInstanceId.value);
+  if (!current || !isRobotRunnableForCase(current, needMid)) {
+    selectedRobotInstanceId.value = runnable[0].id;
+  }
+  syncDevicePlatformFromInstance();
+  loadConnectedDevices();
+  syncAnalysisRobotSelection();
+}
+
+watch([selectedCaseId, cases], () => syncRobotSelection());
+
+watch(selectedRobotInstanceId, () => syncDevicePlatformFromInstance());
+
+watch(selectedDevicePlatform, (p) => {
+  if (!selectedRobotInstanceId.value) return;
+  sessionStorage.setItem(platformStorageKey(selectedRobotInstanceId.value), normalizeDevicePlatform(p));
+  loadConnectedDevices();
+});
+
+watch(selectedDeviceId, (id) => {
+  if (!selectedRobotInstanceId.value || !id) return;
+  sessionStorage.setItem(
+    deviceIdStorageKey(selectedRobotInstanceId.value, selectedDevicePlatform.value),
+    id,
+  );
 });
 
 async function loadProjects() {
@@ -494,7 +959,9 @@ async function load() {
       params: { project_id: selectedProjectId.value },
     });
     cases.value = data;
-    selectedIds.value = selectedIds.value.filter((id) => data.some((c) => c.id === id));
+    if (selectedCaseId.value && !data.some((c) => c.id === selectedCaseId.value)) {
+      selectedCaseId.value = null;
+    }
   } catch (e) {
     loadError.value = formatApiError(e);
   } finally {
@@ -502,22 +969,20 @@ async function load() {
   }
 }
 
-function onProjectChange() {
-  router.replace({ path: "/cases", query: { project: String(selectedProjectId.value) } });
-  load();
-  loadRobotInstances();
+async function onProjectChange() {
+  showResumeHint.value = false;
+  const q = { project: String(selectedProjectId.value) };
+  router.replace({ path: "/cases", query: q });
+  await load();
+  await loadRobotInstances();
+  await tryResumeActiveRun();
 }
 
 async function loadRobotInstances() {
   try {
     const { data } = await client.get("/api/robot-instances/mine");
     robotInstances.value = Array.isArray(data) ? data : [];
-    if (robotInstances.value.length && !selectedRobotInstanceId.value) {
-      selectedRobotInstanceId.value = robotInstances.value[0].id;
-    }
-    if (!robotInstances.value.length) {
-      selectedRobotInstanceId.value = null;
-    }
+    syncRobotSelection();
   } catch {
     robotInstances.value = [];
     selectedRobotInstanceId.value = null;
@@ -541,14 +1006,10 @@ async function bootstrapProjectContext() {
   }
   await load();
   await loadRobotInstances();
-}
-
-function toggleAll(e) {
-  if (e.target.checked) {
-    selectedIds.value = cases.value.map((c) => c.id);
-  } else {
-    selectedIds.value = [];
+  if (selectedRobotInstanceId.value) {
+    await loadConnectedDevices();
   }
+  await tryResumeActiveRun();
 }
 
 function truncate(s, n) {
@@ -567,9 +1028,11 @@ function stepPreview(c) {
 }
 
 function fillYamlTemplate() {
-  if (!dialog.case_yaml.trim()) {
-    dialog.case_yaml = DEFAULT_YAML_TEMPLATE;
+  if (dialog.case_yaml.trim()) {
+    const ok = window.confirm("将覆盖当前 YAML 内容，是否填入完整示例模板？");
+    if (!ok) return;
   }
+  dialog.case_yaml = DEFAULT_YAML_TEMPLATE;
 }
 
 function fmtTime(iso) {
@@ -588,6 +1051,33 @@ function removeStep(idx) {
   dialog.steps.splice(idx, 1);
 }
 
+function closeCreateMenu() {
+  createMenuOpen.value = false;
+}
+
+function toggleCreateMenu() {
+  if (!selectedProjectId.value) return;
+  createMenuOpen.value = !createMenuOpen.value;
+}
+
+function startManualCreate() {
+  closeCreateMenu();
+  openCreate();
+}
+
+function startAutoCreate() {
+  closeCreateMenu();
+  openGenerate();
+}
+
+function onDocumentClick(ev) {
+  if (!createMenuOpen.value) return;
+  const el = createMenuRef.value;
+  if (el && !el.contains(ev.target)) {
+    closeCreateMenu();
+  }
+}
+
 function openCreate() {
   if (!selectedProjectId.value) return;
   dialog.open = true;
@@ -601,6 +1091,115 @@ function openCreate() {
   dialog.case_yaml = "";
   dialog.steps = [{ description: "", expected: "" }];
   dialog.error = "";
+  dialog.saving = false;
+}
+
+function openGenerate() {
+  if (!selectedProjectId.value) return;
+  syncAnalysisRobotSelection();
+  genDialog.open = true;
+  genDialog.prompt = "";
+  genDialog.case_format = "structured";
+  genDialog.loading = false;
+  genDialog.error = "";
+}
+
+function closeGenerate() {
+  if (genDialog.loading) return;
+  genDialog.open = false;
+  genDialog.error = "";
+}
+
+function applyDraftToDialog(draft) {
+  const fmt = String(draft.case_format || "structured").toLowerCase();
+  dialog.title = draft.title || "";
+  dialog.task_text = draft.task_text || "";
+  dialog.preconditions = draft.preconditions || "";
+  dialog.priority = draft.priority || "P2";
+  dialog.case_format = fmt === "yaml" ? "yaml" : "structured";
+  dialog.case_yaml = draft.case_yaml || "";
+  const st = Array.isArray(draft.steps) ? draft.steps : [];
+  dialog.steps = st.length
+    ? st.map((x) => ({
+        description: x.description || "",
+        expected: x.expected || "",
+      }))
+    : [{ description: "", expected: "" }];
+}
+
+function openCreateWithDraft(draft) {
+  if (!selectedProjectId.value) return;
+  dialog.open = true;
+  dialog.editing = false;
+  dialog.id = null;
+  applyDraftToDialog(draft);
+  dialog.error = "";
+  dialog.formatConverting = false;
+  dialog.saving = false;
+}
+
+async function switchCaseFormat(target) {
+  if (!dialog.open || dialog.formatConverting) return;
+  const current = dialog.case_format;
+  if (current === target) return;
+  const ok = window.confirm(
+    `将用例从「${formatLabel(current)}」转为「${formatLabel(target)}」，会按规则转换当前内容（可再手动修改）。是否继续？`,
+  );
+  if (!ok) return;
+  dialog.formatConverting = true;
+  dialog.error = "";
+  try {
+    const { data } = await client.post("/api/test-cases/convert-format", {
+      target_format: target,
+      title: dialog.title.trim(),
+      preconditions: (dialog.preconditions || "").trim(),
+      steps: buildStepsPayload(),
+      task_text: dialog.task_text.trim(),
+      case_yaml: dialog.case_yaml || "",
+    });
+    applyDraftToDialog(data);
+    dialog.case_format = target;
+  } catch (e) {
+    dialog.error = formatApiError(e);
+  } finally {
+    dialog.formatConverting = false;
+  }
+}
+
+async function submitGenerate() {
+  genDialog.error = "";
+  const prompt = (genDialog.prompt || "").trim();
+  if (!prompt) {
+    genDialog.error = "请填写测试描述";
+    return;
+  }
+  if (!selectedProjectId.value) {
+    genDialog.error = "请先选择项目空间";
+    return;
+  }
+  if (!selectedAnalysisRobotInstanceId.value) {
+    genDialog.error = "请选择测试分析机器人实例";
+    return;
+  }
+  if (!canSubmitGenerate.value) {
+    genDialog.error = "当前测试分析机器人不可用，请选用已启动且空闲的实例";
+    return;
+  }
+  genDialog.loading = true;
+  try {
+    const { data } = await client.post("/api/test-cases/generate", {
+      project_id: selectedProjectId.value,
+      robot_instance_id: selectedAnalysisRobotInstanceId.value,
+      prompt,
+      case_format: genDialog.case_format || "structured",
+    });
+    genDialog.open = false;
+    openCreateWithDraft(data);
+  } catch (e) {
+    genDialog.error = formatApiError(e);
+  } finally {
+    genDialog.loading = false;
+  }
 }
 
 function openEdit(c) {
@@ -621,6 +1220,7 @@ function openEdit(c) {
       }))
     : [{ description: "", expected: "" }];
   dialog.error = "";
+  dialog.saving = false;
 }
 
 async function openVersions(c) {
@@ -649,44 +1249,92 @@ function buildStepsPayload() {
     .filter((s) => s.description || s.expected);
 }
 
-async function saveDialog() {
-  dialog.error = "";
-  if (!dialog.title.trim()) {
-    dialog.error = "请填写标题";
-    return;
-  }
+function validateDialogForm() {
+  if (!dialog.title.trim()) return "请填写标题";
   const stepsPayload = buildStepsPayload();
   if (dialog.case_format === "yaml") {
-    if (!dialog.case_yaml.trim()) {
-      dialog.error = "请填写 Midscene YAML 脚本";
-      return;
-    }
+    if (!dialog.case_yaml.trim()) return "请填写 Midscene YAML 脚本";
   } else if (!dialog.task_text.trim() && stepsPayload.length === 0) {
-    dialog.error = "请填写执行说明或至少一条步骤";
+    return "请填写执行说明或至少一条步骤";
+  }
+  return null;
+}
+
+function validateExecutionReady(caseFormat) {
+  const needMid = String(caseFormat || "structured").toLowerCase() === "yaml";
+  if (!selectedRobotInstanceId.value) {
+    return needMid
+      ? "YAML 用例须选择 Midscene 机器人；请到「我的机器人」将实例引擎改为 Midscene"
+      : "请先选择要使用的机器人实例";
+  }
+  const picked = robotInstances.value.find((ins) => ins.id === selectedRobotInstanceId.value);
+  if (!picked || !isRobotRunnableForCase(picked, needMid)) {
+    return "请选择已启动且运行空闲的机器人实例";
+  }
+  if (needMid && !isMidsceneBackend(picked.test_agent_backend)) {
+    return "YAML 用例须绑定 Midscene 机器人实例执行";
+  }
+  if (!selectedDeviceId.value) {
+    return devicesError.value || "请先选择已连接的目标终端，或点击「刷新」重新扫描设备";
+  }
+  return null;
+}
+
+function buildSaveBody() {
+  return {
+    title: dialog.title.trim(),
+    task_text: dialog.task_text.trim(),
+    preconditions: (dialog.preconditions || "").trim(),
+    priority: dialog.priority,
+    case_format: dialog.case_format,
+    case_yaml: dialog.case_format === "yaml" ? dialog.case_yaml : "",
+    steps: buildStepsPayload(),
+  };
+}
+
+async function persistCase() {
+  const body = buildSaveBody();
+  if (dialog.editing && dialog.id) {
+    const { data } = await client.patch(`/api/test-cases/${dialog.id}`, body);
+    return data;
+  }
+  const { data } = await client.post("/api/test-cases", {
+    project_id: selectedProjectId.value,
+    ...body,
+  });
+  return data;
+}
+
+async function saveDialog(andRun = false) {
+  dialog.error = "";
+  const formErr = validateDialogForm();
+  if (formErr) {
+    dialog.error = formErr;
     return;
   }
-  try {
-    const body = {
-      title: dialog.title.trim(),
-      task_text: dialog.task_text.trim(),
-      preconditions: (dialog.preconditions || "").trim(),
-      priority: dialog.priority,
-      case_format: dialog.case_format,
-      case_yaml: dialog.case_format === "yaml" ? dialog.case_yaml : "",
-      steps: stepsPayload,
-    };
-    if (dialog.editing && dialog.id) {
-      await client.patch(`/api/test-cases/${dialog.id}`, body);
-    } else {
-      await client.post("/api/test-cases", {
-        project_id: selectedProjectId.value,
-        ...body,
-      });
+  if (andRun) {
+    const runErr = validateExecutionReady(dialog.case_format);
+    if (runErr) {
+      dialog.error = runErr;
+      return;
     }
+  }
+  dialog.saving = true;
+  try {
+    const saved = await persistCase();
     dialog.open = false;
     await load();
+    if (saved?.id) {
+      selectedCaseId.value = saved.id;
+    }
+    if (andRun && saved?.id) {
+      loadError.value = "";
+      await runCaseById(saved.id);
+    }
   } catch (e) {
     dialog.error = formatApiError(e);
+  } finally {
+    dialog.saving = false;
   }
 }
 
@@ -711,15 +1359,29 @@ async function onImportFile(ev) {
 
 async function remove(c) {
   if (!confirm(`确定删除「${c.title}」？`)) return;
-  await client.delete(`/api/test-cases/${c.id}`);
-  selectedIds.value = selectedIds.value.filter((id) => id !== c.id);
-  await load();
+  try {
+    await client.delete(`/api/test-cases/${c.id}`);
+    if (selectedCaseId.value === c.id) {
+      selectedCaseId.value = null;
+    }
+    if (liveRun.value?.case_id === c.id) {
+      activeRunStore.clear();
+    }
+    await load();
+  } catch (e) {
+    window.alert(formatApiError(e));
+  }
 }
 
 function agentEngineLabel(backend) {
   const b = String(backend || "autoglm").toLowerCase();
   if (b === "midscene") return "Midscene";
   return "AutoGLM";
+}
+
+function devicePlatformLabel(platform) {
+  const p = String(platform || "android").toLowerCase();
+  return p === "harmonyos" ? "鸿蒙" : "Android";
 }
 
 function statusLabel(s) {
@@ -760,7 +1422,7 @@ async function stopRun() {
   if (!id) return;
   stopBusy.value = true;
   try {
-    await client.post(`/api/test-cases/runs/${id}/cancel`);
+    await activeRunStore.cancelCurrent();
   } catch (e) {
     window.alert(e.response?.data?.detail || String(e.message || e));
   } finally {
@@ -811,80 +1473,103 @@ async function downloadReport(runId) {
   }
 }
 
-async function pollRun(runId, onTick) {
-  const deadline = Date.now() + 2 * 60 * 60 * 1000;
-  let transientStreak = 0;
-  while (Date.now() < deadline) {
-    try {
-      const { data } = await client.get(`/api/test-cases/runs/${runId}`);
-      transientStreak = 0;
-      if (typeof onTick === "function") onTick(data);
-      if (data.status === "success" || data.status === "failed" || data.status === "cancelled") {
-        return data;
-      }
-    } catch (e) {
-      if (isTransientPollError(e)) {
-        transientStreak++;
-        if (transientStreak > 120) {
-          throw new Error(
-            "长时间无法连接后端（网络或服务异常）。若正在使用 uvicorn --reload，保存文件会重启进程并中断未完成的自动化任务；长时间跑测时请去掉 --reload。"
-          );
-        }
-      } else {
-        throw e;
-      }
-    }
-    await new Promise((r) => setTimeout(r, 1000));
+function syncRunQuery(runId) {
+  const q = { ...route.query };
+  if (runId) {
+    q.run = String(runId);
+  } else {
+    delete q.run;
   }
-  throw new Error("等待执行结果超时（超过 2 小时）");
+  router.replace({ path: route.path, query: q });
 }
 
-async function runSelected() {
-  if (!selectedIds.value.length) return;
-  if (!selectedRobotInstanceId.value) {
-    loadError.value = "请先选择要使用的机器人实例";
+async function tryResumeActiveRun() {
+  const qRun = route.query.run ? Number(route.query.run) : null;
+  const preferred = Number.isFinite(qRun) && qRun > 0 ? qRun : null;
+  const hadStored = !!(preferred || sessionStorage.getItem("tcm_active_run_id"));
+  const data = await activeRunStore.resumeIfNeeded(preferred);
+  if (!data) return;
+  if (!runBelongsToCurrentProject(data)) {
+    showResumeHint.value = false;
+    if (route.query.run) syncRunQuery(null);
     return;
   }
-  running.value = true;
-  liveRun.value = null;
+  selectedCaseId.value = data.case_id;
+  if (["success", "failed", "cancelled"].includes(data.status)) {
+    resultRuns.value = [data];
+    activeRunStore.clear();
+    return;
+  } else if (hadStored) {
+    showResumeHint.value = true;
+    syncRunQuery(data.id);
+  }
+  await nextTick();
+  scrollLiveLogToBottom();
+}
+
+async function runCaseById(caseId) {
   resultRuns.value = [];
+  loadError.value = "";
+  showResumeHint.value = false;
+  activeRunStore.pollError = null;
   try {
-    for (const caseId of selectedIds.value) {
-      liveRun.value = null;
-      const { data: started } = await client.post(`/api/test-cases/${caseId}/run`, {
-        robot_instance_id: selectedRobotInstanceId.value,
-      });
-      liveRun.value = { ...started };
-      scrollLiveLogToBottom();
-      const final = await pollRun(started.id, (data) => {
-        liveRun.value = data;
-        scrollLiveLogToBottom();
-      });
-      liveRun.value = final;
-      if (["success", "failed", "cancelled"].includes(final.status)) {
-        await new Promise((r) => setTimeout(r, 500));
-      }
-      resultRuns.value.push(final);
-    }
+    const final = await activeRunStore.executeCase({
+      caseId,
+      projectId: selectedProjectId.value,
+      robotInstanceId: selectedRobotInstanceId.value,
+      devicePlatform: normalizeDevicePlatform(selectedDevicePlatform.value),
+      deviceId: selectedDeviceId.value,
+    });
+    syncRunQuery(null);
+    resultRuns.value = [final];
+    activeRunStore.clear();
+    await nextTick();
+    scrollLiveLogToBottom();
   } catch (e) {
+    const msg =
+      activeRunStore.pollError ||
+      e.response?.data?.detail ||
+      String(e.message || e);
+    loadError.value = typeof msg === "string" ? msg : formatApiError(e);
     resultRuns.value.push({
-      id: 0,
-      case_id: 0,
+      id: activeRunStore.runId || 0,
+      case_id: caseId,
       owner_id: 0,
       status: "failed",
-      step_log: null,
+      step_log: activeRunStore.liveRun?.step_log || null,
       output_message: null,
-      error_trace: e.response?.data?.detail || String(e.message || e),
+      error_trace: loadError.value,
       started_at: null,
       finished_at: null,
     });
-  } finally {
-    liveRun.value = null;
-    running.value = false;
   }
 }
 
-onMounted(bootstrapProjectContext);
+async function runSelected() {
+  const caseId = selectedCaseId.value;
+  if (!caseId) return;
+  const pickedCase = cases.value.find((c) => c.id === caseId);
+  const runErr = validateExecutionReady(pickedCase?.case_format);
+  if (runErr) {
+    loadError.value = runErr;
+    return;
+  }
+  loadError.value = "";
+  await runCaseById(caseId);
+}
+
+let robotRefreshTimer = null;
+
+onMounted(() => {
+  bootstrapProjectContext();
+  document.addEventListener("click", onDocumentClick);
+  robotRefreshTimer = setInterval(() => loadRobotInstances(), 5000);
+});
+
+onUnmounted(() => {
+  document.removeEventListener("click", onDocumentClick);
+  if (robotRefreshTimer) clearInterval(robotRefreshTimer);
+});
 </script>
 
 <style scoped>
@@ -921,11 +1606,27 @@ onMounted(bootstrapProjectContext);
   border-radius: 10px;
 }
 
+.robot-hint {
+  margin: 0.5rem 0 0;
+}
+
+.robot-hint.warn {
+  color: #92400e;
+}
+
+.robot-pick-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1.5rem;
+}
+
 .robot-pick-inner {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+  min-width: 14rem;
   max-width: 32rem;
+  flex: 1 1 14rem;
 }
 
 .robot-select {
@@ -933,6 +1634,27 @@ onMounted(bootstrapProjectContext);
   border-radius: 8px;
   border: 1px solid #cbd5e1;
   font-size: 0.9rem;
+}
+
+.robot-pick-inner--device .picker-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.link-btn {
+  border: none;
+  background: none;
+  color: #2563eb;
+  font-size: 0.78rem;
+  cursor: pointer;
+  padding: 0;
+}
+
+.link-btn:disabled {
+  color: #94a3b8;
+  cursor: not-allowed;
 }
 
 .toolbar {
@@ -977,6 +1699,56 @@ onMounted(bootstrapProjectContext);
 .actions {
   display: flex;
   gap: 0.5rem;
+  align-items: center;
+}
+
+.create-case-wrap {
+  position: relative;
+}
+
+.create-case-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.create-case-caret {
+  font-size: 0.75rem;
+  opacity: 0.85;
+}
+
+.create-case-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 30;
+  min-width: 9.5rem;
+  padding: 0.35rem 0;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+}
+
+.create-case-item {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 0.85rem;
+  border: none;
+  background: transparent;
+  text-align: left;
+  font-size: 0.9rem;
+  color: #0f172a;
+  cursor: pointer;
+}
+
+.create-case-item:hover:not(:disabled) {
+  background: #f1f5f9;
+}
+
+.create-case-item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .table-wrap {
@@ -1276,12 +2048,14 @@ onMounted(bootstrapProjectContext);
 }
 
 .exec-console {
+  --exec-mirror-width: 280px;
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: var(--exec-mirror-width) 1fr;
   gap: 1rem;
   margin-top: 0.75rem;
-  height: 480px;
-  min-height: 420px;
+  height: 520px;
+  min-height: 480px;
+  align-items: stretch;
 }
 
 .exec-console--result {
@@ -1289,12 +2063,16 @@ onMounted(bootstrapProjectContext);
 }
 
 .exec-screen-pane {
+  width: var(--exec-mirror-width, 280px);
+  max-width: var(--exec-mirror-width, 280px);
   min-height: 0;
   min-width: 0;
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
+  overflow: hidden;
 }
 
 .exec-log-pane {
@@ -1398,7 +2176,9 @@ onMounted(bootstrapProjectContext);
   }
 
   .exec-screen-pane {
-    min-height: 280px;
+    width: 100%;
+    max-width: 100%;
+    min-height: 320px;
   }
 
   .exec-log-scroll {
@@ -1467,8 +2247,19 @@ textarea {
 .modal-actions {
   display: flex;
   justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 0.5rem;
   margin-top: 0.5rem;
+}
+
+.btn-run {
+  background: #0d9488;
+  border-color: #0d9488;
+}
+
+.btn-run:hover:not(:disabled) {
+  background: #0f766e;
+  border-color: #0f766e;
 }
 
 .err {

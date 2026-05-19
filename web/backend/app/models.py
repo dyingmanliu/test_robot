@@ -121,7 +121,10 @@ class TestCase(Base):
 
     owner: Mapped["User"] = relationship(back_populates="test_cases")
     project: Mapped[Optional["Project"]] = relationship(back_populates="test_cases")
-    runs: Mapped[list["TestRun"]] = relationship(back_populates="test_case")
+    runs: Mapped[list["TestRun"]] = relationship(
+        back_populates="test_case",
+        cascade="all, delete-orphan",
+    )
 
 
 class TestCaseRevision(Base):
@@ -263,8 +266,10 @@ class RobotInstance(Base):
     status: Mapped[str] = mapped_column(String(32), default="active", index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     company_id: Mapped[Optional[int]] = mapped_column(ForeignKey("companies.id"), nullable=True, index=True)
-    #: 执行用例时调用的自动化引擎：autoglm=Android/ADB+智谱；midscene=HarmonyOS/HDC+Midscene.js
+    #: 执行引擎：autoglm=AutoGLM-Phone；midscene=Midscene.js 视觉自动化
     test_agent_backend: Mapped[str] = mapped_column(String(32), default="autoglm", index=True)
+    #: 默认执行设备平台（用例页执行前可覆盖为 Android / 鸿蒙）
+    device_platform: Mapped[str] = mapped_column(String(32), default="android", index=True)
 
     rental_order: Mapped["RobotRentalOrder"] = relationship(back_populates="instances")
     runs: Mapped[list["TestRun"]] = relationship(back_populates="robot_instance")
@@ -279,13 +284,20 @@ class TestRun(Base):
     __tablename__ = "test_runs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    case_id: Mapped[int] = mapped_column(ForeignKey("test_cases.id"), index=True)
+    case_id: Mapped[int] = mapped_column(
+        ForeignKey("test_cases.id", ondelete="CASCADE"),
+        index=True,
+    )
     owner_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     robot_instance_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("robot_instances.id", ondelete="SET NULL"),
         index=True,
         nullable=True,
     )
+    #: 本次执行实际使用的设备平台（执行前可在用例页动态选择）
+    device_platform: Mapped[Optional[str]] = mapped_column(String(32), nullable=True, index=True)
+    #: 本次执行绑定的具体设备（ADB serial / HDC target）
+    device_id: Mapped[Optional[str]] = mapped_column(String(256), nullable=True, index=True)
     status: Mapped[str] = mapped_column(String(32), default="pending")
     step_log: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     output_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)

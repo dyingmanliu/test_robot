@@ -206,7 +206,7 @@ class AdbBridge:
         )
 
 
-def _fallback(sensitive: bool) -> Screenshot:
+def _fallback(sensitive: bool = False) -> Screenshot:
     w, h = 1080, 2400
     black = Image.new("RGB", (w, h), color="black")
     buf = BytesIO()

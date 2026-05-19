@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import json
 
-from app.models import TestCase, TestCaseRevision
-from app.schemas import CaseStepJson, TestCaseOut, TestCaseRevisionOut
+from app.models import TestCase, TestCaseRevision, TestRun
+from app.schemas import CaseStepJson, TestCaseOut, TestCaseRevisionOut, TestRunOut
 
 
 def _steps_from_raw(raw: str | None) -> list[CaseStepJson]:
@@ -51,6 +51,14 @@ def test_case_to_out(tc: TestCase) -> TestCaseOut:
         created_at=tc.created_at,
         updated_at=tc.updated_at,
     )
+
+
+def test_run_to_out(run: TestRun, *, project_id: int | None = None) -> TestRunOut:
+    pid = project_id
+    if pid is None and run.test_case is not None:
+        pid = run.test_case.project_id
+    base = TestRunOut.model_validate(run)
+    return base.model_copy(update={"project_id": pid})
 
 
 def revision_to_out(row: TestCaseRevision) -> TestCaseRevisionOut:

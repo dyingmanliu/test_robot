@@ -11,10 +11,18 @@ export interface WebTestDispatch {
   run_id?: number;
   case_id?: number;
   robot_instance_id?: number | null;
+  /** autoglm | midscene — 决定模型环境（AutoGLM 走智谱） */
+  agent_backend?: string;
+  /** android | harmonyos — 决定 ADB / HDC 设备层 */
+  device_platform?: string;
+  /** ADB serial 或 HDC target ID */
+  device_id?: string;
   /** natural：自然语言 agent_task；yaml：执行 yaml_script */
   execution_mode?: WebExecutionMode;
   /** structured 模式下的可执行全文 */
   agent_task?: string;
+  /** 结构化用例拆步后逐步 aiAct（优先于单段 agent_task） */
+  agent_steps?: string[];
   /** Midscene YAML 脚本（须含 tasks:） */
   yaml_script?: string;
   task_text?: string;
@@ -61,6 +69,11 @@ export function parseWebDispatchJson(raw: string): WebTestDispatch {
 
   const agent_task =
     o.agent_task !== undefined ? String(o.agent_task).trim() : undefined;
+  const agent_steps = Array.isArray(o.agent_steps)
+    ? o.agent_steps
+        .map((s) => String(s ?? '').trim())
+        .filter((s) => s.length > 0)
+    : undefined;
   const yaml_script =
     o.yaml_script !== undefined ? String(o.yaml_script).trim() : undefined;
 
@@ -68,8 +81,8 @@ export function parseWebDispatchJson(raw: string): WebTestDispatch {
     if (!yaml_script) {
       throw new Error('YAML 模式缺少 yaml_script');
     }
-  } else if (!agent_task) {
-    throw new Error('自然语言模式缺少 agent_task 或内容为空');
+  } else if (!agent_task && !(agent_steps && agent_steps.length)) {
+    throw new Error('自然语言模式缺少 agent_task / agent_steps 或内容为空');
   }
 
   const rid = o.robot_instance_id;
@@ -88,8 +101,14 @@ export function parseWebDispatchJson(raw: string): WebTestDispatch {
     run_id: optUInt(o.run_id),
     case_id: optUInt(o.case_id),
     robot_instance_id,
+    agent_backend:
+      o.agent_backend !== undefined ? String(o.agent_backend) : undefined,
+    device_platform:
+      o.device_platform !== undefined ? String(o.device_platform) : undefined,
+    device_id: o.device_id !== undefined ? String(o.device_id).trim() : undefined,
     execution_mode,
     agent_task,
+    agent_steps: agent_steps?.length ? agent_steps : undefined,
     yaml_script,
     task_text: o.task_text !== undefined ? String(o.task_text) : undefined,
     preconditions:

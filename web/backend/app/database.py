@@ -83,6 +83,16 @@ def ensure_schema() -> None:
             if "report_path" not in cols:
                 with engine.begin() as conn:
                     conn.execute(text("ALTER TABLE test_runs ADD COLUMN report_path TEXT"))
+            cols = {c["name"] for c in inspector.get_columns("test_runs")}
+            if "device_platform" not in cols:
+                with engine.begin() as conn:
+                    conn.execute(
+                        text("ALTER TABLE test_runs ADD COLUMN device_platform VARCHAR(32)")
+                    )
+            cols = {c["name"] for c in inspector.get_columns("test_runs")}
+            if "device_id" not in cols:
+                with engine.begin() as conn:
+                    conn.execute(text("ALTER TABLE test_runs ADD COLUMN device_id VARCHAR(256)"))
         if inspector.has_table("users"):
             ucols = {c["name"] for c in inspector.get_columns("users")}
             with engine.begin() as conn:
@@ -108,6 +118,25 @@ def ensure_schema() -> None:
                         text(
                             "UPDATE robot_instances SET test_agent_backend = 'autoglm' "
                             "WHERE test_agent_backend IS NULL OR TRIM(test_agent_backend) = ''"
+                        )
+                    )
+                if "device_platform" not in ricols:
+                    conn.execute(
+                        text(
+                            "ALTER TABLE robot_instances ADD COLUMN device_platform VARCHAR(32) DEFAULT 'android'"
+                        )
+                    )
+                    conn.execute(
+                        text(
+                            "UPDATE robot_instances SET device_platform = 'harmonyos' "
+                            "WHERE (device_platform IS NULL OR TRIM(device_platform) = '') "
+                            "AND LOWER(COALESCE(test_agent_backend, '')) = 'midscene'"
+                        )
+                    )
+                    conn.execute(
+                        text(
+                            "UPDATE robot_instances SET device_platform = 'android' "
+                            "WHERE device_platform IS NULL OR TRIM(device_platform) = ''"
                         )
                     )
     except Exception:

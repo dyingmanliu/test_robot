@@ -9,7 +9,8 @@ from typing import Any, Callable, Optional
 
 from autoglm_phone_agent.actions.handler import ActionHandler, parse_action
 from autoglm_phone_agent.config import get_system_prompt
-from autoglm_phone_agent.device.adb_bridge import AdbBridge
+from autoglm_phone_agent.device.device_factory import DeviceBridge, create_device
+from autoglm_phone_agent.device.platform import DevicePlatform
 from autoglm_phone_agent.model.client import MessageBuilder, ModelClient, ModelConfig
 
 
@@ -17,6 +18,8 @@ from autoglm_phone_agent.model.client import MessageBuilder, ModelClient, ModelC
 class AgentConfig:
     max_steps: int = 100
     device_id: str | None = None
+    #: android | harmonyos（对齐 Open-AutoGLM --device-type adb|hdc）
+    device_platform: str = "android"
     lang: str = "cn"
     system_prompt: str | None = None
     verbose: bool = True
@@ -24,6 +27,10 @@ class AgentConfig:
     def __post_init__(self) -> None:
         if self.system_prompt is None:
             self.system_prompt = get_system_prompt(self.lang)
+
+    @property
+    def platform(self) -> DevicePlatform:
+        return DevicePlatform.parse(self.device_platform)
 
 
 @dataclass
@@ -45,23 +52,26 @@ class AgentRunOutcome:
 
 class PhoneTestAgent:
     """
-    Natural-language Android automation agent using AutoGLM-Phone.
+    Natural-language mobile automation agent using AutoGLM-Phone.
 
-    Requires: USB 调试、ADB、设备上安装 ADB Keyboard（文本输入）、智谱 API Key。
-    """
+    Supports Android (ADB) and HarmonyOS (HDC), aligned with Open-AutoGLM device_factory.
+  """
 
     def __init__(
         self,
         model_config: ModelConfig | None = None,
         agent_config: AgentConfig | None = None,
-        device: AdbBridge | None = None,
+        device: DeviceBridge | None = None,
         confirmation_callback: Callable[[str], bool] | None = None,
         takeover_callback: Callable[[str], None] | None = None,
         print_model_stream: bool = False,
     ) -> None:
         self.model_config = model_config or ModelConfig()
         self.agent_config = agent_config or AgentConfig()
-        self.device = device or AdbBridge(device_id=self.agent_config.device_id)
+        self.device = device or create_device(
+            self.agent_config.platform,
+            device_id=self.agent_config.device_id,
+        )
         self.model_client = ModelClient(self.model_config, print_stream=print_model_stream)
         self.action_handler = ActionHandler(
             self.device,

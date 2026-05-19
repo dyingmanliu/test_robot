@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from typing import Optional
@@ -8,7 +9,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from fastapi.responses import FileResponse
 from sqlalchemy import desc
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
 from app.deps import get_current_user
@@ -17,9 +18,14 @@ from app.models import Project, RobotInstance, TestCase, TestCaseRevision, TestR
 from app.rbac import can_view_all_cases, case_scope_filter, run_scope_query
 from app.services.company_scope import can_use_robot_instance, project_readable_by_user
 from app.schemas import (
+    CaseFormatConvertIn,
+    CaseFormatConvertOut,
+    CaseGenerateMetaOut,
     CaseImportResultOut,
     CaseStepJson,
     TestCaseCreate,
+    TestCaseGenerateIn,
+    TestCaseGenerateOut,
     TestCaseOut,
     TestCaseRevisionOut,
     TestCaseUpdate,
@@ -27,15 +33,19 @@ from app.schemas import (
     TestRunOut,
     RunCaseBody,
 )
+from app.services.case_format_convert import structured_to_yaml, yaml_to_structured
+from app.services.case_generation import CaseGeneratorError, generate_case_draft
 from app.services.case_agent_text import parse_steps_json
 from app.services.case_import import parse_import_file, row_to_create
-from app.services.robot_run_guard import busy_run_detail_message, find_active_run_for_instance
+from app.services.robot_run_guard import instance_available_for_run
 from app.services.run_report import resolve_report_file
 from app.services.case_kb import upsert_case_kb
 from app.services.run_metrics import count_recognition_steps
-from app.test_case_io import revision_to_out, steps_to_json, test_case_to_out
+from app.test_case_io import revision_to_out, steps_to_json, test_case_to_out, test_run_to_out
 
 router = APIRouter(prefix="/test-cases", tags=["test-cases"])
+
+log = logging.getLogger("app.routers.test_cases")
 
 _executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="tcm_run")
 
@@ -126,6 +136,93 @@ def list_cases(
         q = q.filter(TestCase.project_id == project_id)
     rows = q.order_by(desc(TestCase.updated_at)).all()
     return [test_case_to_out(tc) for tc in rows]
+
+
+@router.post("/convert-format", response_model=CaseFormatConvertOut)
+def convert_case_format(
+    body: CaseFormatConvertIn,
+    user: User = Depends(get_current_user),
+) -> CaseFormatConvertOut:
+    """编辑弹窗内 structured ↔ yaml 互转（不写库）。"""
+    _ = user
+    target = body.target_format
+    try:
+        if target == "yaml":
+            case_yaml = structured_to_yaml(
+                title=body.title,
+                preconditions=body.preconditions,
+                steps=body.steps,
+                task_text=body.task_text,
+            )
+            return CaseFormatConvertOut(
+                title=body.title,
+                preconditions=body.preconditions,
+                steps=body.steps,
+                task_text=body.task_text,
+                case_format="yaml",
+                case_yaml=case_yaml,
+            )
+        parsed = yaml_to_structured(body.case_yaml)
+        return CaseFormatConvertOut(
+            title=parsed.get("title") or body.title,
+            preconditions=parsed.get("preconditions", ""),
+            steps=parsed.get("steps") or [],
+            task_text=parsed.get("task_text", ""),
+            case_format="structured",
+            case_yaml="",
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+
+@router.post("/generate", response_model=TestCaseGenerateOut)
+def generate_case_from_prompt(
+    body: TestCaseGenerateIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> TestCaseGenerateOut:
+    """根据用户一句话生成用例草稿（不写库，供前端预览编辑后保存）。"""
+    proj = _resolve_project_for_case(db, body.project_id, user)
+    inst = db.query(RobotInstance).filter(RobotInstance.id == body.robot_instance_id).first()
+    if inst is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="机器人实例不存在")
+
+    log.info(
+        "API 用例生成 project_id=%s user_id=%s instance_id=%s prompt_len=%s case_format=%s",
+        body.project_id,
+        user.id,
+        body.robot_instance_id,
+        len(body.prompt),
+        body.case_format,
+    )
+    try:
+        draft = generate_case_draft(
+            db,
+            project=proj,
+            user=user,
+            robot_instance=inst,
+            prompt=body.prompt,
+            case_format=body.case_format,
+        )
+    except CaseGeneratorError as e:
+        log.warning("API 用例生成失败 project_id=%s: %s", body.project_id, e)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+    except ValueError as e:
+        log.warning("API 用例生成格式转换失败 project_id=%s: %s", body.project_id, e)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+    return TestCaseGenerateOut(
+        title=draft.title,
+        task_text=draft.task_text,
+        preconditions=draft.preconditions,
+        steps=draft.steps,
+        priority=draft.priority,
+        case_format=draft.case_format,
+        case_yaml=draft.case_yaml,
+        generation_meta=CaseGenerateMetaOut(
+            model=draft.model,
+            similar_case_ids=draft.similar_case_ids or [],
+        ),
+    )
 
 
 @router.post("", response_model=TestCaseOut)
@@ -251,11 +348,16 @@ def get_run(
     run_id: int,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
-) -> TestRun:
-    r = run_scope_query(db, user).filter(TestRun.id == run_id).first()
+) -> TestRunOut:
+    r = (
+        run_scope_query(db, user)
+        .options(joinedload(TestRun.test_case))
+        .filter(TestRun.id == run_id)
+        .first()
+    )
     if r is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="执行记录不存在")
-    return r
+    return test_run_to_out(r)
 
 
 @router.get("/runs/{run_id}/report")
@@ -282,8 +384,13 @@ def cancel_run(
     run_id: int,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
-) -> TestRun:
-    r = run_scope_query(db, user).filter(TestRun.id == run_id).first()
+) -> TestRunOut:
+    r = (
+        run_scope_query(db, user)
+        .options(joinedload(TestRun.test_case))
+        .filter(TestRun.id == run_id)
+        .first()
+    )
     if r is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="执行记录不存在")
     if r.status not in ("pending", "running"):
@@ -293,7 +400,7 @@ def cancel_run(
         )
     signal_cancel(run_id)
     db.refresh(r)
-    return r
+    return test_run_to_out(r)
 
 
 @router.get("/{case_id}/versions", response_model=list[TestCaseRevisionOut])
@@ -374,6 +481,8 @@ def delete_case(
     tc = _get_case_for_write(db, case_id, user)
     if tc is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="用例不存在")
+    # 先删执行记录，避免 ORM 将 test_runs.case_id 置空触发 NOT NULL / 外键错误
+    db.query(TestRun).filter(TestRun.case_id == case_id).delete(synchronize_session=False)
     db.delete(tc)
     db.commit()
 
@@ -384,7 +493,7 @@ async def run_case(
     body: RunCaseBody,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
-) -> TestRun:
+) -> TestRunOut:
     tc = _get_case_for_read(db, case_id, user)
     if tc is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="用例不存在")
@@ -395,21 +504,46 @@ async def run_case(
     if not can_use_robot_instance(db, user, inst):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="无权使用该公司下的该机器人实例，或实例不可用",
+            detail="无权使用该公司下的该机器人实例，或实例已停用",
         )
 
-    busy = find_active_run_for_instance(db, inst.id)
-    if busy is not None:
+    ok, msg = instance_available_for_run(db, inst)
+    if not ok:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=busy_run_detail_message(busy),
+            detail=msg,
         )
 
-    run = TestRun(case_id=tc.id, owner_id=tc.owner_id, robot_instance_id=inst.id, status="pending")
+    from app.services.device_platform import resolve_execution_platform
+
+    platform = resolve_execution_platform(
+        run_device_platform=body.device_platform,
+        instance_device_platform=getattr(inst, "device_platform", None),
+        test_agent_backend=getattr(inst, "test_agent_backend", None),
+    )
+
+    device_id = (body.device_id or "").strip() or None
+
+    run = TestRun(
+        case_id=tc.id,
+        owner_id=tc.owner_id,
+        robot_instance_id=inst.id,
+        device_platform=platform,
+        device_id=device_id,
+        status="pending",
+    )
     db.add(run)
     db.commit()
     db.refresh(run)
 
     prepare_cancel_slot(run.id)
+    log.info(
+        "API 提交执行 run_id=%s case_id=%s robot_instance_id=%s platform=%s device_id=%s",
+        run.id,
+        case_id,
+        body.robot_instance_id,
+        platform,
+        device_id or "(默认)",
+    )
     asyncio.get_running_loop().run_in_executor(_executor, _run_in_thread, run.id)
-    return run
+    return test_run_to_out(run, project_id=tc.project_id)

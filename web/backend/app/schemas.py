@@ -221,6 +221,56 @@ class CaseStepJson(BaseModel):
     expected: str = ""
 
 
+class TestCaseGenerateIn(BaseModel):
+    """一句话生成用例草稿（不写库）。"""
+
+    project_id: int = Field(..., ge=1, description="所属项目空间 ID")
+    robot_instance_id: int = Field(..., ge=1, description="测试分析机器人实例 ID")
+    prompt: str = Field(..., min_length=1, max_length=2000, description="用户一句话描述")
+    case_format: Literal["structured", "yaml"] = Field(
+        default="structured",
+        description="生成结果格式：structured 表单；yaml 在 LLM 生成 structured 后自动转换",
+    )
+
+
+class CaseGenerateMetaOut(BaseModel):
+    model: str = ""
+    similar_case_ids: list[int] = Field(default_factory=list)
+
+
+class TestCaseGenerateOut(BaseModel):
+    """生成草稿，字段与 TestCaseCreate 对齐（无 id）。"""
+
+    title: str
+    task_text: str = ""
+    preconditions: str = ""
+    steps: list[CaseStepJson] = Field(default_factory=list)
+    priority: str = "P2"
+    case_format: Literal["structured", "yaml"] = "structured"
+    case_yaml: str = ""
+    generation_meta: CaseGenerateMetaOut = Field(default_factory=CaseGenerateMetaOut)
+
+
+class CaseFormatConvertIn(BaseModel):
+    """编辑弹窗内 structured ↔ yaml 互转。"""
+
+    target_format: Literal["structured", "yaml"]
+    title: str = ""
+    preconditions: str = ""
+    steps: list[CaseStepJson] = Field(default_factory=list)
+    task_text: str = ""
+    case_yaml: str = ""
+
+
+class CaseFormatConvertOut(BaseModel):
+    title: str
+    preconditions: str = ""
+    steps: list[CaseStepJson] = Field(default_factory=list)
+    task_text: str = ""
+    case_format: Literal["structured", "yaml"]
+    case_yaml: str = ""
+
+
 class TestCaseCreate(BaseModel):
     project_id: int = Field(..., description="所属项目空间 ID")
     title: str = Field(..., min_length=1, max_length=256)
@@ -295,8 +345,14 @@ class CaseImportResultOut(BaseModel):
 class TestRunOut(BaseModel):
     id: int
     case_id: int
+    project_id: Optional[int] = Field(
+        default=None,
+        description="所属项目空间（来自 test_cases.project_id）",
+    )
     owner_id: int
     robot_instance_id: Optional[int] = None
+    device_platform: Optional[str] = None
+    device_id: Optional[str] = None
     status: str
     step_log: Optional[str] = None
     output_message: Optional[str]
@@ -467,11 +523,15 @@ class RentalOrderCreatedOut(BaseModel):
 
 
 class RentalApproveBody(BaseModel):
-    """管理员审批通过并实例化机器人时，选择绑定的测试执行引擎。"""
+    """管理员审批通过并实例化机器人时，选择执行引擎与目标设备平台。"""
 
     test_agent_backend: Literal["autoglm", "midscene"] = Field(
         default="autoglm",
-        description="autoglm：AutoGLM-Phone（Android/ADB）；midscene：Midscene.js（HarmonyOS/HDC）",
+        description="autoglm：AutoGLM-Phone；midscene：Midscene.js 视觉自动化",
+    )
+    device_platform: Literal["android", "harmonyos"] = Field(
+        default="android",
+        description="实例默认执行设备；用例执行前可在页面临时切换",
     )
 
 
@@ -505,19 +565,39 @@ class RobotInstanceOut(BaseModel):
     display_name: str
     display_bio: str
     status: str
+    runtime_status: Literal["executing", "idle", "abnormal"] = Field(
+        default="idle",
+        description="运行态：executing=执行中，idle=空闲，abnormal=异常",
+    )
+    active_run_id: Optional[int] = Field(
+        default=None,
+        description="当前 pending/running 的 test_run.id；无则 null",
+    )
     test_agent_backend: str = Field(
         default="autoglm",
         description="执行用例时使用的引擎：autoglm 或 midscene",
+    )
+    device_platform: str = Field(
+        default="android",
+        description="默认执行设备平台：android 或 harmonyos；用例执行前可临时切换",
     )
     created_at: datetime
 
     model_config = {"from_attributes": True}
 
 
+class RobotInstanceStatusPatch(BaseModel):
+    status: Literal["active", "suspended"] = Field(
+        ...,
+        description="active=启动；suspended=停用",
+    )
+
+
 class RobotInstancePatch(BaseModel):
     display_name: Optional[str] = Field(None, max_length=128)
     display_bio: Optional[str] = Field(None, max_length=2000)
     test_agent_backend: Optional[Literal["autoglm", "midscene"]] = None
+    device_platform: Optional[Literal["android", "harmonyos"]] = None
 
     @field_validator("display_name", mode="before")
     @classmethod
@@ -538,6 +618,17 @@ class RobotInstancePatch(BaseModel):
         return v
 
 
+class ConnectedDeviceOut(BaseModel):
+    device_id: str
+    label: str
+    state: str = "device"
+
+
+class ConnectedDevicesOut(BaseModel):
+    platform: Literal["android", "harmonyos"]
+    devices: list[ConnectedDeviceOut] = Field(default_factory=list)
+
+
 class DeviceScreenOut(BaseModel):
     """设备当前画面（Base64 PNG），供 Web 投屏轮询。"""
 
@@ -552,6 +643,15 @@ class RunCaseBody(BaseModel):
     """执行用例时绑定已租用的机器人实例。"""
 
     robot_instance_id: int = Field(..., ge=1)
+    device_platform: Optional[Literal["android", "harmonyos"]] = Field(
+        default=None,
+        description="本次执行目标设备；不传则使用实例默认平台",
+    )
+    device_id: Optional[str] = Field(
+        default=None,
+        max_length=256,
+        description="ADB 序列号或 HDC target ID；不传则使用环境变量或第一台在线设备",
+    )
 
 
 class RentalRejectBody(BaseModel):

@@ -16,10 +16,17 @@
         待审批
       </button>
       <label class="agent-pick">
-        <span class="agent-pick-label">通过时绑定</span>
+        <span class="agent-pick-label">执行引擎</span>
         <select v-model="approveAgentBackend" class="agent-select">
-          <option value="autoglm">AutoGLM（Android / ADB）</option>
-          <option value="midscene">Midscene（HarmonyOS / HDC）</option>
+          <option value="autoglm">AutoGLM</option>
+          <option value="midscene">Midscene</option>
+        </select>
+      </label>
+      <label class="agent-pick">
+        <span class="agent-pick-label">设备平台</span>
+        <select v-model="approveDevicePlatform" class="agent-select">
+          <option value="android">Android / ADB</option>
+          <option value="harmonyos">鸿蒙 / HDC</option>
         </select>
       </label>
       <button type="button" class="btn ghost" :disabled="loading" @click="load">刷新</button>
@@ -105,6 +112,7 @@ const busyId = ref(null);
 
 /** 审批通过并实例化时写入机器人实例的测试引擎 */
 const approveAgentBackend = ref("autoglm");
+const approveDevicePlatform = ref("android");
 
 const reject = reactive({
   open: false,
@@ -155,6 +163,7 @@ async function approve(id) {
   try {
     await client.post(`/api/admin/rental-orders/${id}/approve`, {
       test_agent_backend: approveAgentBackend.value,
+      device_platform: approveDevicePlatform.value,
     });
     await load();
   } catch (e) {

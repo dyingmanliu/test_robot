@@ -11,8 +11,10 @@
             <h1>{{ inst.instance_code }}</h1>
             <p class="sub">
               {{ inst.display_name || "未命名展示名称" }} ·
-              <span class="pill">{{ inst.catalog_robot_id }}</span>
-              <span class="pill pill--muted">{{ inst.status }}</span>
+              <span class="pill">{{ robotTypeLabel(inst.catalog_robot_id) }}</span>
+              <span class="runtime-pill" :class="`runtime-pill--${inst.runtime_status || 'idle'}`">
+                {{ runtimeStatusLabel(inst.runtime_status) }}
+              </span>
             </p>
           </div>
           <RobotMascotAvatar class="mascot" inline :robot-id="inst.catalog_robot_id" />
@@ -24,16 +26,26 @@
         <dl class="kv">
           <dt>实例编号</dt>
           <dd class="mono">{{ inst.instance_code }}</dd>
+          <dt>机器人类型</dt>
+          <dd>{{ robotTypeLabel(inst.catalog_robot_id) }}</dd>
           <dt>目录机器人 ID</dt>
-          <dd>{{ inst.catalog_robot_id }}</dd>
+          <dd class="muted small mono">{{ inst.catalog_robot_id }}</dd>
           <dt>关联租用单</dt>
           <dd class="mono">#{{ inst.rental_order_id }}</dd>
           <dt>提交租用用户 ID</dt>
           <dd class="mono">{{ inst.leasing_user_id }}</dd>
           <dt>测试执行引擎</dt>
           <dd>{{ agentEngineLabel(inst.test_agent_backend) }}（{{ inst.test_agent_backend || "autoglm" }}）</dd>
+          <dt>默认执行设备</dt>
+          <dd>{{ devicePlatformLabel(inst.device_platform) }}</dd>
           <dt>运行状态</dt>
-          <dd>{{ inst.status }}</dd>
+          <dd>{{ runtimeStatusLabel(inst.runtime_status) }}</dd>
+          <dt>实例状态</dt>
+          <dd>
+            <span class="instance-pill" :class="`instance-pill--${instanceStatusClass(inst.status)}`">
+              {{ instanceStatusLabel(inst.status) }}
+            </span>
+          </dd>
           <dt>创建时间</dt>
           <dd>{{ fmt(inst.created_at) }}</dd>
         </dl>
@@ -53,12 +65,20 @@
         <label class="field">
           <span>测试执行引擎</span>
           <select v-model="draft.test_agent_backend" class="select-full">
-            <option value="autoglm">AutoGLM（Android / ADB）</option>
-            <option value="midscene">Midscene（HarmonyOS / HDC）</option>
+            <option value="autoglm">AutoGLM（智谱 AutoGLM-Phone）</option>
+            <option value="midscene">Midscene（视觉自动化 / 千问等）</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>默认执行设备</span>
+          <select v-model="draft.device_platform" class="select-full">
+            <option value="android">Android / ADB</option>
+            <option value="harmonyos">鸿蒙 HarmonyOS / HDC</option>
           </select>
         </label>
         <p class="hint small">
-          之后在本平台执行用例时，将固定使用该引擎；需与目标设备类型及环境变量配置一致。
+          此为用例页的默认设备；执行前仍可在「测试用例」页临时切换 Android / 鸿蒙。
+          YAML 用例仅支持 Midscene 引擎。
         </p>
         <button type="button" class="btn primary" :disabled="saving" @click="save">
           {{ saving ? "保存中…" : "保存修改" }}
@@ -70,6 +90,7 @@
         <p><strong>展示名称：</strong>{{ inst.display_name || "—" }}</p>
         <p><strong>简介：</strong>{{ inst.display_bio || "—" }}</p>
         <p><strong>测试执行引擎：</strong>{{ agentEngineLabel(inst.test_agent_backend) }}</p>
+        <p><strong>默认执行设备：</strong>{{ devicePlatformLabel(inst.device_platform) }}</p>
       </section>
     </template>
 
@@ -83,6 +104,12 @@ import { useRoute } from "vue-router";
 import client, { formatApiError } from "@/api/client";
 import { useAuthStore } from "@/stores/auth";
 import RobotMascotAvatar from "@/components/RobotMascotAvatar.vue";
+import {
+  instanceStatusClass,
+  instanceStatusLabel,
+  robotTypeLabel,
+  runtimeStatusLabel,
+} from "@/constants/robotCatalog";
 
 const route = useRoute();
 const auth = useAuthStore();
@@ -90,7 +117,12 @@ const inst = ref(null);
 const loading = ref(true);
 const error = ref("");
 const saving = ref(false);
-const draft = reactive({ display_name: "", display_bio: "", test_agent_backend: "autoglm" });
+const draft = reactive({
+  display_name: "",
+  display_bio: "",
+  test_agent_backend: "autoglm",
+  device_platform: "android",
+});
 
 const canEdit = computed(() => {
   if (!inst.value || auth.userId == null) return false;
@@ -111,12 +143,18 @@ function agentEngineLabel(backend) {
   return "AutoGLM";
 }
 
+function devicePlatformLabel(platform) {
+  const p = String(platform || "android").toLowerCase();
+  return p === "harmonyos" ? "鸿蒙 / HDC" : "Android / ADB";
+}
+
 function applyDraft() {
   const r = inst.value;
   if (!r) return;
   draft.display_name = r.display_name || "";
   draft.display_bio = r.display_bio || "";
   draft.test_agent_backend = r.test_agent_backend || "autoglm";
+  draft.device_platform = r.device_platform || "android";
 }
 
 async function load() {
@@ -152,6 +190,7 @@ async function save() {
       display_name: (draft.display_name || "").trim(),
       display_bio: (draft.display_bio || "").trim(),
       test_agent_backend: draft.test_agent_backend || "autoglm",
+      device_platform: draft.device_platform || "android",
     });
     await load();
   } catch (e) {
@@ -224,6 +263,48 @@ watch(
 .pill--muted {
   background: #f1f5f9;
   color: #475569;
+}
+
+.runtime-pill {
+  display: inline-block;
+  font-size: 0.72rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-weight: 600;
+  margin-right: 0.35rem;
+}
+
+.runtime-pill--executing {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.runtime-pill--idle {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.runtime-pill--abnormal {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.instance-pill {
+  display: inline-block;
+  font-size: 0.72rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.instance-pill--started {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.instance-pill--stopped {
+  background: #f1f5f9;
+  color: #64748b;
 }
 
 .card {
