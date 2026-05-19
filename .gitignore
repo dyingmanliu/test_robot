@@ -15,3 +15,4 @@ build/
 node_modules/
 midscene_run/
 midscene_agent/midscene_run/
+web/backend/data/tcm.db
