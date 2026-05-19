@@ -88,6 +88,7 @@ def get_device_screen(
         width=frame.width,
         height=frame.height,
         backend=frame.backend,
+        mime_type=frame.mime_type,
     )
 
 

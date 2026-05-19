@@ -12,6 +12,7 @@
           class="mirror-img"
           alt="设备当前画面"
           draggable="false"
+          @error="onImageError"
         />
         <div v-else class="mirror-placeholder">
           <p v-if="!robotInstanceId">请先选择机器人实例</p>
@@ -51,6 +52,29 @@ const backendLabel = (b) => {
 };
 
 let timer = null;
+let objectUrl = null;
+
+function revokeObjectUrl() {
+  if (objectUrl) {
+    URL.revokeObjectURL(objectUrl);
+    objectUrl = null;
+  }
+}
+
+function base64ToBlob(b64, mime) {
+  const clean = String(b64 || "").replace(/\s/g, "");
+  const binary = atob(clean);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type: mime });
+}
+
+function onImageError() {
+  placeholderText.value = "画面解码失败，请刷新页面或检查设备连接";
+  revokeObjectUrl();
+  imageSrc.value = "";
+  meta.value = null;
+}
 
 async function fetchFrame() {
   if (!props.robotInstanceId) return;
@@ -63,8 +87,10 @@ async function fetchFrame() {
         ...(props.deviceId ? { device_id: props.deviceId } : {}),
       },
     });
-    const mime = data.mime_type || "image/png";
-    imageSrc.value = `data:${mime};base64,${data.image_base64}`;
+    const mime = data.mime_type || "image/jpeg";
+    revokeObjectUrl();
+    objectUrl = URL.createObjectURL(base64ToBlob(data.image_base64, mime));
+    imageSrc.value = objectUrl;
     if (data.width && data.height) {
       meta.value = { width: data.width, height: data.height, backend: data.backend };
     }
@@ -96,6 +122,7 @@ function startPoll() {
 }
 
 function resetMirrorState() {
+  revokeObjectUrl();
   imageSrc.value = "";
   meta.value = null;
 }
@@ -118,6 +145,7 @@ watch(
 
 onBeforeUnmount(() => {
   stopPoll();
+  revokeObjectUrl();
 });
 </script>
 

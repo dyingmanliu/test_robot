@@ -630,13 +630,13 @@ class ConnectedDevicesOut(BaseModel):
 
 
 class DeviceScreenOut(BaseModel):
-    """设备当前画面（Base64 PNG），供 Web 投屏轮询。"""
+    """设备当前画面（Base64 JPEG 缩略图），供 Web 投屏轮询。"""
 
     image_base64: str
     width: int
     height: int
     backend: str
-    mime_type: str = "image/png"
+    mime_type: str = "image/jpeg"
 
 
 class RunCaseBody(BaseModel):

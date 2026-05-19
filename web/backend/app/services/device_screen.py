@@ -9,12 +9,16 @@ import subprocess
 import tempfile
 import uuid
 from dataclasses import dataclass
+from io import BytesIO
 from pathlib import Path
 
 from dotenv import load_dotenv
 from PIL import Image
 
 _REPO_ROOT = Path(__file__).resolve().parents[4]
+
+# Web 投屏用缩略图最大宽度；原图 Base64 常 >2MB，浏览器 data: URL 无法渲染会显示黑屏
+_MIRROR_MAX_WIDTH = max(240, int(os.getenv("DEVICE_SCREEN_MAX_WIDTH", "540")))
 
 
 @dataclass
@@ -23,6 +27,30 @@ class DeviceScreenFrame:
     width: int
     height: int
     backend: str
+    mime_type: str = "image/jpeg"
+
+
+def _prepare_mirror_image(img: Image.Image) -> tuple[str, int, int]:
+    """缩小并 JPEG 压缩，供前端轮询投屏（避免超大 data URL 黑屏）。"""
+    work = img.convert("RGB") if img.mode not in ("RGB", "L") else img
+    w, h = work.size
+    if w > _MIRROR_MAX_WIDTH:
+        ratio = _MIRROR_MAX_WIDTH / w
+        work = work.resize((int(w * ratio), max(1, int(h * ratio))), Image.Resampling.LANCZOS)
+    buf = BytesIO()
+    work.save(buf, format="JPEG", quality=82, optimize=True)
+    return base64.b64encode(buf.getvalue()).decode("ascii"), work.width, work.height
+
+
+def _frame_from_pil(img: Image.Image, *, backend: str) -> DeviceScreenFrame:
+    b64, width, height = _prepare_mirror_image(img)
+    return DeviceScreenFrame(
+        image_base64=b64,
+        width=width,
+        height=height,
+        backend=backend,
+        mime_type="image/jpeg",
+    )
 
 
 def _resolve_hdc_executable(hdc_home: str | None = None) -> str:
@@ -70,12 +98,7 @@ def capture_harmony_screen(
         if not os.path.isfile(local):
             raise RuntimeError("HDC 截屏文件未拉取到本地")
         with Image.open(local) as img:
-            width, height = img.size
-            buf = tempfile.SpooledTemporaryFile(max_size=8 * 1024 * 1024)
-            img.save(buf, format="PNG")
-            buf.seek(0)
-            b64 = base64.b64encode(buf.read()).decode("ascii")
-        return DeviceScreenFrame(image_base64=b64, width=width, height=height, backend="harmonyos")
+            return _frame_from_pil(img, backend="harmonyos")
     finally:
         try:
             _run_hdc(["shell", "rm", "-f", remote], device_id=dev, hdc_home=home, timeout=10)
@@ -97,12 +120,8 @@ def capture_android_screen(*, device_id: str | None = None) -> DeviceScreenFrame
     shot = AdbBridge(device_id=dev).get_screenshot()
     if not shot.base64_data:
         raise RuntimeError("ADB 截屏为空")
-    return DeviceScreenFrame(
-        image_base64=shot.base64_data,
-        width=shot.width,
-        height=shot.height,
-        backend="android",
-    )
+    with Image.open(BytesIO(base64.b64decode(shot.base64_data))) as img:
+        return _frame_from_pil(img, backend="android")
 
 
 def capture_device_screen(platform: str, *, device_id: str | None = None) -> DeviceScreenFrame:
