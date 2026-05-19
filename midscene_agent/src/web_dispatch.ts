@@ -11,6 +11,12 @@ export interface WebTestDispatch {
   run_id?: number;
   case_id?: number;
   robot_instance_id?: number | null;
+  /** autoglm | midscene — 决定模型环境（AutoGLM 走智谱） */
+  agent_backend?: string;
+  /** android | harmonyos — 决定 ADB / HDC 设备层 */
+  device_platform?: string;
+  /** ADB serial 或 HDC target ID */
+  device_id?: string;
   /** natural：自然语言 agent_task；yaml：执行 yaml_script */
   execution_mode?: WebExecutionMode;
   /** structured 模式下的可执行全文 */
@@ -88,6 +94,11 @@ export function parseWebDispatchJson(raw: string): WebTestDispatch {
     run_id: optUInt(o.run_id),
     case_id: optUInt(o.case_id),
     robot_instance_id,
+    agent_backend:
+      o.agent_backend !== undefined ? String(o.agent_backend) : undefined,
+    device_platform:
+      o.device_platform !== undefined ? String(o.device_platform) : undefined,
+    device_id: o.device_id !== undefined ? String(o.device_id).trim() : undefined,
     execution_mode,
     agent_task,
     yaml_script,

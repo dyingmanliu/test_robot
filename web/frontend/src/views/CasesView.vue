@@ -55,7 +55,7 @@
         <button
           type="button"
           class="btn"
-          :disabled="!selectedProjectId || !selectedIds.length || running || !selectedRobotInstanceId"
+          :disabled="!selectedProjectId || !selectedIds.length || running || !canStartExecution"
           @click="runSelected"
         >
           {{ running ? "执行中…" : "自动化执行选中" }}
@@ -70,16 +70,72 @@
       <router-link to="/my-robots">我的机器人</router-link>
       查看编号与属性，再回到本页选择实例后执行。
     </div>
+    <div
+      v-else-if="projectsLoaded && needsMidsceneForSelection && !midsceneRobotInstances.length"
+      class="banner warn"
+    >
+      已选 YAML 用例须使用 <strong>Midscene（HarmonyOS / HDC）</strong> 机器人执行。当前公司下尚无 Midscene 实例，请到
+      <router-link to="/my-robots">我的机器人</router-link>
+      打开任一实例，将「测试执行引擎」改为 Midscene 后保存；或联系管理员审批新租用单时选择 Midscene 引擎。
+    </div>
     <div v-else-if="projectsLoaded && robotInstances.length" class="robot-pick">
-      <label class="robot-pick-inner">
-        <span class="picker-label">执行用例使用的机器人实例</span>
-        <select v-model.number="selectedRobotInstanceId" class="robot-select">
-          <option v-for="ins in robotInstances" :key="ins.id" :value="ins.id">
-            {{ ins.instance_code }} · {{ (ins.display_name || "").trim() || ins.catalog_robot_id }} ·
-            {{ agentEngineLabel(ins.test_agent_backend) }}
-          </option>
-        </select>
-      </label>
+      <div class="robot-pick-row">
+        <label class="robot-pick-inner">
+          <span class="picker-label">执行用例使用的机器人实例</span>
+          <select v-model.number="selectedRobotInstanceId" class="robot-select" @change="onRobotInstanceChange">
+            <option
+              v-for="ins in robotsForExecution"
+              :key="ins.id"
+              :value="ins.id"
+              :disabled="robotOptionDisabled(ins)"
+            >
+              {{ ins.instance_code }} · {{ (ins.display_name || "").trim() || ins.catalog_robot_id }} ·
+              {{ agentEngineLabel(ins.test_agent_backend) }}
+              <template v-if="robotOptionDisabled(ins)">（不可用于 YAML）</template>
+            </option>
+          </select>
+        </label>
+        <label class="robot-pick-inner">
+          <span class="picker-label">本次执行设备</span>
+          <select v-model="selectedDevicePlatform" class="robot-select">
+            <option value="android">Android / ADB</option>
+            <option value="harmonyos">鸿蒙 HarmonyOS / HDC</option>
+          </select>
+        </label>
+        <label class="robot-pick-inner robot-pick-inner--device">
+          <span class="picker-label">
+            目标终端
+            <button
+              type="button"
+              class="link-btn"
+              :disabled="devicesLoading"
+              @click="loadConnectedDevices"
+            >
+              {{ devicesLoading ? "刷新中…" : "刷新" }}
+            </button>
+          </span>
+          <select
+            v-model="selectedDeviceId"
+            class="robot-select"
+            :disabled="devicesLoading || !onlineDevices.length"
+          >
+            <option v-if="!onlineDevices.length" value="">
+              {{ devicesError || "未检测到在线设备" }}
+            </option>
+            <option v-for="d in onlineDevices" :key="d.device_id" :value="d.device_id">
+              {{ d.label }}
+              <template v-if="d.state !== 'device'">（{{ d.state }}）</template>
+            </option>
+          </select>
+        </label>
+      </div>
+      <p class="robot-hint muted small">
+        同一机器人可在执行前选择平台与具体终端（ADB 序列号 / HDC target）；默认平台取自「我的机器人」（当前：
+        <strong>{{ defaultPlatformLabel }}</strong>）。
+      </p>
+      <p v-if="needsMidsceneForSelection" class="robot-hint muted small">
+        已选 YAML 用例，请选用标注为 <strong>Midscene</strong> 的机器人（如 DR-000008 · 机器人贾维斯）。
+      </p>
     </div>
 
     <div v-if="loadError" class="banner err">{{ loadError }}</div>
@@ -167,6 +223,8 @@
         <aside class="exec-screen-pane">
           <DeviceScreenMirror
             :robot-instance-id="selectedRobotInstanceId"
+            :device-platform="selectedDevicePlatform"
+            :device-id="selectedDeviceId"
             :active="screenMirrorActive"
           />
         </aside>
@@ -212,6 +270,8 @@
           <aside class="exec-screen-pane">
             <DeviceScreenMirror
               :robot-instance-id="selectedRobotInstanceId"
+              :device-platform="selectedDevicePlatform"
+              :device-id="selectedDeviceId"
               :active="false"
             />
           </aside>
@@ -407,6 +467,91 @@ const resultRuns = ref([]);
 
 const robotInstances = ref([]);
 const selectedRobotInstanceId = ref(null);
+const selectedDevicePlatform = ref("android");
+const selectedDeviceId = ref("");
+const connectedDevices = ref([]);
+const devicesLoading = ref(false);
+const devicesError = ref("");
+
+const PLATFORM_STORAGE_PREFIX = "tcm_exec_platform_";
+const DEVICE_ID_STORAGE_PREFIX = "tcm_exec_device_";
+
+function normalizeDevicePlatform(value) {
+  const p = String(value || "android").toLowerCase();
+  return p === "harmonyos" ? "harmonyos" : "android";
+}
+
+function platformStorageKey(instanceId) {
+  return `${PLATFORM_STORAGE_PREFIX}${instanceId}`;
+}
+
+function deviceIdStorageKey(instanceId, platform) {
+  return `${DEVICE_ID_STORAGE_PREFIX}${instanceId}_${normalizeDevicePlatform(platform)}`;
+}
+
+const onlineDevices = computed(() =>
+  connectedDevices.value.filter((d) => String(d.state || "").toLowerCase() === "device"),
+);
+
+const canStartExecution = computed(() => {
+  if (!selectedRobotInstanceId.value) return false;
+  if (devicesLoading.value) return false;
+  return onlineDevices.value.length > 0 && !!selectedDeviceId.value;
+});
+
+function syncDevicePlatformFromInstance() {
+  const ins = robotInstances.value.find((i) => i.id === selectedRobotInstanceId.value);
+  if (!ins) return;
+  const saved = sessionStorage.getItem(platformStorageKey(ins.id));
+  selectedDevicePlatform.value = saved
+    ? normalizeDevicePlatform(saved)
+    : normalizeDevicePlatform(ins.device_platform);
+}
+
+async function loadConnectedDevices() {
+  devicesLoading.value = true;
+  devicesError.value = "";
+  try {
+    const { data } = await client.get("/api/devices/connected", {
+      params: { platform: normalizeDevicePlatform(selectedDevicePlatform.value) },
+    });
+    connectedDevices.value = Array.isArray(data.devices) ? data.devices : [];
+    const online = connectedDevices.value.filter(
+      (d) => String(d.state || "").toLowerCase() === "device",
+    );
+    const insId = selectedRobotInstanceId.value;
+    const saved =
+      insId != null
+        ? sessionStorage.getItem(deviceIdStorageKey(insId, selectedDevicePlatform.value))
+        : null;
+    if (saved && online.some((d) => d.device_id === saved)) {
+      selectedDeviceId.value = saved;
+    } else if (online.length) {
+      selectedDeviceId.value = online[0].device_id;
+    } else {
+      selectedDeviceId.value = "";
+    }
+  } catch (e) {
+    connectedDevices.value = [];
+    selectedDeviceId.value = "";
+    devicesError.value =
+      typeof e.response?.data?.detail === "string"
+        ? e.response.data.detail
+        : "无法枚举设备，请确认 ADB/HDC 已安装且设备已连接";
+  } finally {
+    devicesLoading.value = false;
+  }
+}
+
+function onRobotInstanceChange() {
+  syncDevicePlatformFromInstance();
+  loadConnectedDevices();
+}
+
+const defaultPlatformLabel = computed(() => {
+  const ins = robotInstances.value.find((i) => i.id === selectedRobotInstanceId.value);
+  return devicePlatformLabel(ins?.device_platform || selectedDevicePlatform.value);
+});
 
 const canStopRun = computed(() => {
   const r = liveRun.value;
@@ -472,6 +617,69 @@ const allSelected = computed(() => {
   return cases.value.length > 0 && selectedIds.value.length === cases.value.length;
 });
 
+function isMidsceneBackend(backend) {
+  return String(backend || "autoglm").toLowerCase() === "midscene";
+}
+
+const needsMidsceneForSelection = computed(() => {
+  const idSet = new Set(selectedIds.value);
+  return cases.value.some(
+    (c) => idSet.has(c.id) && String(c.case_format || "").toLowerCase() === "yaml",
+  );
+});
+
+const midsceneRobotInstances = computed(() =>
+  robotInstances.value.filter((ins) => isMidsceneBackend(ins.test_agent_backend)),
+);
+
+const robotsForExecution = computed(() => robotInstances.value);
+
+function robotOptionDisabled(ins) {
+  return needsMidsceneForSelection.value && !isMidsceneBackend(ins.test_agent_backend);
+}
+
+function syncRobotSelection() {
+  if (!robotInstances.value.length) {
+    selectedRobotInstanceId.value = null;
+    return;
+  }
+  const current = robotInstances.value.find((ins) => ins.id === selectedRobotInstanceId.value);
+  if (needsMidsceneForSelection.value) {
+    const midscene = midsceneRobotInstances.value;
+    if (!midscene.length) {
+      selectedRobotInstanceId.value = null;
+      return;
+    }
+    if (!current || !isMidsceneBackend(current.test_agent_backend)) {
+      selectedRobotInstanceId.value = midscene[0].id;
+    }
+    return;
+  }
+  if (!current) {
+    selectedRobotInstanceId.value = robotInstances.value[0].id;
+  }
+  syncDevicePlatformFromInstance();
+  loadConnectedDevices();
+}
+
+watch([selectedIds, cases], () => syncRobotSelection(), { deep: true });
+
+watch(selectedRobotInstanceId, () => syncDevicePlatformFromInstance());
+
+watch(selectedDevicePlatform, (p) => {
+  if (!selectedRobotInstanceId.value) return;
+  sessionStorage.setItem(platformStorageKey(selectedRobotInstanceId.value), normalizeDevicePlatform(p));
+  loadConnectedDevices();
+});
+
+watch(selectedDeviceId, (id) => {
+  if (!selectedRobotInstanceId.value || !id) return;
+  sessionStorage.setItem(
+    deviceIdStorageKey(selectedRobotInstanceId.value, selectedDevicePlatform.value),
+    id,
+  );
+});
+
 async function loadProjects() {
   try {
     const { data } = await client.get("/api/projects");
@@ -512,12 +720,7 @@ async function loadRobotInstances() {
   try {
     const { data } = await client.get("/api/robot-instances/mine");
     robotInstances.value = Array.isArray(data) ? data : [];
-    if (robotInstances.value.length && !selectedRobotInstanceId.value) {
-      selectedRobotInstanceId.value = robotInstances.value[0].id;
-    }
-    if (!robotInstances.value.length) {
-      selectedRobotInstanceId.value = null;
-    }
+    syncRobotSelection();
   } catch {
     robotInstances.value = [];
     selectedRobotInstanceId.value = null;
@@ -541,6 +744,9 @@ async function bootstrapProjectContext() {
   }
   await load();
   await loadRobotInstances();
+  if (selectedRobotInstanceId.value) {
+    await loadConnectedDevices();
+  }
 }
 
 function toggleAll(e) {
@@ -722,6 +928,11 @@ function agentEngineLabel(backend) {
   return "AutoGLM";
 }
 
+function devicePlatformLabel(platform) {
+  const p = String(platform || "android").toLowerCase();
+  return p === "harmonyos" ? "鸿蒙" : "Android";
+}
+
 function statusLabel(s) {
   const m = {
     pending: "排队",
@@ -842,7 +1053,18 @@ async function pollRun(runId, onTick) {
 async function runSelected() {
   if (!selectedIds.value.length) return;
   if (!selectedRobotInstanceId.value) {
-    loadError.value = "请先选择要使用的机器人实例";
+    loadError.value = needsMidsceneForSelection.value
+      ? "YAML 用例须选择 Midscene 机器人；请到「我的机器人」将实例引擎改为 Midscene"
+      : "请先选择要使用的机器人实例";
+    return;
+  }
+  if (!selectedDeviceId.value) {
+    loadError.value = devicesError.value || "请先选择已连接的目标终端，或点击「刷新」重新扫描设备";
+    return;
+  }
+  const picked = robotInstances.value.find((ins) => ins.id === selectedRobotInstanceId.value);
+  if (needsMidsceneForSelection.value && picked && !isMidsceneBackend(picked.test_agent_backend)) {
+    loadError.value = "YAML 用例须绑定 Midscene 机器人实例执行，请在下拉框中选择 Midscene 引擎的机器人";
     return;
   }
   running.value = true;
@@ -853,6 +1075,8 @@ async function runSelected() {
       liveRun.value = null;
       const { data: started } = await client.post(`/api/test-cases/${caseId}/run`, {
         robot_instance_id: selectedRobotInstanceId.value,
+        device_platform: normalizeDevicePlatform(selectedDevicePlatform.value),
+        device_id: selectedDeviceId.value,
       });
       liveRun.value = { ...started };
       scrollLiveLogToBottom();
@@ -921,11 +1145,23 @@ onMounted(bootstrapProjectContext);
   border-radius: 10px;
 }
 
+.robot-hint {
+  margin: 0.5rem 0 0;
+}
+
+.robot-pick-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1.5rem;
+}
+
 .robot-pick-inner {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+  min-width: 14rem;
   max-width: 32rem;
+  flex: 1 1 14rem;
 }
 
 .robot-select {
@@ -933,6 +1169,27 @@ onMounted(bootstrapProjectContext);
   border-radius: 8px;
   border: 1px solid #cbd5e1;
   font-size: 0.9rem;
+}
+
+.robot-pick-inner--device .picker-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.link-btn {
+  border: none;
+  background: none;
+  color: #2563eb;
+  font-size: 0.78rem;
+  cursor: pointer;
+  padding: 0;
+}
+
+.link-btn:disabled {
+  color: #94a3b8;
+  cursor: not-allowed;
 }
 
 .toolbar {

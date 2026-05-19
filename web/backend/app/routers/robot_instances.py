@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -10,6 +10,7 @@ from app.deps import get_current_user
 from app.models import RobotInstance, User
 from app.schemas import DeviceScreenOut, RobotInstanceOut, RobotInstancePatch
 from app.services.company_scope import can_use_robot_instance
+from app.services.device_platform import resolve_execution_device_id, resolve_execution_platform
 from app.services.device_screen import capture_device_screen
 
 router = APIRouter(prefix="/robot-instances", tags=["robot-instances"])
@@ -51,6 +52,11 @@ def get_my_instance(
 @router.get("/{instance_id}/device-screen", response_model=DeviceScreenOut)
 def get_device_screen(
     instance_id: int,
+    device_platform: str | None = Query(
+        None,
+        description="本次投屏目标平台 android|harmonyos；不传则用实例默认",
+    ),
+    device_id: str | None = Query(None, description="ADB serial 或 HDC target；不传则用环境默认"),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> DeviceScreenOut:
@@ -59,9 +65,17 @@ def get_device_screen(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="机器人实例不存在")
     if not can_use_robot_instance(db, user, inst):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权使用该实例")
-    backend = (inst.test_agent_backend or "autoglm").strip().lower()
+    platform = resolve_execution_platform(
+        run_device_platform=device_platform,
+        instance_device_platform=inst.device_platform,
+        test_agent_backend=inst.test_agent_backend,
+    )
+    dev_id = resolve_execution_device_id(
+        run_device_id=device_id,
+        device_platform=platform,
+    )
     try:
-        frame = capture_device_screen(backend)
+        frame = capture_device_screen(platform, device_id=dev_id)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -93,6 +107,8 @@ def patch_my_instance(
         inst.display_bio = body.display_bio
     if body.test_agent_backend is not None:
         inst.test_agent_backend = body.test_agent_backend
+    if body.device_platform is not None:
+        inst.device_platform = body.device_platform
     db.commit()
     db.refresh(inst)
     return inst

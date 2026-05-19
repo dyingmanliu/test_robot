@@ -14,7 +14,7 @@ from autoglm_phone_agent.config.timing import (
     TEXT_CLEAR_DELAY,
     TEXT_INPUT_DELAY,
 )
-from autoglm_phone_agent.device.adb_bridge import AdbBridge
+from autoglm_phone_agent.device.device_factory import DeviceBridge
 
 
 @dataclass
@@ -26,11 +26,11 @@ class ActionResult:
 
 
 class ActionHandler:
-    """Executes model actions on an :class:`AdbBridge` device."""
+    """Executes model actions on an ADB or HDC device bridge."""
 
     def __init__(
         self,
-        device: AdbBridge,
+        device: DeviceBridge,
         confirmation_callback: Callable[[str], bool] | None = None,
         takeover_callback: Callable[[str], None] | None = None,
     ) -> None:
@@ -100,6 +100,12 @@ class ActionHandler:
 
     def _type(self, action: dict[str, Any], _w: int, _h: int) -> ActionResult:
         text = action.get("text", "")
+        if getattr(self.device, "uses_native_input", False):
+            self.device.clear_text()
+            time.sleep(TEXT_CLEAR_DELAY)
+            self.device.type_text(text)
+            time.sleep(TEXT_INPUT_DELAY)
+            return ActionResult(True, False)
         ime = self.device.detect_and_set_adb_keyboard()
         time.sleep(KEYBOARD_SWITCH_DELAY)
         self.device.clear_text()

@@ -405,7 +405,24 @@ async def run_case(
             detail=busy_run_detail_message(busy),
         )
 
-    run = TestRun(case_id=tc.id, owner_id=tc.owner_id, robot_instance_id=inst.id, status="pending")
+    from app.services.device_platform import resolve_execution_platform
+
+    platform = resolve_execution_platform(
+        run_device_platform=body.device_platform,
+        instance_device_platform=getattr(inst, "device_platform", None),
+        test_agent_backend=getattr(inst, "test_agent_backend", None),
+    )
+
+    device_id = (body.device_id or "").strip() or None
+
+    run = TestRun(
+        case_id=tc.id,
+        owner_id=tc.owner_id,
+        robot_instance_id=inst.id,
+        device_platform=platform,
+        device_id=device_id,
+        status="pending",
+    )
     db.add(run)
     db.commit()
     db.refresh(run)

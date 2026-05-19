@@ -35,6 +35,9 @@ import client from "@/api/client";
 
 const props = defineProps({
   robotInstanceId: { type: Number, default: null },
+  /** android | harmonyos，与用例执行时选择的设备一致 */
+  devicePlatform: { type: String, default: "android" },
+  deviceId: { type: String, default: "" },
   /** 为 true 时按间隔轮询截屏（执行中） */
   active: { type: Boolean, default: false },
   intervalMs: { type: Number, default: 1500 },
@@ -50,7 +53,11 @@ const hostMax = ref({ width: 280, height: 400 });
 let timer = null;
 let resizeObserver = null;
 
-const backendLabel = (b) => (String(b || "").toLowerCase() === "midscene" ? "HarmonyOS / HDC" : "Android / ADB");
+const backendLabel = (b) => {
+  const p = String(b || "").toLowerCase();
+  if (p === "harmonyos" || p === "midscene") return "鸿蒙 / HDC";
+  return "Android / ADB";
+};
 
 /** 按设备分辨率宽高比计算展示尺寸，宽度与屏幕宽度成比例（非铺满整列） */
 const displaySize = computed(() => {
@@ -97,7 +104,12 @@ async function fetchFrame() {
   if (!polling.value) polling.value = true;
   if (!imageSrc.value) loading.value = true;
   try {
-    const { data } = await client.get(`/api/robot-instances/${props.robotInstanceId}/device-screen`);
+    const { data } = await client.get(`/api/robot-instances/${props.robotInstanceId}/device-screen`, {
+      params: {
+        device_platform: props.devicePlatform || "android",
+        ...(props.deviceId ? { device_id: props.deviceId } : {}),
+      },
+    });
     const mime = data.mime_type || "image/png";
     imageSrc.value = `data:${mime};base64,${data.image_base64}`;
     meta.value = { width: data.width, height: data.height, backend: data.backend };
@@ -139,7 +151,7 @@ function updateHostMax() {
 }
 
 watch(
-  () => [props.active, props.robotInstanceId],
+  () => [props.active, props.robotInstanceId, props.devicePlatform, props.deviceId],
   () => {
     if (props.active && props.robotInstanceId) {
       startPoll();

@@ -32,6 +32,7 @@ from app.routers import (
     billing,
     dashboard,
     device_pools_api,
+    devices,
     knowledge,
     marketplace,
     monitor_api,
@@ -62,6 +63,7 @@ app.include_router(companies.router, prefix="/api")
 app.include_router(projects.router, prefix="/api")
 app.include_router(project_functional.router, prefix="/api")
 app.include_router(device_pools_api.router, prefix="/api")
+app.include_router(devices.router, prefix="/api")
 app.include_router(test_cases.router, prefix="/api")
 app.include_router(knowledge.router, prefix="/api")
 app.include_router(admin.router, prefix="/api")

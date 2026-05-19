@@ -1,8 +1,10 @@
 export {
+  MidsceneTestAgent,
   HarmonyTestAgent,
   type AgentRunOutcome,
   type StepCallback,
 } from './agent.js';
+export { parseDevicePlatform, parseAgentBackend, type DevicePlatform } from './platform.js';
 export {
   loadAgentConfig,
   assertMidsceneModelEnv,
@@ -21,4 +23,4 @@ export {
   type WebExecutionMode,
   type WebTestDispatch,
 } from './web_dispatch.js';
-export { runHarmonyYamlScript } from './yaml_runner.js';
+export { runMidsceneYamlScript, runHarmonyYamlScript } from './yaml_runner.js';

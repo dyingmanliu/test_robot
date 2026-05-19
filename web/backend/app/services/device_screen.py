@@ -75,7 +75,7 @@ def capture_harmony_screen(
             img.save(buf, format="PNG")
             buf.seek(0)
             b64 = base64.b64encode(buf.read()).decode("ascii")
-        return DeviceScreenFrame(image_base64=b64, width=width, height=height, backend="midscene")
+        return DeviceScreenFrame(image_base64=b64, width=width, height=height, backend="harmonyos")
     finally:
         try:
             _run_hdc(["shell", "rm", "-f", remote], device_id=dev, hdc_home=home, timeout=10)
@@ -101,12 +101,12 @@ def capture_android_screen(*, device_id: str | None = None) -> DeviceScreenFrame
         image_base64=shot.base64_data,
         width=shot.width,
         height=shot.height,
-        backend="autoglm",
+        backend="android",
     )
 
 
-def capture_device_screen(backend: str) -> DeviceScreenFrame:
-    b = (backend or "autoglm").strip().lower()
-    if b == "midscene":
-        return capture_harmony_screen()
-    return capture_android_screen()
+def capture_device_screen(platform: str, *, device_id: str | None = None) -> DeviceScreenFrame:
+    p = (platform or "android").strip().lower()
+    if p in ("harmonyos", "harmony", "hmos", "ohos"):
+        return capture_harmony_screen(device_id=device_id)
+    return capture_android_screen(device_id=device_id)

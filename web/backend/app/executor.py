@@ -42,19 +42,30 @@ def signal_cancel(run_id: int) -> bool:
 def run_phone_agent_task(
     task: str,
     *,
+    device_platform: str = "android",
+    device_id: str | None = None,
     on_step: Callable[[int, Any], None] | None = None,
     should_cancel: Callable[[], bool] | None = None,
 ):
-    """Runs PhoneTestAgent in-process (blocking). Loads API keys from repo-root .env."""
+    """Runs PhoneTestAgent in-process (blocking). Supports Android (ADB) and HarmonyOS (HDC)."""
     load_dotenv(_REPO_ROOT / ".env")
     os.chdir(_REPO_ROOT)
 
     from autoglm_phone_agent.agent import AgentConfig, PhoneTestAgent
+    from autoglm_phone_agent.device.platform import DevicePlatform
     from autoglm_phone_agent.model.client import ModelConfig
 
     api_key = os.getenv("BIGMODEL_API_KEY") or os.getenv("ZHIPU_API_KEY")
     if not api_key:
         raise RuntimeError("请配置 BIGMODEL_API_KEY 或 ZHIPU_API_KEY（环境变量或项目根目录 .env）")
+
+    from app.services.device_platform import resolve_execution_device_id
+
+    plat = DevicePlatform.parse(device_platform)
+    resolved_device_id = resolve_execution_device_id(
+        run_device_id=device_id,
+        device_platform=plat.value,
+    )
 
     model_config = ModelConfig(
         base_url=os.getenv("OPENAI_BASE_URL", "https://open.bigmodel.cn/api/paas/v4"),
@@ -63,7 +74,8 @@ def run_phone_agent_task(
     )
     agent_config = AgentConfig(
         max_steps=int(os.getenv("PHONE_AGENT_MAX_STEPS", "100")),
-        device_id=os.getenv("ADB_DEVICE_ID") or None,
+        device_id=resolved_device_id,
+        device_platform=plat.value,
         verbose=False,
     )
     agent = PhoneTestAgent(
@@ -101,6 +113,17 @@ def run_midscene_agent_task(
 
     env = {**os.environ}
     env.setdefault("FORCE_COLOR", "0")
+    platform = str(dispatch.get("device_platform") or "harmonyos").strip().lower()
+    env["MIDSCENE_DEVICE_PLATFORM"] = platform
+    dispatch_device_id = (str(dispatch.get("device_id") or "")).strip()
+    if dispatch_device_id:
+        if platform in ("harmonyos", "harmony", "hmos", "ohos"):
+            env["HDC_DEVICE_ID"] = dispatch_device_id
+        else:
+            env["ADB_DEVICE_ID"] = dispatch_device_id
+    agent_backend = str(dispatch.get("agent_backend") or "midscene").strip().lower()
+    if agent_backend == "autoglm":
+        env["MIDSCENE_AGENT_BACKEND"] = "autoglm"
     proc = subprocess.Popen(
         cmd,
         cwd=str(mid_root),
@@ -288,6 +311,68 @@ def execute_test_run(db: Session, run_id: int) -> None:
     if backend not in ("autoglm", "midscene"):
         backend = "autoglm"
 
+    from app.services.device_platform import (
+        platform_label,
+        resolve_execution_device_id,
+        resolve_execution_platform,
+        uses_midscene_runner,
+    )
+
+    platform = resolve_execution_platform(
+        run_device_platform=getattr(run, "device_platform", None),
+        instance_device_platform=getattr(inst, "device_platform", None) if inst else None,
+        test_agent_backend=backend,
+    )
+    device_id = resolve_execution_device_id(
+        run_device_id=getattr(run, "device_id", None),
+        device_platform=platform,
+    )
+    use_midscene = uses_midscene_runner(
+        test_agent_backend=backend,
+        device_platform=platform,
+    )
+
+    case_format = (getattr(case, "case_format", None) or "structured").strip().lower()
+    inst_code = getattr(inst, "instance_code", None) or "—"
+
+    load_dotenv(_REPO_ROOT / ".env")
+
+    if backend == "autoglm" and not (os.getenv("BIGMODEL_API_KEY") or os.getenv("ZHIPU_API_KEY")):
+        run.status = "failed"
+        run.output_message = (
+            f"机器人 {inst_code} 使用 AutoGLM 引擎，需在 .env 配置 BIGMODEL_API_KEY 或 ZHIPU_API_KEY。"
+        )
+        run.error_trace = None
+        run.finished_at = datetime.utcnow()
+        db.commit()
+        if lock_held and instance_lock is not None:
+            instance_lock.release()
+        _run_cancel_events.pop(run_id, None)
+        return
+
+    if use_midscene and backend == "midscene":
+        base = (os.getenv("MIDSCENE_MODEL_BASE_URL") or "").lower()
+        is_dashscope = "dashscope" in base
+        api_key = (os.getenv("MIDSCENE_MODEL_API_KEY") or "").strip() or (
+            (os.getenv("DASHSCOPE_API_KEY") or "").strip() if is_dashscope else ""
+        ) or (
+            (os.getenv("BIGMODEL_API_KEY") or os.getenv("ZHIPU_API_KEY") or "").strip()
+            if not is_dashscope
+            else ""
+        )
+        if not api_key:
+            run.status = "failed"
+            run.output_message = (
+                "Midscene 引擎缺少模型 API Key：请在 .env 配置 MIDSCENE_MODEL_API_KEY 或 DASHSCOPE_API_KEY。"
+            )
+            run.error_trace = None
+            run.finished_at = datetime.utcnow()
+            db.commit()
+            if lock_held and instance_lock is not None:
+                instance_lock.release()
+            _run_cancel_events.pop(run_id, None)
+            return
+
     run.status = "running"
     run.started_at = datetime.utcnow()
     run.output_message = None
@@ -372,49 +457,36 @@ def execute_test_run(db: Session, run_id: int) -> None:
 
     from app.services.case_agent_text import build_agent_task_text
 
-    case_format = (getattr(case, "case_format", None) or "structured").strip().lower()
     agent_task = build_agent_task_text(
         task_text=case.task_text,
         preconditions=getattr(case, "preconditions", "") or "",
         steps_json=getattr(case, "steps_json", None) or "[]",
     )
 
-    try:
-        if backend == "midscene":
-            if case_format == "yaml":
-                from app.services.case_yaml import validate_case_yaml
+    dispatch_base: dict[str, Any] = {
+        "version": 1,
+        "run_id": run_id,
+        "case_id": case.id,
+        "robot_instance_id": run.robot_instance_id,
+        "agent_backend": backend,
+        "device_platform": platform,
+        "device_id": device_id,
+        "task_text": case.task_text,
+        "preconditions": getattr(case, "preconditions", "") or "",
+        "steps_json": getattr(case, "steps_json", None) or "[]",
+    }
 
-                yaml_script = validate_case_yaml(getattr(case, "case_yaml", "") or "")
-                web_dispatch = {
-                    "version": 1,
-                    "run_id": run_id,
-                    "case_id": case.id,
-                    "robot_instance_id": run.robot_instance_id,
-                    "execution_mode": "yaml",
-                    "yaml_script": yaml_script,
-                    "case_format": "yaml",
-                    "task_text": case.task_text,
-                    "preconditions": getattr(case, "preconditions", "") or "",
-                    "steps_json": getattr(case, "steps_json", None) or "[]",
-                }
-            else:
-                web_dispatch = {
-                    "version": 1,
-                    "run_id": run_id,
-                    "case_id": case.id,
-                    "robot_instance_id": run.robot_instance_id,
-                    "execution_mode": "natural",
-                    "agent_task": agent_task,
-                    "case_format": "structured",
-                    "task_text": case.task_text,
-                    "preconditions": getattr(case, "preconditions", "") or "",
-                    "steps_json": getattr(case, "steps_json", None) or "[]",
-                }
-        elif case_format == "yaml":
+    try:
+        web_dispatch: dict[str, Any] | None = None
+
+        if case_format == "yaml" and backend != "midscene":
             row = db.query(TestRun).filter(TestRun.id == run_id).first()
             if row:
                 row.status = "failed"
-                row.output_message = "YAML 用例须绑定 Midscene 机器人实例执行"
+                row.output_message = (
+                    "YAML 用例须使用 Midscene 执行引擎；请在机器人实例中将引擎设为 Midscene，"
+                    f"设备平台可选 {platform_label(platform)}。"
+                )
                 row.error_trace = None
                 row.finished_at = datetime.utcnow()
                 db.commit()
@@ -422,10 +494,43 @@ def execute_test_run(db: Session, run_id: int) -> None:
                 instance_lock.release()
             _run_cancel_events.pop(run_id, None)
             return
-        else:
-            web_dispatch = None
 
-        if backend == "midscene":
+        if use_midscene:
+            if case_format == "yaml":
+                from app.services.case_yaml import validate_case_yaml
+
+                yaml_script = validate_case_yaml(getattr(case, "case_yaml", "") or "")
+                web_dispatch = {
+                    **dispatch_base,
+                    "execution_mode": "yaml",
+                    "yaml_script": yaml_script,
+                    "case_format": "yaml",
+                }
+            else:
+                web_dispatch = {
+                    **dispatch_base,
+                    "execution_mode": "natural",
+                    "agent_task": agent_task,
+                    "case_format": "structured",
+                }
+        elif backend == "autoglm":
+            web_dispatch = None
+        else:
+            row = db.query(TestRun).filter(TestRun.id == run_id).first()
+            if row:
+                row.status = "failed"
+                row.output_message = (
+                    f"不支持的组合：引擎 {backend} + 设备 {platform_label(platform)}。"
+                )
+                row.error_trace = None
+                row.finished_at = datetime.utcnow()
+                db.commit()
+            if lock_held and instance_lock is not None:
+                instance_lock.release()
+            _run_cancel_events.pop(run_id, None)
+            return
+
+        if use_midscene and web_dispatch is not None:
             from app.services.run_report import normalize_report_path
 
             ok, msg, report_file = run_midscene_agent_task(
@@ -447,7 +552,13 @@ def execute_test_run(db: Session, run_id: int) -> None:
                     row.output_message = msg
                     row.error_trace = None
         elif web_dispatch is None:
-            outcome = run_phone_agent_task(agent_task, on_step=on_autoglm_step, should_cancel=should_cancel)
+            outcome = run_phone_agent_task(
+                agent_task,
+                device_platform=platform,
+                device_id=device_id,
+                on_step=on_autoglm_step,
+                should_cancel=should_cancel,
+            )
             row = db.query(TestRun).filter(TestRun.id == run_id).first()
             if row:
                 if cancel_ev.is_set():

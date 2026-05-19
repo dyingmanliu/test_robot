@@ -1,31 +1,55 @@
 # midscene_agent
 
-基于字节跳动 **[Midscene.js](https://midscenejs.com/)**（`@midscene/harmony`）的 **HarmonyOS 6.x / HarmonyOS NEXT** APP 自动化测试子项目，与仓库根目录 `autoglm_phone_agent`（Android + AutoGLM-Phone）并列。
+基于字节跳动 **[Midscene.js](https://midscenejs.com/)** 的 **Android**（`@midscene/android` + ADB）与 **鸿蒙 HarmonyOS 6.x / NEXT**（`@midscene/harmony` + HDC）APP 自动化子项目。与仓库根目录 [`autoglm_phone_agent`](../autoglm_phone_agent/README.md)（AutoGLM-Phone，Android/鸿蒙）并列，由 Web 按 **执行引擎 × 设备平台** 路由调用。
 
 ## 能力
 
-- 通过 **HDC** 连接鸿蒙真机或模拟器
-- 使用视觉大模型进行 **自然语言驱动** 的 UI 操作（`aiAct`）、查询（`aiQuery`）、断言（`aiAssert`）
+- **Android**：`adb` 连接真机/模拟器，`aiAct` / `aiQuery` / `aiAssert`、YAML `runYaml`
+- **鸿蒙**：`hdc` 连接设备，同上 Midscene 能力
 - 生成可回放的 **HTML 测试报告**
+- Web 后端通过 `--web-dispatch` 子进程模式执行（见 `src/web_dispatch.ts`）
+
+## 与 Web 平台的关系
+
+| Web 实例配置 | 是否走本子项目 |
+|-------------|----------------|
+| `midscene` + `android` | 是（`@midscene/android`） |
+| `midscene` + `harmonyos` | 是（`@midscene/harmony`） |
+| `autoglm` + `harmonyos` | 否（走 `autoglm_phone_agent` + HDC，见 Open-AutoGLM） |
+| `autoglm` + `android` | 否（走 `autoglm_phone_agent` + ADB） |
+
+完整矩阵见仓库根目录 [README.md](../README.md) 与 [ARCHITECTURE.md](../ARCHITECTURE.md)。
+
+Web 用例页可在执行前指定 **`device_platform`** 与 **`device_id`**（多机时选择具体 ADB serial / HDC target）；`--web-dispatch` JSON 见 `src/web_dispatch.ts`。
 
 ## 前置条件
 
 - **Node.js** ≥ 18
-- **HDC**：随 [DevEco Studio](https://developer.huawei.com/consumer/en/deveco-studio/) 或 HarmonyOS 命令行工具安装
-- 设备已开启开发者模式与 USB 调试：`hdc list targets` 能看到设备 ID
-- 配置 Midscene 模型 API（见 [Model strategy](https://midscenejs.com/model-strategy)）
+- **Android**：ADB、`adb devices` 可见设备；可选 `ADB_DEVICE_ID`
+- **鸿蒙**：HDC（[DevEco Studio](https://developer.huawei.com/consumer/en/deveco-studio/) toolchains）、`hdc list targets` 可见设备
+- **模型**：`MIDSCENE_MODEL_*` 或 DashScope 千问等（见 [Model strategy](https://midscenejs.com/model-strategy)）
 
 ## 环境变量
 
-复制 [`midscene_agent/.env.example`](./.env.example) 或在**仓库根目录** [`.env`](../.env.example) 中增加：
+复制 [`midscene_agent/.env.example`](./.env.example) 或在**仓库根目录** [`.env`](../.env.example) 中配置：
 
 ```bash
+# 视觉模型（必填）
 MIDSCENE_MODEL_BASE_URL=...
 MIDSCENE_MODEL_API_KEY=...
 MIDSCENE_MODEL_NAME=...
 MIDSCENE_MODEL_FAMILY=...
-# HDC_DEVICE_ID=          # 可选
-# HDC_HOME=               # 可选
+
+# CLI 默认平台（Web 执行时由下发 JSON 覆盖）
+# MIDSCENE_DEVICE_PLATFORM=harmonyos   # android | harmonyos
+# MIDSCENE_AGENT_BACKEND=midscene      # autoglm | midscene
+
+# Android
+# ADB_DEVICE_ID=
+
+# 鸿蒙
+# HDC_DEVICE_ID=
+# HDC_HOME=/path/to/toolchains
 ```
 
 ## 安装与运行
@@ -34,43 +58,60 @@ MIDSCENE_MODEL_FAMILY=...
 cd midscene_agent
 npm install
 
-# 检查 HDC
+# 鸿蒙：检查 HDC
 npm run task -- --check-hdc
 
-# 单条自然语言任务
+# 鸿蒙自然语言（默认平台）
 npm run task -- "打开设置并进入关于本机"
 
-# 多步顺序执行
+# Android 自然语言
+MIDSCENE_DEVICE_PLATFORM=android npm run task -- "打开设置"
+
+# 多步
 npm run task -- --steps "打开设置" "向下滑动一屏"
 
-# 官方风格 Demo（设置应用）
+# 鸿蒙 Demo
 npm run demo
 
-# 零代码 Playground
+# Playground（鸿蒙）
 npm run playground
 ```
+
+Android Playground：`npx --yes @midscene/android-playground`
 
 ## 在代码中引用
 
 ```typescript
-import { HarmonyTestAgent } from './src/index.js';
+import { MidsceneTestAgent } from './src/index.js';
 
-const agent = new HarmonyTestAgent({ deviceId: 'YOUR_DEVICE_ID' });
-const outcome = await agent.run('在浏览器中搜索 Headphones');
-console.log(outcome.ok, outcome.message, outcome.reportFile);
+// 鸿蒙
+const harmony = new MidsceneTestAgent({ devicePlatform: 'harmonyos' });
+await harmony.run('打开设置');
+
+// Android
+const android = new MidsceneTestAgent({ devicePlatform: 'android' });
+await android.run('打开浏览器并搜索 Headphones');
 ```
+
+`HarmonyTestAgent` 为 `MidsceneTestAgent` 的兼容别名。
 
 ## 目录说明
 
 | 路径 | 说明 |
 |------|------|
-| `src/agent.ts` | `HarmonyTestAgent` 封装 |
-| `src/cli.ts` | 命令行入口 |
-| `src/hdc.ts` | HDC 检测与设备解析 |
-| `scripts/demo-settings.ts` | 设置应用示例 |
+| `src/agent.ts` | `MidsceneTestAgent` 跨平台封装 |
+| `src/device_runtime.ts` | Android / 鸿蒙 Device+Agent 创建 |
+| `src/platform.ts` | `DevicePlatform`、`AgentBackend` 解析 |
+| `src/cli.ts` | CLI；`--web-dispatch` 供 Web 后端 |
+| `src/web_dispatch.ts` | Web 下发 JSON 协议 |
+| `src/yaml_runner.ts` | YAML 脚本执行 |
+| `src/hdc.ts` | HDC 工具链 |
+| `scripts/demo-settings.ts` | 鸿蒙设置应用示例 |
 
 ## 相关文档
 
+- [Android Getting Started](https://midscenejs.com/android-getting-started)
 - [HarmonyOS Getting Started](https://midscenejs.com/harmony-getting-started)
-- [HarmonyOS API Reference](https://midscenejs.com/harmony-api-reference)
-- [官方 JS Demo](https://github.com/web-infra-dev/midscene-example/tree/main/harmony/javascript-sdk-demo)
+- [Model configuration](https://midscenejs.com/model-config)
+- [Android JS Demo](https://github.com/web-infra-dev/midscene-example/tree/main/android/javascript-sdk-demo)
+- [Harmony JS Demo](https://github.com/web-infra-dev/midscene-example/tree/main/harmony/javascript-sdk-demo)

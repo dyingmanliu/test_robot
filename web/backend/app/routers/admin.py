@@ -69,6 +69,7 @@ def approve_rental_order(
                 display_bio="",
                 status="active",
                 test_agent_backend=body.test_agent_backend,
+                device_platform=body.device_platform,
             )
         )
     row.status = "approved"

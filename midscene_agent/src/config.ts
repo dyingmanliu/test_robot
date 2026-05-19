@@ -1,6 +1,12 @@
-/** Load Midscene / HDC config from environment (repo root `.env` preferred). */
+/** Load Midscene / 设备平台 / 模型配置（优先仓库根目录 `.env`）。 */
 
 import { config as loadDotenv } from 'dotenv';
+import {
+  type AgentBackend,
+  type DevicePlatform,
+  parseAgentBackend,
+  parseDevicePlatform,
+} from './platform.js';
 import { existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -19,15 +25,16 @@ if (existsSync(rootEnv)) {
 }
 
 export interface MidsceneAgentConfig {
-  /** HDC 设备 serial；不设则使用 `hdc list targets` 第一台 */
+  /** 目标设备平台 */
+  devicePlatform?: DevicePlatform;
+  /** 执行引擎（Web 下发 autoglm 时在鸿蒙/Android 上复用智谱模型） */
+  agentBackend?: AgentBackend;
+  /** 设备 ID：鸿蒙为 HDC serial，Android 为 adb udid */
   deviceId?: string;
-  /** HDC 可执行文件所在目录（对应 HDC_HOME 或 HarmonyDevice hdcPath） */
+  /** HDC 可执行文件所在目录（鸿蒙） */
   hdcHome?: string;
-  /** 输入完成后是否自动收起键盘（部分输入框监听 BACK 会清空内容时可设为 false） */
   autoDismissKeyboard?: boolean;
-  /** 传给 HarmonyAgent 的 aiActionContext，帮助模型理解鸿蒙场景 */
   aiActionContext?: string;
-  /** 是否在控制台打印 Midscene 报告路径等 */
   verbose?: boolean;
 }
 
@@ -37,8 +44,28 @@ export function loadAgentConfig(
   const truthy = (v: string | undefined) =>
     v !== undefined && ['1', 'true', 'yes', 'on'].includes(v.toLowerCase());
 
+  const devicePlatform =
+    overrides.devicePlatform ??
+    parseDevicePlatform(process.env.MIDSCENE_DEVICE_PLATFORM);
+
+  const defaultContext =
+    devicePlatform === 'android'
+      ? 'Android 真机/模拟器。系统语言可能为中文。若出现权限或协议弹窗，按任务需要同意或关闭。'
+      : 'HarmonyOS 6.0 真机/模拟器。系统语言可能为中文。若出现权限或协议弹窗，按任务需要同意或关闭。';
+
+  const deviceId =
+    overrides.deviceId ??
+    (devicePlatform === 'android'
+      ? process.env.ADB_DEVICE_ID
+      : process.env.HDC_DEVICE_ID) ??
+    undefined;
+
   return {
-    deviceId: overrides.deviceId ?? process.env.HDC_DEVICE_ID ?? undefined,
+    devicePlatform,
+    agentBackend:
+      overrides.agentBackend ??
+      parseAgentBackend(process.env.MIDSCENE_AGENT_BACKEND),
+    deviceId,
     hdcHome: overrides.hdcHome ?? process.env.HDC_HOME ?? undefined,
     autoDismissKeyboard:
       overrides.autoDismissKeyboard ??
@@ -48,9 +75,27 @@ export function loadAgentConfig(
     aiActionContext:
       overrides.aiActionContext ??
       process.env.MIDSCENE_AI_ACTION_CONTEXT ??
-      'HarmonyOS 6.0 真机/模拟器。系统语言可能为中文。若出现权限或协议弹窗，按任务需要同意或关闭。',
+      defaultContext,
     verbose: overrides.verbose ?? !truthy(process.env.MIDSCENE_QUIET),
   };
+}
+
+/** AutoGLM 引擎走 Midscene 设备层时，强制使用智谱等 AutoGLM 模型配置 */
+export function applyAgentBackendModelEnv(backend: AgentBackend): void {
+  if (backend !== 'autoglm') return;
+  const apiKey =
+    process.env.BIGMODEL_API_KEY?.trim() || process.env.ZHIPU_API_KEY?.trim();
+  if (!apiKey) return;
+  process.env.MIDSCENE_MODEL_API_KEY = apiKey;
+  process.env.MIDSCENE_MODEL_BASE_URL =
+    process.env.OPENAI_BASE_URL?.trim() ||
+    'https://open.bigmodel.cn/api/paas/v4';
+  if (!process.env.MIDSCENE_MODEL_NAME?.trim()) {
+    process.env.MIDSCENE_MODEL_NAME = 'glm-4.6v';
+  }
+  if (!process.env.MIDSCENE_MODEL_FAMILY?.trim()) {
+    process.env.MIDSCENE_MODEL_FAMILY = 'glm-v';
+  }
 }
 
 /** 若未单独配置 Midscene，则从 Web/AutoGLM 共用的智谱等变量推导（见 model-common-config） */

@@ -43,7 +43,9 @@
             <td class="mono strong">{{ r.instance_code }}</td>
             <td>{{ r.display_name || "—" }}</td>
             <td><span class="pill">{{ r.catalog_robot_id }}</span></td>
-            <td class="muted small">{{ engineLabel(r.test_agent_backend) }}</td>
+            <td class="muted small">
+              {{ engineLabel(r.test_agent_backend) }} · {{ platformLabel(r.device_platform) }}
+            </td>
             <td>{{ r.status }}</td>
             <td class="muted small mono">{{ r.leasing_user_id }}</td>
             <td class="muted small">{{ fmt(r.created_at) }}</td>
@@ -81,6 +83,11 @@ function engineLabel(backend) {
   const b = String(backend || "autoglm").toLowerCase();
   if (b === "midscene") return "Midscene";
   return "AutoGLM";
+}
+
+function platformLabel(platform) {
+  const p = String(platform || "android").toLowerCase();
+  return p === "harmonyos" ? "鸿蒙" : "Android";
 }
 
 function fmt(iso) {
