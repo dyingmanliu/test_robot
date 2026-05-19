@@ -1,0 +1,4 @@
+# Mac Apple Silicon：MLX 推理依赖（需 Python >= 3.10，推荐 3.11）
+# 安装：pip install -r requirements-mlx.txt
+mlx-vlm>=0.3.0
+huggingface_hub>=0.25.0

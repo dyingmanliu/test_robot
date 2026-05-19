@@ -24,6 +24,7 @@ import MyRobotsView from "@/views/MyRobotsView.vue";
 import MyRobotDetailView from "@/views/MyRobotDetailView.vue";
 import MyRentalApplicationsView from "@/views/MyRentalApplicationsView.vue";
 import RunExecutionLiveView from "@/views/RunExecutionLiveView.vue";
+import MaiUiStudioView from "@/views/MaiUiStudioView.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -34,6 +35,12 @@ const router = createRouter({
       path: "/runs/:runId/live",
       name: "runExecutionLive",
       component: RunExecutionLiveView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/mai-ui",
+      name: "maiUiStudio",
+      component: MaiUiStudioView,
       meta: { requiresAuth: true },
     },
     { path: "/profile", name: "profile", component: ProfileView, meta: { requiresAuth: true } },
