@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mai-ui-agent"
+version = "0.1.0"
+description = "Local MAI-UI-2B grounding agent for APP screenshots"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "openai>=1.40.0",
+  "Pillow>=10.0.0",
+  "python-dotenv>=1.0.0",
+  "httpx>=0.27.0",
+]
+
+[project.scripts]
+mai-ui = "mai_ui_tech.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["mai_ui_tech*"]

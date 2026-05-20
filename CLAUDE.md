@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Mobile device test automation platform with a Web UI (Vue + FastAPI). **Digital robots** are grouped by **business role** in the marketplace: **test analysis** (case generation, no device) vs **test execution** (runs cases on real devices). The **test execution** role is implemented by **two technical routes** today—**AutoGLM** (`autoglm_phone_agent`, in-process Python) and **Midscene** (`midscene_agent`, subprocess + visual model)—selected per robot instance via `test_agent_backend` × `device_platform` in `executor.py`. **Test analysis** maps to `analysis_agent/` and `case_generation.py`. Additional marketplace roles (e.g. specialized or quality-assessment robots) are expected to add **separate agent packages and routes** over time; see `ARCHITECTURE.md` §1.0 and §4.
+Mobile device test automation platform with a Web UI (Vue + FastAPI). **Digital robots** are grouped by **business role** in the marketplace: **test analysis** (case generation, no device) vs **test execution** (runs cases on real devices). The **test execution** role is implemented by **two technical routes** today—**AutoGLM** (`autoglm_phone_tech`, in-process Python) and **Midscene** (`midscene_tech`, subprocess + visual model)—selected per robot instance via `test_agent_backend` × `device_platform` in `executor.py`. **Test analysis** maps to `agent_service/analysis_agent/` and `case_generation.py`. Additional marketplace roles (e.g. specialized or quality-assessment robots) are expected to add **separate agent packages and routes** under `agent_service/`; see `ARCHITECTURE.md` §1.0 and §4.
 
 ## Development Commands
 
@@ -30,7 +30,7 @@ npm run build        # production build
 
 ### Midscene Agent (TypeScript)
 ```bash
-cd midscene_agent
+cd midscene_tech
 npm install
 npm run task -- "task description"     # CLI execution
 npm run typecheck                       # tsc --noEmit
@@ -39,8 +39,8 @@ npm run typecheck                       # tsc --noEmit
 ### AutoGLM Agent (Python)
 ```bash
 pip install -r requirements.txt
-python main.py "task description"
-python main.py --device-type hdc "task for HarmonyOS"
+python -m agent_service.func_agent.cli "task description"
+python -m agent_service.func_agent.cli --device-type hdc "task for HarmonyOS"
 ```
 
 ## Architecture
@@ -49,30 +49,30 @@ python main.py --device-type hdc "task for HarmonyOS"
 
 For **test execution** robot instances, each instance combines **`test_agent_backend`** (`autoglm` | `midscene`) with **`device_platform`** (`android` | `harmonyos`), yielding four concrete paths. Routing is in `web/backend/app/executor.py` and `web/backend/app/services/device_platform.py`.
 
-- **AutoGLM route** (`autoglm_phone_agent`) runs **in-process** — the backend imports and calls `PhoneTestAgent` directly.
-- **Midscene route** (`midscene_agent`) runs as a **subprocess** — the backend spawns `tsx src/cli.ts --web-dispatch` and communicates via stdin JSON / stdout JSON lines.
+- **AutoGLM route** (`autoglm_phone_tech`) runs **in-process** — the backend imports and calls `PhoneTestAgent` directly.
+- **Midscene route** (`midscene_tech`) runs as a **subprocess** — the backend spawns `tsx src/cli.ts --web-dispatch` and communicates via stdin JSON / stdout JSON lines.
 
-### Test analysis robot agent (`analysis_agent/`)
+### Test analysis robot agent (`agent_service/analysis_agent/`)
 
 Separate from **test execution** (no `executor` / no device); in-process LLM import from `case_generation.py` (not the same code path as `PhoneTestAgent`).
 
-- **Package**: `analysis_agent/` — `AnalysisAgent`, `model/client.py`, `config/`, `parser.py` (LLM output is always **structured**)
+- **Package**: `agent_service/analysis_agent/` — `AnalysisAgent`, `model/client.py`, `config/`, `parser.py` (LLM output is always **structured**)
 - **Web bridge**: `case_generation.py` — KB + ORM → `AnalysisAgent.generate_case_draft()`; optional `case_format=yaml` → `case_format_convert.structured_to_yaml()`
 - **Format convert**: `case_format_convert.py` — structured ↔ Midscene YAML; `POST /api/test-cases/convert-format` for edit-dialog switching
 - **API**: `POST /api/test-cases/generate` (body: `project_id`, `robot_instance_id` for test-analysis instance, `prompt`, optional `case_format`); draft only, no DB write
-- **Env**: `CASE_GEN_*` in repo root `.env` (see `analysis_agent/README.md`)
+- **Env**: `CASE_GEN_*` in repo root `.env` (see `agent_service/analysis_agent/README.md`)
 - **E2E**: Case generation (test analysis robot + `generate` → save `test_cases`) is separate from **test execution** (execution robot + `POST …/run` → `test_runs`). Full collaboration flow: README end-to-end section and `ARCHITECTURE.md` §1.0, §1.4, §4.
 
 ### Directory Layout
 
 ```
-main.py                       # AutoGLM CLI entrypoint
-analysis_agent/               # Test analysis robot agent: NL → structured draft
-autoglm_phone_agent/          # Test execution · AutoGLM route (LLM-driven device automation)
-  agent.py                    #   observe-reason-execute loop
-  device_factory.py           #   AdbBridge / HdcBridge abstraction
+agent_service/func_agent/cli.py             # Functional test CLI entrypoint
+agent_service/analysis_agent/               # Test analysis robot agent: NL → structured draft
+autoglm_phone_tech/          # Test execution · AutoGLM route (LLM-driven device automation)
+  model/client.py             #   model client/resources
+  device/device_factory.py    #   AdbBridge / HdcBridge abstraction
   actions/handler.py          #   action dispatch
-midscene_agent/               # Test execution · Midscene route (visual-driven automation)
+midscene_tech/               # Test execution · Midscene route (visual-driven automation)
   src/cli.ts                  #   CLI + --web-dispatch mode
   src/agent.ts                #   MidsceneTestAgent
   src/yaml_runner.ts          #   YAML test case runner

@@ -114,7 +114,7 @@ def capture_harmony_screen(
 def capture_android_screen(*, device_id: str | None = None) -> DeviceScreenFrame:
     load_dotenv(_REPO_ROOT / ".env")
     os.chdir(_REPO_ROOT)
-    from autoglm_phone_agent.device.adb_bridge import AdbBridge
+    from autoglm_phone_tech.device.adb_bridge import AdbBridge
 
     dev = device_id or os.getenv("ADB_DEVICE_ID") or None
     shot = AdbBridge(device_id=dev).get_screenshot()

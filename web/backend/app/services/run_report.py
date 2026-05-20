@@ -8,7 +8,7 @@ from fastapi import HTTPException, status
 
 # .../web/backend/app/services/run_report.py -> parents[4] 为仓库根目录
 _REPO_ROOT = Path(__file__).resolve().parents[4]
-_MIDSCENE_ROOT = _REPO_ROOT / "midscene_agent"
+_MIDSCENE_ROOT = _REPO_ROOT / "midscene_tech"
 _MIDSCENE_RUN_ROOT = _MIDSCENE_ROOT / "midscene_run"
 
 # 允许提供下载的报告必须位于这些目录之下（防路径穿越）

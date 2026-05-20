@@ -1,5 +1,0 @@
-# mai_ui_agent — 调用本地 OpenAI 兼容推理服务（Ollama / vllm-mlx 等）
-openai>=1.40.0
-Pillow>=10.0.0
-python-dotenv>=1.0.0
-httpx>=0.27.0

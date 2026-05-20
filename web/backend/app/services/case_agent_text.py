@@ -92,7 +92,7 @@ def _split_compound_midscene_description(desc: str) -> list[str]:
     return [d]
 
 
-def build_midscene_agent_steps(
+def build_midscene_tech_steps(
     *,
     task_text: str,
     preconditions: str,

@@ -2,9 +2,6 @@ from __future__ import annotations
 
 import json
 import os
-import queue
-import shutil
-import subprocess
 import sys
 import threading
 import traceback
@@ -17,6 +14,8 @@ import logging
 from dotenv import load_dotenv
 from sqlalchemy.orm import Session
 
+from agent_service.func_agent.core import FuncAgentDispatch
+from agent_service.func_agent.orchestrator import run_func_agent_dispatch
 from app.services.llm_usage_log import log_midscene_machine_line
 
 log = logging.getLogger("app.executor")
@@ -45,217 +44,8 @@ def signal_cancel(run_id: int) -> bool:
     return True
 
 
-def run_phone_agent_task(
-    task: str,
-    *,
-    device_platform: str = "android",
-    device_id: str | None = None,
-    on_step: Callable[[int, Any], None] | None = None,
-    should_cancel: Callable[[], bool] | None = None,
-):
-    """Runs PhoneTestAgent in-process (blocking). Supports Android (ADB) and HarmonyOS (HDC)."""
-    load_dotenv(_REPO_ROOT / ".env")
-    os.chdir(_REPO_ROOT)
-
-    from autoglm_phone_agent.agent import AgentConfig, PhoneTestAgent
-    from autoglm_phone_agent.device.platform import DevicePlatform
-    from autoglm_phone_agent.model.client import ModelConfig
-
-    api_key = os.getenv("BIGMODEL_API_KEY") or os.getenv("ZHIPU_API_KEY")
-    if not api_key:
-        raise RuntimeError("请配置 BIGMODEL_API_KEY 或 ZHIPU_API_KEY（环境变量或项目根目录 .env）")
-
-    from app.services.device_platform import resolve_execution_device_id
-
-    plat = DevicePlatform.parse(device_platform)
-    resolved_device_id = resolve_execution_device_id(
-        run_device_id=device_id,
-        device_platform=plat.value,
-    )
-
-    model_config = ModelConfig(
-        base_url=os.getenv("OPENAI_BASE_URL", "https://open.bigmodel.cn/api/paas/v4"),
-        api_key=api_key,
-        model_name=os.getenv("PHONE_AGENT_MODEL", "autoglm-phone"),
-    )
-    agent_config = AgentConfig(
-        max_steps=int(os.getenv("PHONE_AGENT_MAX_STEPS", "100")),
-        device_id=resolved_device_id,
-        device_platform=plat.value,
-        verbose=False,
-    )
-    agent = PhoneTestAgent(
-        model_config=model_config,
-        agent_config=agent_config,
-        print_model_stream=False,
-    )
-    return agent.run(task.strip(), on_step=on_step, should_cancel=should_cancel)
-
-
-def _build_midscene_cli_cmd(mid_root: Path, cli_rel: Path) -> list[str]:
-    """启动 Midscene CLI。
-
-    优先 ``node --import tsx``，避免直接跑 ``tsx`` 时在 Cursor/沙箱环境
-    对 ``/var/folders/.../tsx-*/\*.pipe`` 执行 listen 触发 EPERM。
-    """
-    node = shutil.which("node") or "node"
-    cli = str(cli_rel)
-    loader = mid_root / "node_modules" / "tsx" / "dist" / "loader.mjs"
-    if loader.is_file():
-        return [node, f"--import={loader}", cli, "--web-dispatch"]
-    local_tsx = mid_root / "node_modules" / ".bin" / "tsx"
-    if local_tsx.is_file():
-        return [str(local_tsx), cli, "--web-dispatch"]
-    if tsx_which := shutil.which("tsx"):
-        return [tsx_which, str(mid_root / cli_rel), "--web-dispatch"]
-    npx = os.getenv("TCM_NPX_BIN", "npx")
-    return [npx, "--yes", "tsx", cli, "--web-dispatch"]
-
-
-def run_midscene_agent_task(
-    dispatch: dict[str, Any],
-    *,
-    on_machine_line: Callable[[dict[str, Any]], None] | None = None,
-    should_cancel: Callable[[], bool] | None = None,
-    log_run_id: int | None = None,
-) -> tuple[bool, str, str | None]:
-    """通过子进程运行 midscene_agent CLI（--web-dispatch：stdin 为 Web 下发 JSON）。
-
-    返回 (成功与否, 结果说明, Midscene HTML 报告路径或 None)。
-    """
-    load_dotenv(_REPO_ROOT / ".env")
-    mid_root = _REPO_ROOT / "midscene_agent"
-    cli_rel = Path("src/cli.ts")
-    if not (mid_root / cli_rel).is_file():
-        raise RuntimeError(f"未找到 Midscene CLI：{mid_root / cli_rel}")
-
-    cmd = _build_midscene_cli_cmd(mid_root, cli_rel)
-
-    env = {**os.environ}
-    env.setdefault("FORCE_COLOR", "0")
-    platform = str(dispatch.get("device_platform") or "harmonyos").strip().lower()
-    env["MIDSCENE_DEVICE_PLATFORM"] = platform
-    dispatch_device_id = (str(dispatch.get("device_id") or "")).strip()
-    if dispatch_device_id:
-        if platform in ("harmonyos", "harmony", "hmos", "ohos"):
-            env["HDC_DEVICE_ID"] = dispatch_device_id
-        else:
-            env["ADB_DEVICE_ID"] = dispatch_device_id
-    agent_backend = str(dispatch.get("agent_backend") or "midscene").strip().lower()
-    if agent_backend == "autoglm":
-        env["MIDSCENE_AGENT_BACKEND"] = "autoglm"
-    proc = subprocess.Popen(
-        cmd,
-        cwd=str(mid_root),
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        bufsize=1,
-        env=env,
-    )
-    assert proc.stdin is not None and proc.stdout is not None
-
-    stdin_payload = json.dumps(dispatch, ensure_ascii=False, default=str) + "\n"
-
-    def write_stdin() -> None:
-        try:
-            proc.stdin.write(stdin_payload)
-            proc.stdin.close()
-        except BrokenPipeError:
-            pass
-
-    threading.Thread(target=write_stdin, daemon=True).start()
-
-    line_q: queue.Queue[str | None] = queue.Queue()
-
-    def reader() -> None:
-        try:
-            for raw in iter(proc.stdout.readline, ""):
-                line_q.put(raw)
-        finally:
-            line_q.put(None)
-
-    threading.Thread(target=reader, daemon=True).start()
-
-    final_ok: bool | None = None
-    final_message = ""
-    final_report_file: str | None = None
-    non_json_lines: list[str] = []
-
-    def process_line(raw: str) -> None:
-        nonlocal final_ok, final_message, final_report_file
-        line = raw.strip()
-        if not line:
-            return
-        try:
-            obj: dict[str, Any] = json.loads(line)
-        except json.JSONDecodeError:
-            non_json_lines.append(line)
-            return
-        if obj.get("kind") == "model_usage":
-            log_midscene_machine_line(obj, run_id=log_run_id)
-        if on_machine_line:
-            on_machine_line(obj)
-        if obj.get("kind") == "done":
-            final_ok = bool(obj.get("ok"))
-            final_message = str(obj.get("message") or "")
-            rf = obj.get("reportFile")
-            if rf is not None and str(rf).strip():
-                final_report_file = str(rf).strip()
-
-    while True:
-        if should_cancel and should_cancel():
-            proc.terminate()
-            try:
-                proc.wait(timeout=15)
-            except subprocess.TimeoutExpired:
-                proc.kill()
-            return False, "执行已取消", None
-
-        try:
-            raw = line_q.get(timeout=0.35)
-        except queue.Empty:
-            if proc.poll() is not None:
-                while True:
-                    try:
-                        r = line_q.get_nowait()
-                    except queue.Empty:
-                        break
-                    if r is None:
-                        break
-                    process_line(r)
-                break
-            continue
-
-        if raw is None:
-            break
-        process_line(raw)
-
-    try:
-        proc.wait(timeout=5)
-    except subprocess.TimeoutExpired:
-        proc.kill()
-        proc.wait(timeout=5)
-
-    if final_ok is not None:
-        return final_ok, final_message, final_report_file
-
-    code = proc.returncode if proc.returncode is not None else -1
-    detail = ""
-    for candidate in reversed(non_json_lines):
-        if candidate.startswith("Error:"):
-            detail = candidate.removeprefix("Error:").strip()
-            break
-    if not detail and non_json_lines:
-        detail = non_json_lines[-1][:500]
-    if detail:
-        return False, detail, None
-    return False, f"Midscene 子进程异常结束（exit {code}），未收到结果行", None
-
-
 def execute_test_run(db: Session, run_id: int) -> None:
-    from autoglm_phone_agent.agent import StepResult
+    from agent_service.func_agent.backends.autoglm.agent import StepResult
     from app.models import RobotInstance, TestCase, TestRun
 
     cancel_ev = _run_cancel_events.setdefault(run_id, threading.Event())
@@ -489,7 +279,7 @@ def execute_test_run(db: Session, run_id: int) -> None:
             ),
         )
 
-    from app.services.case_agent_text import build_agent_task_text, build_midscene_agent_steps
+    from app.services.case_agent_text import build_agent_task_text, build_midscene_tech_steps
 
     preconditions = getattr(case, "preconditions", "") or ""
     steps_json = getattr(case, "steps_json", None) or "[]"
@@ -498,7 +288,7 @@ def execute_test_run(db: Session, run_id: int) -> None:
         preconditions=preconditions,
         steps_json=steps_json,
     )
-    midscene_agent_steps = build_midscene_agent_steps(
+    midscene_tech_steps = build_midscene_tech_steps(
         task_text=case.task_text,
         preconditions=preconditions,
         steps_json=steps_json,
@@ -554,12 +344,12 @@ def execute_test_run(db: Session, run_id: int) -> None:
                     "agent_task": agent_task,
                     "case_format": "structured",
                 }
-                if midscene_agent_steps:
-                    web_dispatch["agent_steps"] = midscene_agent_steps
+                if midscene_tech_steps:
+                    web_dispatch["agent_steps"] = midscene_tech_steps
                     log.info(
                         "Midscene 拆步执行 run_id=%s steps=%s",
                         run_id,
-                        len(midscene_agent_steps),
+                        len(midscene_tech_steps),
                     )
         elif backend == "autoglm":
             web_dispatch = None
@@ -581,11 +371,16 @@ def execute_test_run(db: Session, run_id: int) -> None:
         if use_midscene and web_dispatch is not None:
             from app.services.run_report import normalize_report_path
 
-            ok, msg, report_file = run_midscene_agent_task(
-                web_dispatch,
-                on_machine_line=midscene_obj_to_step,
+            ok, msg, report_file = run_func_agent_dispatch(
+                FuncAgentDispatch(
+                    backend=backend,
+                    device_platform=platform,
+                    device_id=device_id,
+                    payload=web_dispatch,
+                ),
+                on_midscene_line=midscene_obj_to_step,
                 should_cancel=should_cancel,
-                log_run_id=run_id,
+                log_midscene_usage=lambda obj: log_midscene_machine_line(obj, run_id=run_id),
             )
             row = db.query(TestRun).filter(TestRun.id == run_id).first()
             if row:
@@ -601,11 +396,14 @@ def execute_test_run(db: Session, run_id: int) -> None:
                     row.output_message = msg
                     row.error_trace = None
         elif web_dispatch is None:
-            outcome = run_phone_agent_task(
-                agent_task,
-                device_platform=platform,
-                device_id=device_id,
-                on_step=on_autoglm_step,
+            outcome = run_func_agent_dispatch(
+                FuncAgentDispatch(
+                    backend=backend,
+                    device_platform=platform,
+                    device_id=device_id,
+                    payload={"agent_task": agent_task},
+                ),
+                on_autoglm_step=on_autoglm_step,
                 should_cancel=should_cancel,
             )
             row = db.query(TestRun).filter(TestRun.id == run_id).first()

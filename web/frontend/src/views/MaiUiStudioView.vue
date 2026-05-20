@@ -4,7 +4,7 @@
       <h1>MAI-UI 识图</h1>
       <p class="hint">
         上传 APP 截图，自动识别<strong>当前页面全部菜单</strong>（顶部标题栏/顶栏 Tab、底部 Tab、侧栏等），无需手动指定。请先启动
-        <code>mai_ui_agent/scripts/serve_grounding_mlx.sh</code>。
+        <code>mai_ui_tech/scripts/serve_grounding_mlx.sh</code>。
       </p>
     </header>
 

@@ -1,4 +1,4 @@
-"""Web 适配层：组装 ORM / KB 上下文，调用 analysis_agent（同进程，对齐 executor → autoglm_phone_agent）。"""
+"""Web 适配层：组装 ORM / KB 上下文，调用 analysis_agent（同进程，对齐 executor → autoglm_phone_tech）。"""
 
 from __future__ import annotations
 
@@ -29,8 +29,8 @@ _REPO_ROOT = Path(__file__).resolve().parents[4]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from analysis_agent import AnalysisAgent, AnalysisAgentError, CaseDraft, ProjectContext
-from analysis_agent.config import kb_enabled, kb_limit
+from agent_service.analysis_agent import AnalysisAgent, AnalysisAgentError, CaseDraft, ProjectContext
+from agent_service.analysis_agent.config import kb_enabled, kb_limit
 
 # 兼容旧引用
 CaseGeneratorError = AnalysisAgentError
