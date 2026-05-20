@@ -201,18 +201,18 @@
       <table class="table">
         <thead>
           <tr>
-            <th class="narrow">选择</th>
-            <th>标题</th>
-            <th>优先级</th>
-            <th>格式</th>
-            <th>步骤</th>
-            <th>执行说明</th>
-            <th class="narrow">操作</th>
+            <th class="col-select">选择</th>
+            <th class="col-title">标题</th>
+            <th class="col-priority">优先级</th>
+            <th class="col-format">格式</th>
+            <th class="col-steps">步骤</th>
+            <th class="col-desc">执行说明</th>
+            <th class="col-ops">操作</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="c in cases" :key="c.id">
-            <td>
+            <td class="col-select">
               <input
                 type="radio"
                 name="case-run-select"
@@ -220,12 +220,12 @@
                 v-model.number="selectedCaseId"
               />
             </td>
-            <td>{{ c.title }}</td>
-            <td>{{ c.priority || "—" }}</td>
-            <td class="muted small">{{ formatLabel(c.case_format) }}</td>
-            <td class="muted small">{{ stepPreview(c) }}</td>
-            <td class="task">{{ truncate(c.task_text, 80) }}</td>
-            <td class="ops">
+            <td class="col-title" :title="c.title">{{ c.title }}</td>
+            <td class="col-priority">{{ c.priority || "—" }}</td>
+            <td class="col-format muted small">{{ formatLabel(c.case_format) }}</td>
+            <td class="col-steps muted small">{{ stepPreview(c) }}</td>
+            <td class="col-desc task">{{ truncate(c.task_text, 80) }}</td>
+            <td class="col-ops ops">
               <button type="button" class="linkish" @click="openEdit(c)">编辑</button>
               <button type="button" class="linkish" @click="openVersions(c)">版本</button>
               <button type="button" class="linkish danger" @click="remove(c)">删除</button>
@@ -2105,6 +2105,7 @@ onUnmounted(() => {
 
 .table {
   width: 100%;
+  min-width: 52rem;
   border-collapse: collapse;
   font-size: 0.95rem;
 }
@@ -2120,10 +2121,54 @@ onUnmounted(() => {
 .table th {
   background: #f8fafc;
   font-weight: 600;
+  white-space: nowrap;
 }
 
-.narrow {
-  width: 42px;
+.col-select {
+  width: 3.25rem;
+  min-width: 3.25rem;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.col-select input {
+  vertical-align: middle;
+}
+
+.col-title {
+  min-width: 12rem;
+  max-width: 22rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.col-priority {
+  width: 4.5rem;
+  min-width: 4.5rem;
+  white-space: nowrap;
+}
+
+.col-format {
+  width: 4.5rem;
+  min-width: 4.5rem;
+  white-space: nowrap;
+}
+
+.col-steps {
+  width: 4rem;
+  min-width: 4rem;
+  white-space: nowrap;
+}
+
+.col-desc {
+  min-width: 10rem;
+}
+
+.col-ops {
+  width: 1%;
+  min-width: 9rem;
+  white-space: nowrap;
 }
 
 .task {
