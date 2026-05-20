@@ -2,7 +2,7 @@
 
 测试用例**分析 / 编写** Agent：将用户一句话转为 **structured** 用例草稿（标题、前置条件、步骤、执行说明）。
 
-与 `autoglm_phone_agent`（设备执行）并列，由 Web 后端**同进程**导入调用，不操作手机。
+与 `autoglm_phone_tech`（设备执行）并列，由 Web 后端**同进程**导入调用，不操作手机。
 
 **说明**：本包不生成 Midscene YAML。若 Web 端请求 `case_format=yaml` 或用户在编辑弹窗切换为 YAML，由 `web/backend/app/services/case_format_convert.py` 在 structured 字段与 `tasks:` 脚本之间做规则转换（见根目录 `ARCHITECTURE.md` §1.3）。
 

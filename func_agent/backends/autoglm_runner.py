@@ -22,8 +22,8 @@ def run_autoglm_task(
     os.chdir(_REPO_ROOT)
 
     from func_agent.backends.autoglm.agent import AgentConfig, PhoneTestAgent
-    from autoglm_phone_agent.device.platform import DevicePlatform
-    from autoglm_phone_agent.model.client import ModelConfig
+    from autoglm_phone_tech.device.platform import DevicePlatform
+    from autoglm_phone_tech.model.client import ModelConfig
     from app.services.device_platform import resolve_execution_device_id
 
     api_key = os.getenv("BIGMODEL_API_KEY") or os.getenv("ZHIPU_API_KEY")

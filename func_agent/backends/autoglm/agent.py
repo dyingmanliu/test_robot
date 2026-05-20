@@ -7,11 +7,11 @@ import traceback
 from dataclasses import dataclass
 from typing import Any, Callable, Optional
 
-from autoglm_phone_agent.actions.handler import ActionHandler, parse_action
-from autoglm_phone_agent.config import get_system_prompt
-from autoglm_phone_agent.device.device_factory import DeviceBridge, create_device
-from autoglm_phone_agent.device.platform import DevicePlatform
-from autoglm_phone_agent.model.client import MessageBuilder, ModelClient, ModelConfig
+from autoglm_phone_tech.actions.handler import ActionHandler, parse_action
+from autoglm_phone_tech.config import get_system_prompt
+from autoglm_phone_tech.device.device_factory import DeviceBridge, create_device
+from autoglm_phone_tech.device.platform import DevicePlatform
+from autoglm_phone_tech.model.client import MessageBuilder, ModelClient, ModelConfig
 
 
 @dataclass

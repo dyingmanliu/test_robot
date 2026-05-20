@@ -1,4 +1,4 @@
-"""Web 适配层：组装 ORM / KB 上下文，调用 analysis_agent（同进程，对齐 executor → autoglm_phone_agent）。"""
+"""Web 适配层：组装 ORM / KB 上下文，调用 analysis_agent（同进程，对齐 executor → autoglm_phone_tech）。"""
 
 from __future__ import annotations
 

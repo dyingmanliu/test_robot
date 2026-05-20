@@ -65,7 +65,7 @@ def configure_logging() -> None:
                 "app.executor": {"level": level, "handlers": [], "propagate": True},
                 "app.case_generation": {"level": level, "handlers": [], "propagate": True},
                 "analysis_agent": {"level": level, "handlers": [], "propagate": True},
-                "autoglm_phone_agent": {"level": level, "handlers": [], "propagate": True},
+                "autoglm_phone_tech": {"level": level, "handlers": [], "propagate": True},
                 "sqlalchemy.engine": {"level": sql_level, "handlers": [], "propagate": True},
             },
         },

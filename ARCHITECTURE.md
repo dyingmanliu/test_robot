@@ -11,10 +11,10 @@ Web 将租用的**数字机器人实例**按商城 **功能定位（`catalog_rob
 | 业务定位（示例） | 代码侧 Agent | 说明 |
 |------------------|--------------|------|
 | **测试分析机器人** | `analysis_agent/` | 用例生成、自然语言 → structured 等；**不连接真机**；在 Web 后端进程内调 LLM（`CASE_GEN_*`） |
-| **测试执行机器人（func_agent）** | `func_agent/`（内含 `autoglm_phone_agent/` 与 `midscene_agent/` 技术后端） | **同一业务定位下的两条技术路线**：LLM 驱动 UI（智谱 AutoGLM-Phone）与视觉驱动 UI（Midscene.js）。由实例字段 **`test_agent_backend`**（`autoglm` \| `midscene`）与 **`device_platform`** 在 `executor.py` 中择路；均经 ADB/HDC 操作真机 |
+| **测试执行机器人（func_agent）** | `func_agent/`（内含 `autoglm_phone_tech/` 与 `midscene_tech/` 技术后端） | **同一业务定位下的两条技术路线**：LLM 驱动 UI（智谱 AutoGLM-Phone）与视觉驱动 UI（Midscene.js）。由实例字段 **`test_agent_backend`**（`autoglm` \| `midscene`）与 **`device_platform`** 在 `executor.py` 中择路；均经 ADB/HDC 操作真机 |
 | **其他功能定位**（专项执行、质量评估等） | 未来各自 **独立 Agent 包 + 路由/服务** | 与 `case_generation`、`executor` 平行扩展；本架构图以虚线占位，不展开具体实现 |
 
-**要点**：`autoglm_phone_agent` 与 `midscene_agent` 在业务上统一归属 **`func_agent`（功能测试机器人）**，不是与「测试分析」并列的第三、第四种「机器人类型」；后续若增加新的测试执行技术路线，仍在 `func_agent` 域内扩展并由 `executor` 分支选择。
+**要点**：`autoglm_phone_tech` 与 `midscene_tech` 在业务上统一归属 **`func_agent`（功能测试机器人）**，不是与「测试分析」并列的第三、第四种「机器人类型」；后续若增加新的测试执行技术路线，仍在 `func_agent` 域内扩展并由 `executor` 分支选择。
 
 本仓库还包含：
 
@@ -22,11 +22,13 @@ Web 将租用的**数字机器人实例**按商城 **功能定位（`catalog_rob
 
 2. **`func_agent/`（Python）** — **功能测试机器人统一业务域**：向 `executor` 暴露统一调度入口；内部编排两条后端路线（AutoGLM / Midscene）。
 
-3. **`autoglm_phone_agent/`（Python）** 与 **`midscene_agent/`（Node）** — **func_agent 技术后端实现**：前者为观察→推理→执行（ADB/HDC），后者为视觉自动化（`@midscene/android` / `@midscene/harmony`，Web 子进程 `--web-dispatch`）。
+3. **`autoglm_phone_tech/`（Python）** 与 **`midscene_tech/`（Node）** — **func_agent 技术后端实现**：前者为观察→推理→执行（ADB/HDC），后者为视觉自动化（`@midscene/android` / `@midscene/harmony`，Web 子进程 `--web-dispatch`）。
 
 4. **`web/`（Web 应用）**  
    **前端**：项目与用例 CRUD、自动生成草稿、触发执行、轮询步骤日志与结果。  
    **后端**：认证与持久化；**测试分析**走 `case_generation` → `analysis_agent`；**测试执行**走 `executor` → AutoGLM 同进程或 Midscene 子进程。
+
+5. **`mai_ui_tech/`（Python）** — **GUI Grounding 技术路线**：本地 MAI-UI 推理与坐标解析；由 Web 服务 `mai_ui_service.py` 对接 `/api/mai-ui/*` 能力。
 
 ### 1.1 测试执行：技术路线 × 设备平台（`test_agent_backend` × `device_platform`）
 
@@ -34,10 +36,10 @@ Web 将租用的**数字机器人实例**按商城 **功能定位（`catalog_rob
 
 | 技术路线 `test_agent_backend` | `device_platform` | 实际执行链路 |
 |----------------------|-------------------|--------------|
-| `autoglm` | `android` | `autoglm_phone_agent` + ADB（智谱，参考 [Open-AutoGLM](https://github.com/zai-org/Open-AutoGLM)） |
-| `autoglm` | `harmonyos` | `autoglm_phone_agent` + HDC / uitest（同 Open-AutoGLM `--device-type hdc`） |
-| `midscene` | `android` | `midscene_agent` + `@midscene/android` |
-| `midscene` | `harmonyos` | `midscene_agent` + `@midscene/harmony`（千问/GLM 等） |
+| `autoglm` | `android` | `autoglm_phone_tech` + ADB（智谱，参考 [Open-AutoGLM](https://github.com/zai-org/Open-AutoGLM)） |
+| `autoglm` | `harmonyos` | `autoglm_phone_tech` + HDC / uitest（同 Open-AutoGLM `--device-type hdc`） |
+| `midscene` | `android` | `midscene_tech` + `@midscene/android` |
+| `midscene` | `harmonyos` | `midscene_tech` + `@midscene/harmony`（千问/GLM 等） |
 
 - 字段定义：`robot_instances.test_agent_backend`、`robot_instances.device_platform`（**默认**执行平台，可在用例页被覆盖）
 - 解析与路由：`web/backend/app/services/device_platform.py`、`web/backend/app/executor.py`
@@ -62,11 +64,11 @@ Web 将租用的**数字机器人实例**按商城 **功能定位（`catalog_rob
 
 ### 1.3 测试分析机器人 Agent（`analysis_agent/`）与用例格式（structured / YAML）
 
-与 §1.1 **测试执行** 分离：不调用 `PhoneTestAgent` / `midscene_agent`；LLM 仅在 Web 后端进程内通过 OpenAI 兼容 API 生成 **structured** 字段。
+与 §1.1 **测试执行** 分离：不调用 `PhoneTestAgent` / `midscene_tech`；LLM 仅在 Web 后端进程内通过 OpenAI 兼容 API 生成 **structured** 字段。
 
 | 项 | 说明 |
 |----|------|
-| 包 | `analysis_agent/`（`AnalysisAgent`，对齐 `autoglm_phone_agent` 目录约定） |
+| 包 | `analysis_agent/`（`AnalysisAgent`，对齐 `autoglm_phone_tech` 目录约定） |
 | Web 适配 | `app/services/case_generation.py`（KB 检索 + ORM → `ProjectContext`） |
 | 格式转换 | `app/services/case_format_convert.py`（structured ↔ Midscene YAML，无 LLM） |
 | 生成路由 | `POST /api/test-cases/generate`（`TestCaseGenerateIn` → `TestCaseGenerateOut`） |
@@ -121,7 +123,7 @@ sequenceDiagram
 | 维度 | 测试分析机器人（用例生成） | 测试执行机器人（设备自动化） |
 |------|---------------------------|------------------------------|
 | 商城目录 / 典型 `catalog_robot_id` | **测试分析**（如 `test_analysis`） | **功能执行**等；实例上 `test_agent_backend`：`autoglm` 或 `midscene`（**两条技术路线**） |
-| 对应代码包 | `analysis_agent` | `autoglm_phone_agent` **或** `midscene_agent`（由 `executor` 选择） |
+| 对应代码包 | `analysis_agent` | `autoglm_phone_tech` **或** `midscene_tech`（由 `executor` 选择） |
 | 是否连真机 | **否** | **是**；ADB/HDC |
 | 主要 Web 入口 | 测试用例页 → **创建用例 → 自动生成** | 测试用例页 → 选用例 → **执行测试**（机器人 / 平台 / 目标终端） |
 | 关键 API | `POST /api/test-cases/generate`（须传分析实例 `robot_instance_id`）、`POST /api/test-cases/convert-format`、`POST /api/test-cases` 保存 | `POST /api/test-cases/{id}/run`、`GET /api/test-cases/runs/{id}`、`POST …/cancel` |
@@ -150,7 +152,7 @@ flowchart LR
   subgraph run["测试执行（真机）"]
     B1[测试执行机器人实例]
     B2[POST /test-cases/id/run]
-    B3[executor → autoglm_phone_agent 或 midscene_agent]
+    B3[executor → autoglm_phone_tech 或 midscene_tech]
     B4[test_runs 轮询 / 投屏 / 报告]
     B1 --> B2 --> B3 --> B4
   end
@@ -179,11 +181,12 @@ flowchart LR
 | 图像 | Pillow（`PIL`，Agent 侧截图等） | Python |
 | 设备 | ADB（Android）、HDC（鸿蒙） | — |
 | 视觉自动化 | Midscene.js（`@midscene/android`、`@midscene/harmony`） | TypeScript / Node |
+| GUI Grounding | MAI-UI（本地 MLX / Ollama） | Python |
 
 依赖清单：
 
 - AutoGLM Agent（根目录）：`requirements.txt`
-- Midscene Agent：`midscene_agent/package.json`
+- Midscene Agent：`midscene_tech/package.json`
 - Web 后端：`web/backend/requirements.txt`
 - Web 前端：`web/frontend/package.json`
 
@@ -200,17 +203,23 @@ autoglm-phone-test-agent/          # 仓库根目录
 │       ├── autoglm_runner.py
 │       ├── autoglm/agent.py
 │       └── midscene/runtime.py
-├── autoglm_phone_agent/           # func_agent 后端实现 · AutoGLM（Android/ADB + 鸿蒙/HDC）
+├── autoglm_phone_tech/           # func_agent 后端实现 · AutoGLM（Android/ADB + 鸿蒙/HDC）
 │   ├── device/device_factory.py
 │   ├── device/adb_bridge.py
 │   ├── device/hdc_bridge.py
 │   └── config/apps_harmonyos.py
-├── midscene_agent/                # func_agent 后端实现 · Midscene（Android + HarmonyOS）
+├── midscene_tech/                # func_agent 后端实现 · Midscene（Android + HarmonyOS）
 │   └── src/
 │       ├── agent.ts               # MidsceneTestAgent（跨平台）
 │       ├── device_runtime.ts      # Android / 鸿蒙设备层
 │       ├── platform.ts            # 平台与引擎类型
 │       └── cli.ts                 # CLI；--web-dispatch 供 Web 子进程
+├── mai_ui_tech/                  # GUI Grounding 技术路线（MAI-UI）
+│   ├── mai_ui_tech/cli.py
+│   ├── mai_ui_tech/grounding.py
+│   └── scripts/
+│       ├── serve_grounding_mlx.sh
+│       └── run_cli.sh
 ├── requirements.txt
 └── web/
     ├── frontend/                  # Vue + Vite
@@ -251,7 +260,7 @@ autoglm-phone-test-agent/          # 仓库根目录
 
 ## 4. 运行时架构
 
-下图按 **§1.0** 的概念分层：**测试分析机器人 Agent**（`analysis_agent`）与 **测试执行机器人 Agent**（`autoglm_phone_agent` / `midscene_agent` 两条技术路线）均经 FastAPI 接入；**其他功能定位**的机器人以虚线占位，表示未来可平行扩展独立 Agent 与路由。与 §4.1–§4.4 的端口、HTTP 轮询、执行链路与 WebSocket 监控一致。开发环境下浏览器 HTTP 常经 Vite 将 `/api` 代理到 Uvicorn（见 4.1）。
+下图按 **§1.0** 的概念分层：**测试分析机器人 Agent**（`analysis_agent`）与 **测试执行机器人 Agent**（`autoglm_phone_tech` / `midscene_tech` 两条技术路线）均经 FastAPI 接入；**其他功能定位**的机器人以虚线占位，表示未来可平行扩展独立 Agent 与路由。与 §4.1–§4.4 的端口、HTTP 轮询、执行链路与 WebSocket 监控一致。开发环境下浏览器 HTTP 常经 Vite 将 `/api` 代理到 Uvicorn（见 4.1）。
 
 ```mermaid
 flowchart TB
@@ -272,8 +281,8 @@ flowchart TB
   end
 
   subgraph execution["测试执行机器人 Agent（技术路线二选一）"]
-    PTA["autoglm_phone_agent\n路线一 · 同进程 · ADB/HDC"]
-    MS["midscene_agent\n路线二 · 子进程 · ADB/HDC"]
+    PTA["autoglm_phone_tech\n路线一 · 同进程 · ADB/HDC"]
+    MS["midscene_tech\n路线二 · 子进程 · ADB/HDC"]
     LLM1["智谱等"]
     LLM2["Midscene 视觉模型"]
   end
@@ -326,7 +335,7 @@ flowchart TB
 4. 路由分支（`executor.py`）：  
    - **统一入口**：`run_func_agent_dispatch(FuncAgentDispatch(...))`。  
    - **`autoglm` 后端**：进入 `func_agent.backends.autoglm_runner`，同进程调用 `func_agent.backends.autoglm.agent.PhoneTestAgent`；设备层 `create_device()` → `AdbBridge` / `HdcBridge`。  
-   - **`midscene` 后端**：进入 `func_agent.backends.midscene.runtime`，子进程执行 `midscene_agent` CLI；`stdin` JSON 含 `device_platform`、`device_id`、`execution_mode` 等；子进程环境同步设置 `ADB_DEVICE_ID` / `HDC_DEVICE_ID`。  
+   - **`midscene` 后端**：进入 `func_agent.backends.midscene.runtime`，子进程执行 `midscene_tech` CLI；`stdin` JSON 含 `device_platform`、`device_id`、`execution_mode` 等；子进程环境同步设置 `ADB_DEVICE_ID` / `HDC_DEVICE_ID`。  
 5. Midscene stdout 每行 JSON（`kind: meta|step|done`）→ `step_log`；成功可写 `report_path`。  
 6. 取消：`threading.Event` + `POST …/runs/{id}/cancel`。  
 7. 投屏：`GET …/device-screen?device_platform=&device_id=`，与用例页当前选择一致（`device_screen.py`）。
@@ -361,7 +370,7 @@ flowchart TB
 ### 4.5 APP 功能清单探索（Midscene）
 
 1. 前端 `/app-explore` → `POST /api/app-explore/runs`（`bundle_id` 与 `hdc shell bm dump -a` 一致；`GET /installed-apps` 拉列表）。  
-2. `app_explore_service` 子进程调用 `midscene_agent`：`execution_mode: "explore"`（`explore.ts` DFS，路径去重，无下级则停止递归）。  
+2. `app_explore_service` 子进程调用 `midscene_tech`：`execution_mode: "explore"`（`explore.ts` DFS，路径去重，无下级则停止递归）。  
 3. 结果写入 `feature_json` 并导出 Excel；机器人须 `test_agent_backend=midscene`，与同实例用例执行互斥。
 
 ## 6. 外部依赖与环境变量
@@ -390,17 +399,17 @@ flowchart TB
 
 - **AutoGLM + Android**：USB 调试、ADB、设备上 [ADB Keyboard](https://github.com/senzhk/ADBKeyBoard)（文本输入）。
 - **AutoGLM + 鸿蒙**：HDC、`hdc list targets` 可见设备；使用 `uitest` 原生输入（无需 ADB Keyboard）。
-- **Midscene**：见 [`midscene_agent/README.md`](./midscene_agent/README.md)。
+- **Midscene**：见 [`midscene_tech/README.md`](./midscene_tech/README.md)。
 
-详见 [`autoglm_phone_agent/README.md`](./autoglm_phone_agent/README.md)。
+详见 [`autoglm_phone_tech/README.md`](./autoglm_phone_tech/README.md)。
 
 ## 7. 初级工程师维护清单
 
 0. **业务功能或模块职责变更**：同步更新仓库根目录 **README.md**（模块介绍与启动方式）；本文档负责架构级细节与深度链路说明。  
 1. **改前端**：只动 `web/frontend`，`npm install` 后 `npm run dev`；接口路径以 `/api` 开头。  
 2. **改后端**：`web/backend`，建议使用虚拟环境，`pip install -r requirements.txt`，ASGI 入口为 `app.main:app`。  
-3. **改测试执行 · AutoGLM 路线**：`autoglm_phone_agent/`（`device_factory`、`hdc_bridge` 等）；影响所有 `test_agent_backend=autoglm` 的执行。  
-4. **改测试执行 · Midscene 路线**：`midscene_agent/`；`npm run typecheck`；影响 `test_agent_backend=midscene`；改完后重启 Uvicorn。长时间任务不建议 `uvicorn --reload`。  
+3. **改测试执行 · AutoGLM 路线**：`autoglm_phone_tech/`（`device_factory`、`hdc_bridge` 等）；影响所有 `test_agent_backend=autoglm` 的执行。  
+4. **改测试执行 · Midscene 路线**：`midscene_tech/`；`npm run typecheck`；影响 `test_agent_backend=midscene`；改完后重启 Uvicorn。长时间任务不建议 `uvicorn --reload`。  
 5. **改测试执行路由**：`executor.py`、`services/device_platform.py`；实例字段见 `models.RobotInstance`。  
 6. **改测试分析**：`analysis_agent/`、`services/case_generation.py`；环境变量 `CASE_GEN_*`。  
 7. **数据库**：无 Alembic；列迁移在 `database.ensure_schema()`（如 `robot_instances.device_platform`）。  

@@ -48,13 +48,13 @@ def resolve_execution_platform(
 
 
 def uses_midscene_runner(*, test_agent_backend: str | None, device_platform: DevicePlatform) -> bool:
-    """是否通过 midscene_agent 子进程执行（仅 Midscene 引擎）。"""
+    """是否通过 midscene_tech 子进程执行（仅 Midscene 引擎）。"""
     _ = device_platform
     return (test_agent_backend or "autoglm").strip().lower() == "midscene"
 
 
 def uses_autoglm_runner(*, test_agent_backend: str | None, device_platform: DevicePlatform) -> bool:
-    """是否通过 autoglm_phone_agent 同进程执行（Android / 鸿蒙）。"""
+    """是否通过 autoglm_phone_tech 同进程执行（Android / 鸿蒙）。"""
     _ = device_platform
     return (test_agent_backend or "autoglm").strip().lower() == "autoglm"
 

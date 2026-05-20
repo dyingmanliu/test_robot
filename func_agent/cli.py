@@ -12,10 +12,10 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 from func_agent.backends.autoglm.agent import AgentConfig, PhoneTestAgent
-from autoglm_phone_agent.device.adb_resolve import resolve_adb_executable
-from autoglm_phone_agent.device.hdc_resolve import resolve_hdc_executable
-from autoglm_phone_agent.device.platform import DevicePlatform
-from autoglm_phone_agent.model.client import ModelConfig
+from autoglm_phone_tech.device.adb_resolve import resolve_adb_executable
+from autoglm_phone_tech.device.hdc_resolve import resolve_hdc_executable
+from autoglm_phone_tech.device.platform import DevicePlatform
+from autoglm_phone_tech.model.client import ModelConfig
 
 
 def _check_adb() -> None:

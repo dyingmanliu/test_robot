@@ -1,4 +1,4 @@
-"""MAI-UI 本地推理：健康检查与截图 Grounding（封装 mai_ui_agent）。"""
+"""MAI-UI 本地推理：健康检查与截图 Grounding（封装 mai_ui_tech）。"""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ from app.services.llm_usage_log import estimate_tokens, log_llm_usage
 logger = logging.getLogger("app.llm")
 
 _REPO_ROOT = Path(__file__).resolve().parents[4]
-_MAI_UI_PKG_ROOT = _REPO_ROOT / "mai_ui_agent"
+_MAI_UI_PKG_ROOT = _REPO_ROOT / "mai_ui_tech"
 if str(_MAI_UI_PKG_ROOT) not in sys.path:
     sys.path.insert(0, str(_MAI_UI_PKG_ROOT))
 
@@ -42,7 +42,7 @@ def _grounding_worker_status(
         return (
             False,
             f"Grounding 服务未启动（{health_url}）。"
-            f"请在 mai_ui_agent 目录执行: bash scripts/serve_grounding_mlx.sh",
+            f"请在 mai_ui_tech 目录执行: bash scripts/serve_grounding_mlx.sh",
             {},
         )
 
@@ -86,14 +86,14 @@ def _run_grounding_via_worker(
     except httpx.RequestError as e:
         raise RuntimeError(
             f"无法连接 MAI-UI Grounding 服务 {grounding_url}。"
-            f"请在 mai_ui_agent 目录执行: bash scripts/serve_grounding_mlx.sh"
+            f"请在 mai_ui_tech 目录执行: bash scripts/serve_grounding_mlx.sh"
         ) from e
 
 
 def get_mai_ui_status() -> dict[str, Any]:
-    from mai_ui_agent.config import load_config
-    from mai_ui_agent.grounding import _mlx_vlm_available
-    from mai_ui_agent.health import check_server, list_model_ids
+    from mai_ui_tech.config import load_config
+    from mai_ui_tech.grounding import _mlx_vlm_available
+    from mai_ui_tech.health import check_server, list_model_ids
 
     cfg = load_config()
     worker_ok, worker_message, worker_health = _grounding_worker_status(cfg.grounding_url)
@@ -147,8 +147,8 @@ def get_mai_ui_status() -> dict[str, Any]:
 
 
 def run_grounding(image_bytes: bytes, instructions: list[str]) -> dict[str, Any]:
-    from mai_ui_agent.config import load_config
-    from mai_ui_agent.grounding import MaiUiGroundingAgent, _mlx_vlm_available
+    from mai_ui_tech.config import load_config
+    from mai_ui_tech.grounding import MaiUiGroundingAgent, _mlx_vlm_available
 
     if not instructions:
         raise ValueError("请至少提供一条定位描述")
@@ -171,7 +171,7 @@ def run_grounding(image_bytes: bytes, instructions: list[str]) -> dict[str, Any]
     if cfg.backend == "mlx_vlm" and not _mlx_vlm_available():
         raise RuntimeError(
             f"MAI-UI 需要 mlx_vlm Grounding 服务（{cfg.grounding_url}）。"
-            "在 mai_ui_agent 目录执行: bash scripts/serve_grounding_mlx.sh"
+            "在 mai_ui_tech 目录执行: bash scripts/serve_grounding_mlx.sh"
         )
 
     img = Image.open(BytesIO(image_bytes))
@@ -228,14 +228,14 @@ def _run_menu_detect_via_worker(image_bytes: bytes, grounding_url: str) -> dict[
     except httpx.RequestError as e:
         raise RuntimeError(
             f"无法连接 MAI-UI Grounding 服务 {grounding_url}。"
-            "在 mai_ui_agent 目录执行: bash scripts/serve_grounding_mlx.sh"
+            "在 mai_ui_tech 目录执行: bash scripts/serve_grounding_mlx.sh"
         ) from e
 
 
 def run_menu_detect(image_bytes: bytes) -> dict[str, Any]:
-    from mai_ui_agent.config import load_config
-    from mai_ui_agent.grounding import _mlx_vlm_available
-    from mai_ui_agent.menu_detect import MaiUiMenuDetectAgent
+    from mai_ui_tech.config import load_config
+    from mai_ui_tech.grounding import _mlx_vlm_available
+    from mai_ui_tech.menu_detect import MaiUiMenuDetectAgent
 
     cfg = load_config()
     t0 = time.perf_counter()
@@ -267,7 +267,7 @@ def run_menu_detect(image_bytes: bytes) -> dict[str, Any]:
     if cfg.backend == "mlx_vlm" and not _mlx_vlm_available():
         raise RuntimeError(
             f"MAI-UI 需要 mlx_vlm Grounding 服务（{cfg.grounding_url}）。"
-            "在 mai_ui_agent 目录执行: bash scripts/serve_grounding_mlx.sh"
+            "在 mai_ui_tech 目录执行: bash scripts/serve_grounding_mlx.sh"
         )
 
     agent = MaiUiMenuDetectAgent(cfg)

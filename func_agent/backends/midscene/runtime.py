@@ -38,7 +38,7 @@ def run_midscene_task(
     log_model_usage: Callable[[dict[str, Any]], None] | None = None,
 ) -> tuple[bool, str, str | None]:
     load_dotenv(_REPO_ROOT / ".env")
-    mid_root = _REPO_ROOT / "midscene_agent"
+    mid_root = _REPO_ROOT / "midscene_tech"
     cli_rel = Path("src/cli.ts")
     if not (mid_root / cli_rel).is_file():
         raise RuntimeError(f"未找到 Midscene CLI：{mid_root / cli_rel}")

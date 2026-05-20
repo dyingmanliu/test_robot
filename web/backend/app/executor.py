@@ -279,7 +279,7 @@ def execute_test_run(db: Session, run_id: int) -> None:
             ),
         )
 
-    from app.services.case_agent_text import build_agent_task_text, build_midscene_agent_steps
+    from app.services.case_agent_text import build_agent_task_text, build_midscene_tech_steps
 
     preconditions = getattr(case, "preconditions", "") or ""
     steps_json = getattr(case, "steps_json", None) or "[]"
@@ -288,7 +288,7 @@ def execute_test_run(db: Session, run_id: int) -> None:
         preconditions=preconditions,
         steps_json=steps_json,
     )
-    midscene_agent_steps = build_midscene_agent_steps(
+    midscene_tech_steps = build_midscene_tech_steps(
         task_text=case.task_text,
         preconditions=preconditions,
         steps_json=steps_json,
@@ -344,12 +344,12 @@ def execute_test_run(db: Session, run_id: int) -> None:
                     "agent_task": agent_task,
                     "case_format": "structured",
                 }
-                if midscene_agent_steps:
-                    web_dispatch["agent_steps"] = midscene_agent_steps
+                if midscene_tech_steps:
+                    web_dispatch["agent_steps"] = midscene_tech_steps
                     log.info(
                         "Midscene 拆步执行 run_id=%s steps=%s",
                         run_id,
-                        len(midscene_agent_steps),
+                        len(midscene_tech_steps),
                     )
         elif backend == "autoglm":
             web_dispatch = None
