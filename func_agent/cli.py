@@ -1,15 +1,5 @@
 #!/usr/bin/env python3
-"""
-CLI entrypoint — natural-language mobile automation via AutoGLM-Phone (智谱).
-
-Usage:
-  export BIGMODEL_API_KEY=...
-  python main.py "打开美团搜索附近的火锅店"
-  python main.py --device-type hdc "打开设置"
-
-环境: Python 3.10+；Android 需 ADB + ADB Keyboard；鸿蒙需 HDC（hdc list targets）。
-参考: https://github.com/zai-org/Open-AutoGLM
-"""
+"""Unified CLI entrypoint for functional test agent."""
 
 from __future__ import annotations
 
@@ -21,7 +11,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from autoglm_phone_agent.agent import AgentConfig, PhoneTestAgent
+from func_agent.backends.autoglm.agent import AgentConfig, PhoneTestAgent
 from autoglm_phone_agent.device.adb_resolve import resolve_adb_executable
 from autoglm_phone_agent.device.hdc_resolve import resolve_hdc_executable
 from autoglm_phone_agent.device.platform import DevicePlatform
@@ -65,15 +55,15 @@ def _check_hdc() -> None:
 
 
 def main() -> None:
-    load_dotenv(Path(__file__).resolve().parent / ".env")
-    parser = argparse.ArgumentParser(description="AutoGLM-Phone 移动端自动化测试智能体")
+    load_dotenv(Path(__file__).resolve().parents[1] / ".env")
+    parser = argparse.ArgumentParser(description="功能测试机器人（func_agent）CLI")
     parser.add_argument("task", nargs="?", default="", help="自然语言测试任务 / 用户指令")
     parser.add_argument("--max-steps", type=int, default=100)
     parser.add_argument(
         "--device-type",
         choices=["adb", "hdc", "android", "harmonyos"],
         default=os.getenv("PHONE_AGENT_DEVICE_TYPE", "adb"),
-        help="设备类型：adb/android=Android，hdc/harmonyos=鸿蒙（同 Open-AutoGLM）",
+        help="设备类型：adb/android=Android，hdc/harmonyos=鸿蒙",
     )
     parser.add_argument("--device-id", default=None, help="设备 ID（adb serial 或 hdc target）")
     parser.add_argument("--base-url", default=os.getenv("OPENAI_BASE_URL", "https://open.bigmodel.cn/api/paas/v4"))

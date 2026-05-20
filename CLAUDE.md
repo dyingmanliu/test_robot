@@ -39,8 +39,8 @@ npm run typecheck                       # tsc --noEmit
 ### AutoGLM Agent (Python)
 ```bash
 pip install -r requirements.txt
-python main.py "task description"
-python main.py --device-type hdc "task for HarmonyOS"
+python -m func_agent.cli "task description"
+python -m func_agent.cli --device-type hdc "task for HarmonyOS"
 ```
 
 ## Architecture
@@ -66,10 +66,10 @@ Separate from **test execution** (no `executor` / no device); in-process LLM imp
 ### Directory Layout
 
 ```
-main.py                       # AutoGLM CLI entrypoint
+func_agent/cli.py             # Functional test CLI entrypoint
 analysis_agent/               # Test analysis robot agent: NL → structured draft
 autoglm_phone_agent/          # Test execution · AutoGLM route (LLM-driven device automation)
-  agent.py                    #   observe-reason-execute loop
+  model/client.py             #   model client/resources
   device_factory.py           #   AdbBridge / HdcBridge abstraction
   actions/handler.py          #   action dispatch
 midscene_agent/               # Test execution · Midscene route (visual-driven automation)

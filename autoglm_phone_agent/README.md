@@ -1,6 +1,8 @@
-# autoglm_phone_agent
+# autoglm_phone_agent（backend resources）
 
 基于智谱 **AutoGLM-Phone** 的移动端 UI 自动化 Python 包，设备层设计参考 [Open-AutoGLM](https://github.com/zai-org/Open-AutoGLM) 的 `device_factory`（`adb` / `hdc`）。
+
+> 当前仓库已将功能测试机器人统一到 [`func_agent`](../func_agent/README.md) 业务域。本文档仅保留 AutoGLM 技术后端资源说明；执行入口已收口到 `func_agent`。
 
 ## 支持的平台
 
@@ -45,24 +47,24 @@ autoglm_phone_agent/
 
 ## CLI 使用
 
-仓库根目录 [`main.py`](../main.py)：
+统一入口：[`func_agent/cli.py`](../func_agent/cli.py)：
 
 ```bash
 pip install -r requirements.txt
 
 # Android（默认）
-python main.py "打开美团搜索附近的火锅店"
-python main.py --device-type adb --device-id emulator-5554 "任务"
+python -m func_agent.cli "打开美团搜索附近的火锅店"
+python -m func_agent.cli --device-type adb --device-id emulator-5554 "任务"
 
 # 鸿蒙
-python main.py --device-type hdc "打开设置并进入关于本机"
+python -m func_agent.cli --device-type hdc "打开设置并进入关于本机"
 hdc list targets   # 执行前确认设备在线
 ```
 
 ## 在代码中使用
 
 ```python
-from autoglm_phone_agent import PhoneTestAgent, AgentConfig
+from func_agent.backends.autoglm.agent import PhoneTestAgent, AgentConfig
 from autoglm_phone_agent.model.client import ModelConfig
 
 model = ModelConfig(api_key="...", base_url="https://open.bigmodel.cn/api/paas/v4")
@@ -74,7 +76,7 @@ print(result.ok, result.message)
 
 ## 与 Web 平台的关系
 
-Web 后端 `executor.run_phone_agent_task()` 在机器人实例为 **`test_agent_backend=autoglm`** 时调用本包（**Android 与鸿蒙均同进程**），根据 `device_platform` 选择 ADB 或 HDC。Midscene 引擎走 `midscene_agent` 子项目，见 [执行矩阵](../README.md#1c-执行引擎--设备平台web-机器人实例)。
+Web 后端通过 `func_agent.orchestrator` 统一调度；当实例为 **`test_agent_backend=autoglm`** 时会进入 AutoGLM 后端（**Android 与鸿蒙均同进程**），根据 `device_platform` 选择 ADB 或 HDC。Midscene 引擎走 `func_agent` 的 Midscene 后端，见 [执行矩阵](../README.md#1c-测试执行技术路线--设备平台robot_instances)。
 
 ## 参考
 

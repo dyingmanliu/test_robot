@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import threading
 import traceback
 from datetime import datetime
@@ -13,13 +14,15 @@ from typing import Any
 from dotenv import load_dotenv
 from sqlalchemy.orm import Session
 
-from app.executor import run_midscene_agent_task
+_REPO_ROOT = Path(__file__).resolve().parents[4]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+_EXPORT_DIR = _REPO_ROOT / "web" / "backend" / "data" / "explore_exports"
+
+from func_agent.backends.midscene.runtime import run_midscene_task
 from app.services.llm_usage_log import log_midscene_machine_line
 from app.models import AppExploreRun, RobotInstance
 from app.services.app_explore_export import write_explore_excel
-
-_REPO_ROOT = Path(__file__).resolve().parents[4]
-_EXPORT_DIR = _REPO_ROOT / "web" / "backend" / "data" / "explore_exports"
 
 _explore_cancel_events: dict[int, threading.Event] = {}
 
@@ -163,11 +166,11 @@ def execute_app_explore_run(db: Session, run_id: int) -> None:
     }
 
     try:
-        ok, msg, report_file = run_midscene_agent_task(
+        ok, msg, report_file = run_midscene_task(
             dispatch,
             on_machine_line=on_machine_line,
             should_cancel=cancel_ev.is_set,
-            log_run_id=run_id,
+            log_model_usage=lambda obj: log_midscene_machine_line(obj, run_id=run_id),
         )
     except Exception:
         row = db.query(AppExploreRun).filter(AppExploreRun.id == run_id).first()

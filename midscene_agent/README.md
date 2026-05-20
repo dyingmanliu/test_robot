@@ -1,6 +1,6 @@
-# midscene_agent
+# midscene_agent（runtime backend）
 
-基于字节跳动 **[Midscene.js](https://midscenejs.com/)** 的 **Android**（`@midscene/android` + ADB）与 **鸿蒙 HarmonyOS 6.x / NEXT**（`@midscene/harmony` + HDC）APP 自动化子项目。与仓库根目录 [`autoglm_phone_agent`](../autoglm_phone_agent/README.md)（AutoGLM-Phone，Android/鸿蒙）并列，由 Web 按 **执行引擎 × 设备平台** 路由调用。
+基于字节跳动 **[Midscene.js](https://midscenejs.com/)** 的 **Android**（`@midscene/android` + ADB）与 **鸿蒙 HarmonyOS 6.x / NEXT**（`@midscene/harmony` + HDC）APP 自动化子项目。当前作为 [`func_agent`](../func_agent/README.md) 业务域下的 Midscene 运行时后端使用。
 
 ## 能力
 
@@ -9,7 +9,7 @@
 - 生成可回放的 **HTML 测试报告**
 - Web 后端通过 `--web-dispatch` 子进程模式执行（见 `src/web_dispatch.ts`）
 
-## 与 Web 平台的关系
+## 与 Web 平台的关系（通过 func_agent 调度）
 
 | Web 实例配置 | 是否走本子项目 |
 |-------------|----------------|
@@ -20,7 +20,7 @@
 
 完整矩阵见仓库根目录 [README.md](../README.md) 与 [ARCHITECTURE.md](../ARCHITECTURE.md)。
 
-Web 用例页可在执行前指定 **`device_platform`** 与 **`device_id`**（多机时选择具体 ADB serial / HDC target）；`--web-dispatch` JSON 见 `src/web_dispatch.ts`。
+Web 用例页可在执行前指定 **`device_platform`** 与 **`device_id`**（多机时选择具体 ADB serial / HDC target）；`func_agent.backends.midscene.runtime` 会调用本子项目 `--web-dispatch`，协议见 `src/web_dispatch.ts`。
 
 ## 前置条件
 

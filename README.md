@@ -1,6 +1,6 @@
 # autoglm-phone-test-agent
 
-基于 **Web 测试用例管理平台**（Vue 3 + FastAPI），将 **测试分析机器人 Agent**（`analysis_agent`，用例生成）与 **测试执行机器人 Agent**（真机自动化）配合使用。测试执行侧当前实现 **两条技术路线**：**AutoGLM-Phone**（智谱 + `autoglm_phone_agent`）与 **Midscene.js**（视觉自动化，`midscene_agent`，支持 **Android / 鸿蒙**）。适用于在手机端按自然语言或 YAML 脚本执行自动化测试，并在浏览器中管理账号、项目空间、用例与执行记录；商城中的其他数字机器人品类可继续扩展独立 Agent 与路由。
+基于 **Web 测试用例管理平台**（Vue 3 + FastAPI），将 **测试分析机器人 Agent**（`analysis_agent`，用例生成）与 **测试执行机器人 Agent**（真机自动化）配合使用。测试执行侧已统一到 **`func_agent` 业务域**，内部包含两条技术路线：**AutoGLM-Phone**（智谱 + `autoglm_phone_agent`）与 **Midscene.js**（视觉自动化，`midscene_agent`，支持 **Android / 鸿蒙**）。适用于在手机端按自然语言或 YAML 脚本执行自动化测试，并在浏览器中管理账号、项目空间、用例与执行记录；商城中的其他数字机器人品类可继续扩展独立 Agent 与路由。
 
 ---
 
@@ -11,7 +11,7 @@
 | 新增/调整业务功能、API、路由、数据模型 | **本 README**（模块说明与启动方式 relevant 部分） |
 | 架构细节、目录约定、执行链路深度说明 | [`ARCHITECTURE.md`](./ARCHITECTURE.md) |
 | 新增环境变量 | [`.env.example`](./.env.example)、[`web/frontend/.env.example`](./web/frontend/.env.example) |
-| Agent 设备层 / 双平台 | [`autoglm_phone_agent/README.md`](./autoglm_phone_agent/README.md)、[`midscene_agent/README.md`](./midscene_agent/README.md) |
+| 功能测试机器人（统一域） | `func_agent/`（统一调度） + [`autoglm_phone_agent/README.md`](./autoglm_phone_agent/README.md)、[`midscene_agent/README.md`](./midscene_agent/README.md) |
 
 ---
 
@@ -32,13 +32,19 @@
 
 ## 系统模块一览
 
-### 1. AutoGLM Agent（`autoglm_phone_agent/`）— 测试执行 · 技术路线一
+### 1. 功能测试机器人（`func_agent/`）— 统一业务域
 
-- **定位**：**测试执行机器人 Agent** 在 **AutoGLM（智谱）** 路线下的实现包（与 `midscene_agent` 二选一，由实例 `test_agent_backend=autoglm` 触发）。
+- **定位**：测试执行侧统一入口，对外暴露调度接口与 CLI，对内编排 AutoGLM 与 Midscene 两条技术路线。
+- **关键入口**：`func_agent/orchestrator.py`、`func_agent/backends/autoglm/agent.py`、`func_agent/backends/midscene/runtime.py`。
+- **CLI**：`python -m func_agent.cli "任务"`。
+
+### 1a. AutoGLM Agent（`autoglm_phone_agent/`）— 测试执行 · 技术路线一（backend resources）
+
+- **定位**：`func_agent` 下 AutoGLM 技术后端的资源包（设备桥接、模型客户端、动作处理）。
 - **模块**：`device/device_factory.py`、`adb_bridge.py`、`hdc_bridge.py`、`config/apps_harmonyos.py` 等，详见 [`autoglm_phone_agent/README.md`](./autoglm_phone_agent/README.md)。
-- **CLI**：`python main.py "任务"`（Android）；`python main.py --device-type hdc "任务"`（鸿蒙）。
+- **CLI**：`python -m func_agent.cli ...`（仓库已移除 `main.py` 兼容入口）。
 
-### 1b. Midscene Agent（`midscene_agent/`）— 测试执行 · 技术路线二
+### 1b. Midscene Agent（`midscene_agent/`）— 测试执行 · 技术路线二（runtime backend）
 
 - **定位**：**测试执行机器人 Agent** 在 **Midscene（视觉）** 路线下的实现包（与 `autoglm_phone_agent` 二选一，由实例 `test_agent_backend=midscene` 触发）。
 - **依赖**：Node.js ≥ 18；[`midscene_agent/package.json`](./midscene_agent/package.json)；模型变量 `MIDSCENE_MODEL_*`（或 DashScope 千问）、设备变量 `ADB_DEVICE_ID` / `HDC_*`。
@@ -151,7 +157,7 @@ CASE_GEN_TIMEOUT_SEC=120
 
 ## 环境变量
 
-- **模板**：复制仓库根目录 [`.env.example`](./.env.example) 为 `.env`，并按注释填写。Agent CLI、Web 后端 **`executor`**、**`main.py` 启动 FastAPI** 均会加载该文件。
+- **模板**：复制仓库根目录 [`.env.example`](./.env.example) 为 `.env`，并按注释填写。`func_agent` CLI 与 Web 后端执行链路均会加载该文件。
 - **前端**：可选复制 [`web/frontend/.env.example`](./web/frontend/.env.example)；开发一般留空，由 Vite 将 `/api` 代理到本地后端。
 - **变量说明**：以 `.env.example` 为准。模型侧常用 `BIGMODEL_API_KEY`（智谱 / AutoGLM）、`MIDSCENE_MODEL_*` / `DASHSCOPE_API_KEY`（千问）、`CASE_GEN_*`（用例 **AI 生成**，可与执行模型分离，如 DeepSeek `deepseek-v4-pro`）；设备侧 `ADB_DEVICE_ID`、`HDC_DEVICE_ID` 为可选兜底，**多机时建议在测试用例页选择目标终端**。
 
@@ -196,18 +202,18 @@ npm run dev
 
 ### 3. Agent CLI（可选）
 
-**AutoGLM（Android / 鸿蒙）**
+**Func Agent CLI（AutoGLM 路线，Android / 鸿蒙）**
 
 ```bash
 pip install -r requirements.txt
 
 # Android
 adb devices
-python main.py "打开美团搜索附近的火锅店"
+python -m func_agent.cli "打开美团搜索附近的火锅店"
 
 # 鸿蒙（同 Open-AutoGLM --device-type hdc）
 hdc list targets
-python main.py --device-type hdc "打开设置并进入关于本机"
+python -m func_agent.cli --device-type hdc "打开设置并进入关于本机"
 ```
 
 **Midscene（Android / 鸿蒙，默认鸿蒙）**
