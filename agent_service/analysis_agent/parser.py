@@ -6,8 +6,8 @@ import json
 import re
 from typing import Any
 
-from analysis_agent.errors import AnalysisAgentError
-from analysis_agent.types import CaseDraft, CaseStep
+from agent_service.analysis_agent.errors import AnalysisAgentError
+from agent_service.analysis_agent.types import CaseDraft, CaseStep
 
 _VALID_PRIORITIES = frozenset({"P0", "P1", "P2", "P3"})
 

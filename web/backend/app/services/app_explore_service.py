@@ -19,7 +19,7 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 _EXPORT_DIR = _REPO_ROOT / "web" / "backend" / "data" / "explore_exports"
 
-from func_agent.backends.midscene.runtime import run_midscene_task
+from agent_service.func_agent.backends.midscene.runtime import run_midscene_task
 from app.services.llm_usage_log import log_midscene_machine_line
 from app.models import AppExploreRun, RobotInstance
 from app.services.app_explore_export import write_explore_excel

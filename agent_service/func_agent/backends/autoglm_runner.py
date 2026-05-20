@@ -6,7 +6,16 @@ from typing import Any, Callable
 
 from dotenv import load_dotenv
 
-_REPO_ROOT = Path(__file__).resolve().parents[2]
+
+def _resolve_repo_root() -> Path:
+    cur = Path(__file__).resolve()
+    for parent in cur.parents:
+        if (parent / "web" / "backend").is_dir() and (parent / "autoglm_phone_tech").is_dir():
+            return parent
+    return cur.parents[3]
+
+
+_REPO_ROOT = _resolve_repo_root()
 
 
 def run_autoglm_task(
@@ -21,7 +30,7 @@ def run_autoglm_task(
     load_dotenv(_REPO_ROOT / ".env")
     os.chdir(_REPO_ROOT)
 
-    from func_agent.backends.autoglm.agent import AgentConfig, PhoneTestAgent
+    from agent_service.func_agent.backends.autoglm.agent import AgentConfig, PhoneTestAgent
     from autoglm_phone_tech.device.platform import DevicePlatform
     from autoglm_phone_tech.model.client import ModelConfig
     from app.services.device_platform import resolve_execution_device_id

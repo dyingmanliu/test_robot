@@ -9,7 +9,7 @@
 ## 目录结构
 
 ```
-analysis_agent/
+agent_service/analysis_agent/
   agent.py           # AnalysisAgent 入口
   types.py           # ProjectContext / CaseDraft / CaseStep
   errors.py
@@ -34,7 +34,7 @@ RAG 检索由 Web 层 `case_kb` 完成，结果以 `kb_snippets` 传入 Agent。
 ## Web 调用示例
 
 ```python
-from analysis_agent import AnalysisAgent, ProjectContext
+from agent_service.analysis_agent import AnalysisAgent, ProjectContext
 
 agent = AnalysisAgent()
 draft = agent.generate_case_draft(

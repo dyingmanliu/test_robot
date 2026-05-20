@@ -14,8 +14,8 @@ import logging
 from dotenv import load_dotenv
 from sqlalchemy.orm import Session
 
-from func_agent.core import FuncAgentDispatch
-from func_agent.orchestrator import run_func_agent_dispatch
+from agent_service.func_agent.core import FuncAgentDispatch
+from agent_service.func_agent.orchestrator import run_func_agent_dispatch
 from app.services.llm_usage_log import log_midscene_machine_line
 
 log = logging.getLogger("app.executor")
@@ -45,7 +45,7 @@ def signal_cancel(run_id: int) -> bool:
 
 
 def execute_test_run(db: Session, run_id: int) -> None:
-    from func_agent.backends.autoglm.agent import StepResult
+    from agent_service.func_agent.backends.autoglm.agent import StepResult
     from app.models import RobotInstance, TestCase, TestRun
 
     cancel_ev = _run_cancel_events.setdefault(run_id, threading.Event())

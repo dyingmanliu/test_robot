@@ -11,7 +11,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from func_agent.backends.autoglm.agent import AgentConfig, PhoneTestAgent
+from agent_service.func_agent.backends.autoglm.agent import AgentConfig, PhoneTestAgent
 from autoglm_phone_tech.device.adb_resolve import resolve_adb_executable
 from autoglm_phone_tech.device.hdc_resolve import resolve_hdc_executable
 from autoglm_phone_tech.device.platform import DevicePlatform

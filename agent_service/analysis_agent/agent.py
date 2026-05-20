@@ -5,15 +5,15 @@ from __future__ import annotations
 import logging
 import time
 
-from analysis_agent.config import (
+from agent_service.analysis_agent.config import (
     CASE_GENERATION_SYSTEM_PROMPT,
     AnalysisAgentConfig,
     load_analysis_config,
 )
-from analysis_agent.errors import AnalysisAgentError
-from analysis_agent.model.client import AnalysisModelClient
-from analysis_agent.parser import draft_from_parsed, extract_json_object
-from analysis_agent.types import CaseDraft, ProjectContext
+from agent_service.analysis_agent.errors import AnalysisAgentError
+from agent_service.analysis_agent.model.client import AnalysisModelClient
+from agent_service.analysis_agent.parser import draft_from_parsed, extract_json_object
+from agent_service.analysis_agent.types import CaseDraft, ProjectContext
 
 log = logging.getLogger("analysis_agent")
 

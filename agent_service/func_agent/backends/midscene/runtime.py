@@ -11,7 +11,16 @@ from typing import Any, Callable
 
 from dotenv import load_dotenv
 
-_REPO_ROOT = Path(__file__).resolve().parents[3]
+
+def _resolve_repo_root() -> Path:
+    cur = Path(__file__).resolve()
+    for parent in cur.parents:
+        if (parent / "web" / "backend").is_dir() and (parent / "midscene_tech").is_dir():
+            return parent
+    return cur.parents[4]
+
+
+_REPO_ROOT = _resolve_repo_root()
 
 
 def _build_midscene_cli_cmd(mid_root: Path, cli_rel: Path) -> list[str]:

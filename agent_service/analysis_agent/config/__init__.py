@@ -8,7 +8,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from analysis_agent.config.prompts import CASE_GENERATION_SYSTEM_PROMPT
+from agent_service.analysis_agent.config.prompts import CASE_GENERATION_SYSTEM_PROMPT
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _ENV_FILE = _REPO_ROOT / ".env"

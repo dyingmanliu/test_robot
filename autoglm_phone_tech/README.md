@@ -2,7 +2,7 @@
 
 基于智谱 **AutoGLM-Phone** 的移动端 UI 自动化 Python 包，设备层设计参考 [Open-AutoGLM](https://github.com/zai-org/Open-AutoGLM) 的 `device_factory`（`adb` / `hdc`）。
 
-> 当前仓库已将功能测试机器人统一到 [`func_agent`](../func_agent/README.md) 业务域。本文档仅保留 AutoGLM 技术后端资源说明；执行入口已收口到 `func_agent`。
+> 当前仓库已将功能测试机器人统一到 [`agent_service/func_agent`](../agent_service/func_agent/README.md) 业务域。本文档仅保留 AutoGLM 技术后端资源说明；执行入口已收口到 `agent_service/func_agent`。
 
 ## 支持的平台
 
@@ -30,7 +30,7 @@ autoglm_phone_tech/
 └── model/client.py          # OpenAI 兼容 API 客户端
 ```
 
-> `PhoneTestAgent` 执行入口位于 `func_agent/backends/autoglm/agent.py`。
+> `PhoneTestAgent` 执行入口位于 `agent_service/func_agent/backends/autoglm/agent.py`。
 
 ## 环境变量
 
@@ -48,24 +48,24 @@ autoglm_phone_tech/
 
 ## CLI 使用
 
-统一入口：[`func_agent/cli.py`](../func_agent/cli.py)：
+统一入口：[`agent_service/func_agent/cli.py`](../agent_service/func_agent/cli.py)：
 
 ```bash
 pip install -r requirements.txt
 
 # Android（默认）
-python -m func_agent.cli "打开美团搜索附近的火锅店"
-python -m func_agent.cli --device-type adb --device-id emulator-5554 "任务"
+python -m agent_service.func_agent.cli "打开美团搜索附近的火锅店"
+python -m agent_service.func_agent.cli --device-type adb --device-id emulator-5554 "任务"
 
 # 鸿蒙
-python -m func_agent.cli --device-type hdc "打开设置并进入关于本机"
+python -m agent_service.func_agent.cli --device-type hdc "打开设置并进入关于本机"
 hdc list targets   # 执行前确认设备在线
 ```
 
 ## 在代码中使用
 
 ```python
-from func_agent.backends.autoglm.agent import PhoneTestAgent, AgentConfig
+from agent_service.func_agent.backends.autoglm.agent import PhoneTestAgent, AgentConfig
 from autoglm_phone_tech.model.client import ModelConfig
 
 model = ModelConfig(api_key="...", base_url="https://open.bigmodel.cn/api/paas/v4")
@@ -77,7 +77,7 @@ print(result.ok, result.message)
 
 ## 与 Web 平台的关系
 
-Web 后端通过 `func_agent.orchestrator` 统一调度；当实例为 **`test_agent_backend=autoglm`** 时会进入 AutoGLM 后端（**Android 与鸿蒙均同进程**），根据 `device_platform` 选择 ADB 或 HDC。Midscene 引擎走 `func_agent` 的 Midscene 后端，见 [执行矩阵](../README.md#1c-测试执行技术路线--设备平台robot_instances)。
+Web 后端通过 `agent_service.func_agent.orchestrator` 统一调度；当实例为 **`test_agent_backend=autoglm`** 时会进入 AutoGLM 后端（**Android 与鸿蒙均同进程**），根据 `device_platform` 选择 ADB 或 HDC。Midscene 引擎走 `agent_service/func_agent` 的 Midscene 后端，见 [执行矩阵](../README.md#1c-测试执行技术路线--设备平台robot_instances)。
 
 ## 参考
 

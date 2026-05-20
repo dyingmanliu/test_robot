@@ -11,8 +11,8 @@ from urllib.parse import urlparse
 import httpx
 from openai import APIConnectionError, APITimeoutError, OpenAI
 
-from analysis_agent.config import AnalysisAgentConfig
-from analysis_agent.errors import AnalysisAgentError
+from agent_service.analysis_agent.config import AnalysisAgentConfig
+from agent_service.analysis_agent.errors import AnalysisAgentError
 
 log = logging.getLogger(__name__)
 

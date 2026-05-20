@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
-from func_agent.backends import run_autoglm_task, run_midscene_task
-from func_agent.core import FuncAgentDispatch
+from agent_service.func_agent.backends import run_autoglm_task, run_midscene_task
+from agent_service.func_agent.core import FuncAgentDispatch
 
 
 def run_func_agent_dispatch(
@@ -31,4 +31,4 @@ def run_func_agent_dispatch(
             on_step=on_autoglm_step,
             should_cancel=should_cancel,
         )
-    raise ValueError(f"Unsupported func_agent backend: {backend}")
+    raise ValueError(f"Unsupported agent_service/func_agent backend: {backend}")
