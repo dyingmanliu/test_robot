@@ -59,8 +59,9 @@ Separate from device execution; same in-process import pattern as `autoglm_phone
 - **Package**: `analysis_agent/` — `AnalysisAgent`, `model/client.py`, `config/`, `parser.py` (LLM output is always **structured**)
 - **Web bridge**: `case_generation.py` — KB + ORM → `AnalysisAgent.generate_case_draft()`; optional `case_format=yaml` → `case_format_convert.structured_to_yaml()`
 - **Format convert**: `case_format_convert.py` — structured ↔ Midscene YAML; `POST /api/test-cases/convert-format` for edit-dialog switching
-- **API**: `POST /api/test-cases/generate` (body: `project_id`, `prompt`, optional `case_format`); draft only, no DB write
+- **API**: `POST /api/test-cases/generate` (body: `project_id`, `robot_instance_id` for test-analysis instance, `prompt`, optional `case_format`); draft only, no DB write
 - **Env**: `CASE_GEN_*` in repo root `.env` (see `analysis_agent/README.md`)
+- **E2E**: Case generation (analysis robot + `generate` → save `test_cases`) is separate from **functional execution** (execution robot + `POST …/run` → `test_runs`). Full collaboration flow: README **「端到端工作流」** and `ARCHITECTURE.md` §1.4.
 
 ### Directory Layout
 

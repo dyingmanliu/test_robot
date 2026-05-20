@@ -101,6 +101,51 @@ sequenceDiagram
 
 **配置**：仓库根 `.env` 的 `CASE_GEN_*`。本地调试常用 DeepSeek（`CASE_GEN_BASE_URL=https://api.deepseek.com`、`CASE_GEN_MODEL=deepseek-v4-pro`）；未设 `CASE_GEN_API_KEY` 时回退 `BIGMODEL_API_KEY`。详见 §6 环境变量表。
 
+### 1.4 端到端：测试分析机器人（用例生成）× 功能测试执行
+
+平台里存在**两类数字机器人实例**，在同一「项目空间」下配合完成「写用例 → 落库 → 真机执行 → 看结果」闭环；二者**职责分离**，不要混在同一操作里选错实例类型。
+
+| 维度 | 测试分析机器人（用例生成） | 功能测试执行机器人（设备自动化） |
+|------|---------------------------|----------------------------------|
+| 商城目录 / 典型 `catalog_robot_id` | **测试分析**（如 `test_analysis`） | **功能执行**等，实例上配置 `test_agent_backend`：`autoglm` 或 `midscene` |
+| 是否连真机 | **否**；仅后端进程内调用 LLM（`analysis_agent`） | **是**；`executor` 路由到 AutoGLM 同进程或 Midscene 子进程 + ADB/HDC |
+| 主要 Web 入口 | 测试用例页 → **创建用例 → 自动生成** | 测试用例页 → 选用例 → **执行测试**（机器人 / 平台 / 目标终端） |
+| 关键 API | `POST /api/test-cases/generate`（须传分析实例 `robot_instance_id`）、`POST /api/test-cases/convert-format`、`POST /api/test-cases` 保存 | `POST /api/test-cases/{id}/run`、`GET /api/test-cases/runs/{id}`、`POST …/cancel` |
+| 环境变量侧重 | `CASE_GEN_*`（可与执行用智谱/Midscene Key 分开配置） | `BIGMODEL_API_KEY` / `ZHIPU_API_KEY`、`MIDSCENE_*`、`ADB_DEVICE_ID` / `HDC_DEVICE_ID` 等 |
+| 产出物 | **草稿**写入前端编辑态；确认后持久化为 `test_cases` 行（structured 或 YAML 正文） | `test_runs` 步骤日志、终态、可选 Midscene HTML 报告 |
+
+**推荐协作顺序（业务视角）**
+
+1. **准备项目**：在「项目空间」填写被测应用、测试目标等，便于生成上下文与 KB 检索（`CASE_GEN_USE_KB=true` 时参考同项目历史用例）。  
+2. **租用并启动测试分析实例**：商城租用「测试分析」→ 审批通过后启动实例；在用例页「自动生成」弹窗中选择该实例。  
+3. **生成并保存用例**：输入一句话需求 → `generate` 得到草稿 → 在弹窗中核对标题、步骤、执行说明；可在 structured / YAML 间用 `convert-format` 切换 → **保存**写入 `test_cases`。  
+4. **租用并启动执行实例**：租用「功能执行」类机器人，在「我的机器人」中为实例设置 **执行引擎**（AutoGLM / Midscene）与 **默认设备平台**；YAML 用例须 **Midscene**。  
+5. **执行与观测**：用例列表选中用例 → 选择执行实例与（可选）**本次平台 / 目标终端** → 发起 `run` → 前端轮询 / 多 Tab 工作台查看实时进度与投屏 → 结束后查看结果与报告下载。
+
+```mermaid
+flowchart LR
+  subgraph gen["用例生成（不写库直到保存）"]
+    A1[测试分析机器人实例]
+    A2[POST /test-cases/generate]
+    A3[analysis_agent + CASE_GEN_*]
+    A4[编辑 / convert-format]
+    A5[POST /test-cases 持久化]
+    A1 --> A2 --> A3 --> A4 --> A5
+  end
+
+  subgraph run["功能测试执行"]
+    B1[执行类机器人实例]
+    B2[POST /test-cases/id/run]
+    B3[executor → AutoGLM 或 Midscene]
+    B4[test_runs 轮询 / 投屏 / 报告]
+    B1 --> B2 --> B3 --> B4
+  end
+
+  A5 -->|test_cases 行| B2
+```
+
+**实现提示**：生成接口校验实例为分析类（`catalog_robot_id` / 目录约定）；执行接口校验实例为执行类且与用例格式、引擎一致。详见 `case_generation.py`、`routers/test_cases.py`、`executor.py`。
+
 ## 2. 技术栈总览
 
 | 层级 | 技术 | 语言 |
@@ -231,7 +276,7 @@ flowchart TB
 1. 浏览器 → `POST /api/auth/login`（或 register）→ 返回 JWT。  
 2. 前端 `localStorage` 存 token，后续请求 `Authorization: Bearer ...`。  
 3. 用例列表 → `GET /api/test-cases`。
-3b. **AI 生成草稿** → `POST /api/test-cases/generate`（可选 `case_format`）；`case_generation.generate_case_draft` 调用 `analysis_agent.AnalysisAgent`；若需 YAML 则 `case_format_convert.structured_to_yaml`；KB 在 Web 层检索后注入；**不写库**；前端预填编辑后 `POST /api/test-cases` 保存。编辑时切换格式 → `POST /api/test-cases/convert-format`。
+3b. **AI 生成草稿** → `POST /api/test-cases/generate`（可选 `case_format`）；`case_generation.generate_case_draft` 调用 `analysis_agent.AnalysisAgent`；若需 YAML 则 `case_format_convert.structured_to_yaml`；KB 在 Web 层检索后注入；**不写库**；前端预填编辑后 `POST /api/test-cases` 保存。编辑时切换格式 → `POST /api/test-cases/convert-format`。须使用**测试分析**类机器人实例；与步骤 4 的执行实例**不是同一角色**（见 §1.4）。
 4. 执行 → `POST /api/test-cases/{id}/run`：请求体含 `robot_instance_id`，可选 `device_platform`、`device_id`；创建 `TestRun` 后**异步**在线程池执行 `executor.execute_test_run`。  
 5. 执行前枚举设备 → `GET /api/devices/connected?platform=…`（用例页「目标终端」下拉）。  
 6. 前端轮询 → `GET /api/test-cases/runs/{run_id}` 获取 `status`、`step_log`、`output_message` 等。
@@ -326,4 +371,4 @@ flowchart TB
 
 ## 8. 一句话小结
 
-**Vue 3 + FastAPI + SQLite** 管理用例与租用机器人实例；**用例编写 Agent**（`CASE_GEN_*`）可一句话生成草稿（可选 structured / YAML），编辑时可 **structured ↔ YAML 互转**；执行前可按实例选择 **Android/鸿蒙平台** 与 **具体终端（多机）**；**AutoGLM** 同进程、**Midscene** 子进程均支持双平台；前端轮询步骤日志、Midscene 报告与按终端投屏。
+**Vue 3 + FastAPI + SQLite** 管理用例与租用机器人实例；**测试分析机器人**驱动用例生成（`CASE_GEN_*` + `analysis_agent`，可选 structured / YAML，保存前不写库）；**功能执行机器人**驱动真机自动化（`executor`：AutoGLM 同进程 / Midscene 子进程）；同一项目内先落库用例再发起 `run`，执行前可选 **Android/鸿蒙** 与 **目标终端**；前端轮询步骤日志、Midscene 报告与按终端投屏。详见 §1.4。

@@ -15,6 +15,21 @@
 
 ---
 
+## 端到端工作流：测试分析机器人 × 功能测试执行
+
+平台将 **「用例写出来」** 与 **「在真机上跑起来」** 拆成两条能力线，由**两类租用的数字机器人实例**分别承担；在同一**项目空间**下串成完整闭环（对照表、mermaid 与实现提示见 [`ARCHITECTURE.md`](./ARCHITECTURE.md) 第 1.4 节）。
+
+| 阶段 | 做什么 | 谁参与 | 典型页面 / API |
+|------|--------|--------|------------------|
+| 1. 项目准备 | 维护被测应用、测试目标等上下文，便于生成与 KB 检索 | 项目空间 | `/api/projects` |
+| 2. 用例生成 | 一句话描述 → LLM 产出草稿 → 人工核对 → **保存入库** | **测试分析**机器人实例（商城「测试分析」目录；**不连手机**） | 测试用例页「创建用例 → **自动生成**」；`POST /api/test-cases/generate`（仅草稿）、`POST /api/test-cases`（持久化）；可选 `POST /api/test-cases/convert-format` |
+| 3. 执行准备 | 租用并启动 **AutoGLM 或 Midscene** 执行实例，配置默认平台；YAML 用例须 Midscene | **功能执行**类机器人 | 「我的机器人」；`PATCH /api/robot-instances/...` |
+| 4. 真机执行 | 选用例 → 选执行实例与（可选）本次 Android/鸿蒙 + 目标终端 → 发起运行 → 看日志 / 投屏 / 报告 | 执行实例 + ADB/HDC | 测试用例页「执行测试」；`POST /api/test-cases/{id}/run`、`GET /api/test-cases/runs/{id}` |
+
+**要点**：生成使用 `CASE_GEN_*` 与 `analysis_agent`，与真机执行的智谱 / Midscene Key 可分开配置；`generate` **不写库**，保存后写入 `test_cases`，再由 `run` 创建 `test_runs`。
+
+---
+
 ## 系统模块一览
 
 ### 1. AutoGLM Agent（`autoglm_phone_agent/`）
@@ -63,6 +78,7 @@
 - **Web 适配**：`web/backend/app/services/case_generation.py` 组装 ORM / KB，调用 `AnalysisAgent.generate_case_draft()`；可选 `case_format=yaml` 时在生成后做格式转换。
 - **格式互转**：`web/backend/app/services/case_format_convert.py` — structured ↔ Midscene YAML（规则转换，编辑弹窗切换格式时调用）。
 - **入口**：测试用例页 **「创建用例」→「自动生成」**（须选择已租用的 **测试分析** 机器人实例；可选生成格式）→ 预览编辑（可再切换格式）→ `POST /api/test-cases` 保存。
+- **与功能执行配合**：保存后的用例与手动编写的用例相同，在列表中选中后用 **功能执行** 类机器人发起 `POST /api/test-cases/{id}/run`；生成与执行使用**不同**的 `robot_instance_id`。完整步骤见上文 **「端到端工作流」** 与架构文档第 1.4 节。
 - **API**（均不写库）：
   - `POST /api/test-cases/generate` — 请求体 `project_id`、`robot_instance_id`（`catalog_robot_id=test_analysis`）、`prompt`、可选 `case_format`（`structured` | `yaml`，默认 `structured`）
   - `POST /api/test-cases/convert-format` — 编辑时 structured ↔ yaml 互转
@@ -120,7 +136,7 @@ CASE_GEN_TIMEOUT_SEC=120
 |------|------|
 | **登录 / 注册** | 手机号或邮箱；请求可走 API 网关（`VITE_API_BASE`） |
 | **项目空间** | 创建/编辑项目；「项目看板」展示度量；「功能测试任务」向导：上传/选用安装包 → 用例集（自建或 AI 占位草稿）→ 设备池 → 下发至 Kafka 队列 |
-| **测试用例** | 结构化或 **Midscene YAML**；**AI 生成**可选输出格式（结构化 / YAML）；编辑弹窗可 **structured ↔ YAML 互转**；执行前选机器人、**本次平台**（Android/鸿蒙）、**目标终端**（多机时指定 serial/target）；YAML 须 Midscene 引擎；步骤日志与报告 |
+| **测试用例** | 结构化或 **Midscene YAML**；**AI 生成**（测试分析实例）可选输出格式（结构化 / YAML）；编辑弹窗可 **structured ↔ YAML 互转**；保存后用 **功能执行** 实例发起运行；执行前选机器人、**本次平台**（Android/鸿蒙）、**目标终端**（多机时指定 serial/target）；YAML 须 Midscene 引擎；步骤日志与报告；多任务并行时工作台 Tab 区分进行中 / 已结束 |
 | **我的机器人** | 查看实例编号；配置 **执行引擎** 与 **默认执行设备**（平台）；运行中实例可点 **执行详情** 进入 `/runs/:runId/live` 查看实时进度（步骤日志 + 设备画面）；用例页可临时覆盖 |
 | **个人中心** | 昵称、头像 URL、公司及改密 |
 | **机器人商城** | `/marketplace`：四大数字机器人（测试分析 / 功能执行 / 专项执行 / 质量评估）卡片；「立即租用」选择按时长或按次数后在计费模块生成预订单，并跳转 `/payment` |
