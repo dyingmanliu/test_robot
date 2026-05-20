@@ -51,7 +51,7 @@ from app.routers import (
     ws_monitor,
 )
 
-app = FastAPI(title="识图技术数字机器人", version="1.0.0")
+app = FastAPI(title="鸿蒙生态智能测试平台", version="1.0.0")
 
 _http_log = logging.getLogger("app.http")
 

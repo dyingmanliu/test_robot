@@ -9,8 +9,24 @@
     <header class="top">
       <div class="top-bar">
         <router-link :to="auth.token ? '/' : { name: 'platformIntro' }" class="brand" @click="closeAllDetails">
-          <span class="brand-badge" aria-hidden="true">ST</span>
-          <span class="brand-full">识图技术数字机器人</span>
+          <span class="brand-badge" aria-hidden="true">
+            <svg class="brand-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M12 3v1.5M9.5 4.5h5"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+              />
+              <circle cx="12" cy="2.25" r="1.1" fill="currentColor" />
+              <rect x="5" y="6" width="14" height="10" rx="2.8" fill="currentColor" />
+              <circle cx="9.25" cy="11" r="1.35" fill="#1d4ed8" />
+              <circle cx="14.75" cy="11" r="1.35" fill="#1d4ed8" />
+              <rect x="4" y="17" width="16" height="5" rx="2" fill="currentColor" />
+              <rect x="2.5" y="9" width="2" height="5" rx="1" fill="currentColor" />
+              <rect x="19.5" y="9" width="2" height="5" rx="1" fill="currentColor" />
+            </svg>
+          </span>
+          <span class="brand-full">鸿蒙生态智能测试平台</span>
         </router-link>
 
         <nav v-if="!auth.token" class="nav nav-public">
@@ -314,12 +330,15 @@ function closeAllDetails() {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.95rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
   color: #fff;
   background: linear-gradient(145deg, #3b82f6 0%, #1d4ed8 55%, #1e3a8a 100%);
   box-shadow: 0 2px 10px rgb(37 99 235 / 28%);
+}
+
+.brand-icon {
+  width: 1.45rem;
+  height: 1.45rem;
+  display: block;
 }
 
 .brand-full {
