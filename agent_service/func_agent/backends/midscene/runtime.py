@@ -8,6 +8,7 @@ import subprocess
 import threading
 from pathlib import Path
 from typing import Any, Callable
+from urllib.parse import urlparse
 
 from dotenv import load_dotenv
 
@@ -39,6 +40,30 @@ def _build_midscene_cli_cmd(mid_root: Path, cli_rel: Path) -> list[str]:
     return [npx, "--yes", "tsx", cli, "--web-dispatch"]
 
 
+def _append_no_proxy_for_midscene_model(env: dict[str, str]) -> None:
+    """
+    DashScope 在一些本地代理环境下会出现 CONNECT 403。
+    当 Midscene 走 DashScope 网关时，自动把目标 host 加入 no_proxy/NO_PROXY，
+    避免子进程请求被本地代理错误拦截。
+    """
+    base_url = (env.get("MIDSCENE_MODEL_BASE_URL") or "").strip()
+    if not base_url:
+        return
+    host = (urlparse(base_url).hostname or "").strip().lower()
+    if not host:
+        return
+    if "dashscope.aliyuncs.com" not in host:
+        return
+
+    for key in ("NO_PROXY", "no_proxy"):
+        current = env.get(key, "")
+        parts = [p.strip() for p in current.split(",") if p.strip()]
+        lowered = {p.lower() for p in parts}
+        if host not in lowered:
+            parts.append(host)
+            env[key] = ",".join(parts)
+
+
 def run_midscene_task(
     dispatch: dict[str, Any],
     *,
@@ -66,6 +91,7 @@ def run_midscene_task(
     agent_backend = str(dispatch.get("agent_backend") or "midscene").strip().lower()
     if agent_backend == "autoglm":
         env["MIDSCENE_AGENT_BACKEND"] = "autoglm"
+    _append_no_proxy_for_midscene_model(env)
 
     proc = subprocess.Popen(
         cmd,
