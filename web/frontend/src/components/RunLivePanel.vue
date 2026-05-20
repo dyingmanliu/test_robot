@@ -14,6 +14,10 @@
     </div>
     <div class="status-strip">
       <div class="status-strip-main">
+        <p v-if="executionTaskLabel" class="status-task-line">
+          <strong>执行任务：</strong>
+          <span class="exec-task-name">{{ executionTaskLabel }}</span>
+        </p>
         <span class="status-line">
           <strong>执行状态：</strong>
           <span class="badge inline" :class="liveRun.status">{{ statusLabel(liveRun.status) }}</span>
@@ -41,6 +45,8 @@
     <div class="exec-console">
       <aside class="exec-screen-pane">
         <DeviceScreenMirror
+          v-if="mirrorInstanceId"
+          :key="`${liveRun?.id}-${mirrorInstanceId}-${mirrorPlatform}-${mirrorDeviceId}`"
           :robot-instance-id="mirrorInstanceId"
           :device-platform="mirrorPlatform"
           :device-id="mirrorDeviceId"
@@ -96,10 +102,19 @@ const props = defineProps({
   robotInstanceId: { type: [Number, String], default: null },
   devicePlatform: { type: String, default: "" },
   deviceId: { type: String, default: "" },
+  /** 用例标题；不传则显示「用例 #case_id」 */
+  caseTitle: { type: String, default: "" },
 });
 
 const activeRunStore = useActiveTestRunStore();
 const { liveRun } = storeToRefs(activeRunStore);
+
+const executionTaskLabel = computed(() => {
+  const t = String(props.caseTitle || "").trim();
+  if (t) return t;
+  const r = liveRun.value;
+  return r?.case_id != null ? `用例 #${r.case_id}` : "";
+});
 
 const stopBusy = ref(false);
 const liveLogScrollRef = ref(null);
@@ -198,6 +213,17 @@ async function stopRun() {
 .status-strip-main {
   flex: 1;
   min-width: 0;
+}
+
+.status-task-line {
+  margin: 0 0 0.5rem;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: #0f172a;
+}
+
+.status-task-line .exec-task-name {
+  font-weight: 500;
 }
 
 .status-progress {

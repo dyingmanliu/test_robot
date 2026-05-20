@@ -74,10 +74,10 @@
         <button
           type="button"
           class="btn"
-          :disabled="!selectedProjectId || !selectedCaseId || running || !canStartExecution"
+          :disabled="!selectedProjectId || !selectedCaseId || startBusy || !canStartExecution"
           @click="runSelected"
         >
-          {{ running ? "执行中…" : "执行测试" }}
+          {{ startBusy ? "提交中…" : "执行测试" }}
         </button>
       </div>
     </div>
@@ -161,14 +161,37 @@
       <p v-if="needsMidsceneForSelection" class="robot-hint muted small">
         已选 YAML 用例，请选用标注为 <strong>Midscene</strong> 的机器人（如 DR-000008 · 机器人贾维斯）。
       </p>
-      <p v-if="!runnableRobotCount" class="robot-hint warn small">
+      <div v-if="busyExecutionRobots.length" class="banner warn small busy-robots-banner">
+        <p v-for="ins in busyExecutionRobots" :key="ins.id" class="busy-robot-line">
+          <strong>{{ ins.instance_code }}</strong>
+          显示为执行中
+          <template v-if="ins.active_run_id">（运行 #{{ ins.active_run_id }}）</template>
+          。若设备上已无自动化操作，可能是残留任务：
+          <button
+            v-if="ins.active_run_id"
+            type="button"
+            class="link-btn"
+            :disabled="cancelStaleBusy"
+            @click="cancelStaleRun(ins.active_run_id)"
+          >
+            {{ cancelStaleBusy ? "终止中…" : "终止残留任务" }}
+          </button>
+        </p>
+      </div>
+      <p v-if="!runnableRobotCount && !busyExecutionRobots.length" class="robot-hint warn small">
         当前没有可执行用例的机器人：须为<strong>已启动</strong>且<strong>运行状态空闲</strong>；YAML 用例还须 Midscene 引擎。可在
         <router-link v-if="auth.role === 'platform_admin'" to="/admin/robot-instances">机器人实例管理</router-link>
         <template v-else>「我的机器人」</template>
         中启用实例或等待执行结束。
       </p>
+      <p v-else-if="!runnableRobotCount && busyExecutionRobots.length" class="robot-hint warn small">
+        暂无<strong>空闲</strong>机器人；可先终止上方残留任务，或等待执行结束后再点「执行测试」。
+      </p>
       <p v-else class="robot-hint muted small">
-        仅<strong>已启动</strong>且<strong>运行空闲</strong>的机器人可选；执行中或已停用的实例将灰显。
+        已启动的机器人均可选择并配置设备；<strong>运行空闲</strong>的实例才能点「执行测试」，执行中的实例须先结束或终止残留任务。
+      </p>
+      <p v-if="activeRunStore.isActive" class="robot-hint muted small">
+        已有任务执行中时，可为其它空闲机器人再点「执行测试」；<strong>每个机器人须绑定不同物理终端</strong>，勿共用同一 ADB/HDC 设备。
       </p>
     </div>
 
@@ -221,6 +244,33 @@
       已恢复进行中的执行任务（运行 ID {{ liveRun.id }}）。离开本页后后台仍会继续拉取进度，返回即可继续查看。
     </p>
 
+    <p v-if="parallelRunNotice" class="banner warn small">{{ parallelRunNotice }}</p>
+
+    <div
+      v-if="projectExecutingRuns.length > 0"
+      class="run-tabs"
+      role="tablist"
+      aria-label="进行中的执行任务"
+    >
+      <button
+        v-for="run in projectExecutingRuns"
+        :key="run.id"
+        type="button"
+        role="tab"
+        class="run-tab"
+        :class="{ 'run-tab--active': focusedRunId === run.id }"
+        :aria-selected="focusedRunId === run.id"
+        :title="runTabTitle(run)"
+        @click="focusRunTab(run.id)"
+      >
+        {{ runTabLabel(run) }}
+      </button>
+    </div>
+
+    <p v-if="liveRunVisible && watchContextLine" class="watch-context muted small">
+      <strong>当前观看：</strong>{{ watchContextLine }}
+    </p>
+
     <div v-if="liveRunVisible" class="panel live-panel">
       <div class="panel-head">
         <h2>执行进度（实时）</h2>
@@ -236,6 +286,10 @@
       </div>
       <div class="status-strip">
         <div class="status-strip-main">
+          <p class="status-task-line">
+            <strong>执行任务：</strong>
+            <span class="exec-task-name">{{ liveRunCaseTitle }}</span>
+          </p>
           <span class="status-line">
             <strong>执行状态：</strong>
             <span class="badge inline" :class="liveRun.status">{{ statusLabel(liveRun.status) }}</span>
@@ -263,9 +317,11 @@
       <div class="exec-console">
         <aside class="exec-screen-pane">
           <DeviceScreenMirror
-            :robot-instance-id="selectedRobotInstanceId"
-            :device-platform="selectedDevicePlatform"
-            :device-id="selectedDeviceId"
+            v-if="mirrorInstanceId"
+            :key="mirrorKey"
+            :robot-instance-id="mirrorInstanceId"
+            :device-platform="mirrorPlatform"
+            :device-id="mirrorDeviceId"
             :active="screenMirrorActive"
           />
         </aside>
@@ -303,16 +359,29 @@
     <div v-if="resultRuns.length" class="panel">
       <h2>执行结果</h2>
       <div v-for="r in resultRuns" :key="r.id" class="run-block">
-        <div class="run-head">
-          <span class="badge" :class="r.status">{{ statusLabel(r.status) }}</span>
-          <span class="muted small">运行 ID: {{ r.id }} · 用例 ID: {{ r.case_id }}</span>
+        <div class="status-strip status-strip--result">
+          <div class="status-strip-main">
+            <p class="status-task-line">
+              <strong>执行任务：</strong>
+              <span class="exec-task-name">{{ caseTitleForRun(r) }}</span>
+            </p>
+            <span class="status-line">
+              <strong>执行状态：</strong>
+              <span class="badge inline" :class="r.status">{{ statusLabel(r.status) }}</span>
+            </span>
+            <span class="muted small">
+              运行 ID {{ r.id }} · 用例 ID {{ r.case_id }}
+            </span>
+          </div>
         </div>
         <div v-if="r.step_log" class="exec-console exec-console--result">
           <aside class="exec-screen-pane">
             <DeviceScreenMirror
-              :robot-instance-id="selectedRobotInstanceId"
-              :device-platform="selectedDevicePlatform"
-              :device-id="selectedDeviceId"
+              v-if="r.robot_instance_id"
+              :key="`result-${r.id}-${r.robot_instance_id}-${r.device_platform}-${r.device_id}`"
+              :robot-instance-id="r.robot_instance_id"
+              :device-platform="normalizeDevicePlatform(r.device_platform)"
+              :device-id="r.device_id || ''"
               :active="false"
             />
           </aside>
@@ -531,7 +600,7 @@
           <button
             type="button"
             class="btn primary btn-run"
-            :disabled="dialog.saving || running"
+            :disabled="dialog.saving || startBusy"
             @click="saveDialog(true)"
           >
             {{ dialog.saving ? "处理中…" : "保存并执行" }}
@@ -577,13 +646,18 @@ import { storeToRefs } from "pinia";
 import { useRoute, useRouter } from "vue-router";
 import client, { formatApiError } from "@/api/client";
 import DeviceScreenMirror from "@/components/DeviceScreenMirror.vue";
-import { useActiveTestRunStore, getActiveRunProjectId } from "@/stores/activeTestRun";
+import {
+  useActiveTestRunStore,
+  getActiveRunProjectId,
+  isLiveRunStatus,
+} from "@/stores/activeTestRun";
 import { useAuthStore } from "@/stores/auth";
 import {
   analysisRobotUnselectableHint,
   isAnalysisInstance,
   isExecutionInstance,
   isRobotRunnableForAnalysis,
+  isInstanceStarted,
   isRobotRunnableForCase,
   robotUnselectableHint,
 } from "@/constants/robotCatalog";
@@ -593,7 +667,7 @@ const route = useRoute();
 const router = useRouter();
 const auth = useAuthStore();
 const activeRunStore = useActiveTestRunStore();
-const { liveRun, polling: running } = storeToRefs(activeRunStore);
+const { liveRun, focusedRunId } = storeToRefs(activeRunStore);
 
 const projects = ref([]);
 const projectsLoaded = ref(false);
@@ -604,8 +678,12 @@ const loading = ref(false);
 const loadError = ref("");
 const selectedCaseId = ref(null);
 const stopBusy = ref(false);
+const startBusy = ref(false);
+const cancelStaleBusy = ref(false);
 const showResumeHint = ref(false);
 const resultRuns = ref([]);
+const absorbedRunIds = ref(new Set());
+const parallelRunNotice = ref("");
 
 function runBelongsToCurrentProject(run) {
   if (!selectedProjectId.value || !run) return false;
@@ -622,8 +700,41 @@ function runBelongsToCurrentProject(run) {
 const liveRunVisible = computed(() => {
   if (!liveRun.value) return false;
   if (!runBelongsToCurrentProject(liveRun.value)) return false;
-  const st = liveRun.value.status;
-  return st === "pending" || st === "running";
+  return isLiveRunStatus(liveRun.value.status);
+});
+
+const projectExecutingRuns = computed(() =>
+  activeRunStore.executingRuns.filter((r) => runBelongsToCurrentProject(r)),
+);
+
+const mirrorInstanceId = computed(() => {
+  const id = liveRun.value?.robot_instance_id;
+  return id != null ? Number(id) : null;
+});
+
+const mirrorPlatform = computed(() =>
+  normalizeDevicePlatform(liveRun.value?.device_platform || "android"),
+);
+
+const mirrorDeviceId = computed(() => liveRun.value?.device_id || "");
+
+const mirrorKey = computed(() => {
+  const r = liveRun.value;
+  if (!r?.id) return "mirror-none";
+  return `live-${r.id}-${mirrorInstanceId.value}-${mirrorPlatform.value}-${mirrorDeviceId.value}`;
+});
+
+const liveRunCaseTitle = computed(() => (liveRun.value ? caseTitleForRun(liveRun.value) : ""));
+
+const watchContextLine = computed(() => {
+  const r = liveRun.value;
+  if (!r?.robot_instance_id) return "";
+  const ins = robotInstances.value.find((i) => i.id === r.robot_instance_id);
+  const code = ins?.instance_code || `机器人#${r.robot_instance_id}`;
+  const engine = agentEngineLabel(ins?.test_agent_backend);
+  const plat = devicePlatformLabel(r.device_platform);
+  const dev = r.device_id ? ` · ${r.device_id}` : "";
+  return `${code} · ${engine} · ${plat}${dev} · 运行 #${r.id}`;
 });
 
 const robotInstances = ref([]);
@@ -663,6 +774,14 @@ const runnableRobotCount = computed(() =>
   executionRobotInstances.value.filter((ins) =>
     isRobotRunnableForCase(ins, needsMidsceneForSelection.value),
   ).length,
+);
+
+/** 后端标记为执行中（可能为残留任务，设备实际已空闲） */
+const busyExecutionRobots = computed(() =>
+  executionRobotInstances.value.filter((ins) => {
+    if (!isInstanceStarted(ins.status)) return false;
+    return String(ins.runtime_status || "").toLowerCase() === "executing";
+  }),
 );
 
 const canStartExecution = computed(() => {
@@ -755,24 +874,76 @@ watch(
   },
 );
 
-function absorbTerminalRunToResults() {
-  const run = liveRun.value;
-  if (!run || !runBelongsToCurrentProject(run)) return;
-  if (!["success", "failed", "cancelled"].includes(run.status)) return;
-  resultRuns.value = [run];
-  showResumeHint.value = false;
-  syncRunQuery(null);
-  activeRunStore.clear();
+function isTerminalRunStatus(status) {
+  return status === "success" || status === "failed" || status === "cancelled";
+}
+
+function absorbTerminalRun(run) {
+  if (!run || absorbedRunIds.value.has(run.id)) return;
+  if (!runBelongsToCurrentProject(run)) {
+    activeRunStore.removeRun(run.id);
+    return;
+  }
+  if (!isTerminalRunStatus(run.status)) return;
+  absorbedRunIds.value = new Set([...absorbedRunIds.value, run.id]);
+
+  const ins = robotInstances.value.find((i) => i.id === run.robot_instance_id);
+  const code = ins?.instance_code || `机器人#${run.robot_instance_id}`;
+  const wasFocused = focusedRunId.value === run.id;
+
+  const others = resultRuns.value.filter((r) => r.id !== run.id);
+  resultRuns.value = [run, ...others].slice(0, 5);
+
+  if (!wasFocused) {
+    parallelRunNotice.value = `并行任务已结束：${code} · 运行 #${run.id}（${statusLabel(run.status)}）。可在下方「执行结果」查看详情。`;
+  } else {
+    parallelRunNotice.value = "";
+    showResumeHint.value = false;
+    syncRunQuery(null);
+  }
+
+  activeRunStore.removeRun(run.id);
+  const next = projectExecutingRuns.value[0];
+  if (next && wasFocused) {
+    focusRunTab(next.id);
+  }
 }
 
 watch(
-  () => liveRun.value?.status,
-  (st) => {
-    if (st && ["success", "failed", "cancelled"].includes(st)) {
-      absorbTerminalRunToResults();
+  () => activeRunStore.runsById,
+  (map) => {
+    for (const run of Object.values(map || {})) {
+      if (isTerminalRunStatus(run.status)) {
+        absorbTerminalRun(run);
+      }
     }
   },
+  { deep: true },
 );
+
+function caseTitleForRun(run) {
+  const c = cases.value.find((x) => x.id === run.case_id);
+  return (c?.title || "").trim() || `用例 #${run.case_id}`;
+}
+
+function runTabTitle(run) {
+  const ins = robotInstances.value.find((i) => i.id === run.robot_instance_id);
+  const code = ins?.instance_code || `#${run.robot_instance_id}`;
+  return `${code} · ${caseTitleForRun(run)} · 运行 #${run.id}`;
+}
+
+function runTabLabel(run) {
+  const ins = robotInstances.value.find((i) => i.id === run.robot_instance_id);
+  const code = ins?.instance_code || `#${run.robot_instance_id}`;
+  return `${code} · ${truncate(caseTitleForRun(run), 22)}`;
+}
+
+function focusRunTab(runId) {
+  activeRunStore.focusRun(runId);
+  syncRunQuery(runId);
+  scrollLiveLogToBottom();
+  parallelRunNotice.value = "";
+}
 
 const importMsg = ref("");
 
@@ -880,7 +1051,10 @@ function analysisOptionHint(ins) {
 }
 
 function robotOptionDisabled(ins) {
-  return !isRobotRunnableForCase(ins, needsMidsceneForSelection.value);
+  if (!ins || !isInstanceStarted(ins.status)) return true;
+  const needMid = needsMidsceneForSelection.value;
+  if (needMid && !isMidsceneBackend(ins.test_agent_backend)) return true;
+  return false;
 }
 
 function robotOptionHint(ins) {
@@ -901,25 +1075,36 @@ function syncAnalysisRobotSelection() {
   }
 }
 
-function syncRobotSelection() {
+/** 新建执行配置：保留用户已选的已启动实例（含「执行中」），仅在不合法时改选空闲机器人 */
+function syncDraftRobotSelection() {
   const needMid = needsMidsceneForSelection.value;
   const runnable = executionRobotInstances.value.filter((ins) =>
     isRobotRunnableForCase(ins, needMid),
   );
-  if (!runnable.length) {
-    selectedRobotInstanceId.value = null;
+  const current = executionRobotInstances.value.find((ins) => ins.id === selectedRobotInstanceId.value);
+  const currentDraftOk =
+    current &&
+    isInstanceStarted(current.status) &&
+    (!needMid || isMidsceneBackend(current.test_agent_backend));
+
+  if (currentDraftOk) {
+    syncAnalysisRobotSelection();
     return;
   }
-  const current = executionRobotInstances.value.find((ins) => ins.id === selectedRobotInstanceId.value);
-  if (!current || !isRobotRunnableForCase(current, needMid)) {
-    selectedRobotInstanceId.value = runnable[0].id;
+
+  if (!runnable.length) {
+    selectedRobotInstanceId.value = null;
+    syncAnalysisRobotSelection();
+    return;
   }
+
+  selectedRobotInstanceId.value = runnable[0].id;
   syncDevicePlatformFromInstance();
   loadConnectedDevices();
   syncAnalysisRobotSelection();
 }
 
-watch([selectedCaseId, cases], () => syncRobotSelection());
+watch([selectedCaseId, cases], () => syncDraftRobotSelection());
 
 watch(selectedRobotInstanceId, () => syncDevicePlatformFromInstance());
 
@@ -982,7 +1167,8 @@ async function loadRobotInstances() {
   try {
     const { data } = await client.get("/api/robot-instances/mine");
     robotInstances.value = Array.isArray(data) ? data : [];
-    syncRobotSelection();
+    syncDraftRobotSelection();
+    await activeRunStore.syncRunsFromRobots(robotInstances.value, selectedProjectId.value);
   } catch {
     robotInstances.value = [];
     selectedRobotInstanceId.value = null;
@@ -1268,14 +1454,33 @@ function validateExecutionReady(caseFormat) {
       : "请先选择要使用的机器人实例";
   }
   const picked = robotInstances.value.find((ins) => ins.id === selectedRobotInstanceId.value);
-  if (!picked || !isRobotRunnableForCase(picked, needMid)) {
-    return "请选择已启动且运行空闲的机器人实例";
+  if (!picked || !isInstanceStarted(picked.status)) {
+    return "请选择已启动的机器人实例";
   }
   if (needMid && !isMidsceneBackend(picked.test_agent_backend)) {
     return "YAML 用例须绑定 Midscene 机器人实例执行";
   }
+  const rt = String(picked.runtime_status || "").toLowerCase();
+  if (rt === "executing") {
+    const rid = picked.active_run_id;
+    return (
+      `机器人 ${picked.instance_code} 显示执行中${rid ? `（运行 #${rid}）` : ""}。` +
+      "若设备实际空闲，请点击上方「终止残留任务」，或在下方执行 Tab 中停止该任务。"
+    );
+  }
   if (!selectedDeviceId.value) {
     return devicesError.value || "请先选择已连接的目标终端，或点击「刷新」重新扫描设备";
+  }
+  const platform = normalizeDevicePlatform(selectedDevicePlatform.value);
+  const conflict = activeRunStore.findLiveRunOnDevice(platform, selectedDeviceId.value);
+  if (conflict) {
+    const ins = robotInstances.value.find((i) => i.id === conflict.robot_instance_id);
+    const code = ins?.instance_code || `#${conflict.robot_instance_id}`;
+    const devLabel = selectedDeviceId.value || "（默认设备）";
+    return (
+      `目标终端 ${devLabel} 已被进行中的任务占用（${code} · 运行 #${conflict.id}）。` +
+      "并行执行须为每个机器人选择不同的物理设备，或等待当前任务结束。"
+    );
   }
   return null;
 }
@@ -1364,8 +1569,9 @@ async function remove(c) {
     if (selectedCaseId.value === c.id) {
       selectedCaseId.value = null;
     }
-    if (liveRun.value?.case_id === c.id) {
-      activeRunStore.clear();
+    const related = Object.values(activeRunStore.runsById).filter((r) => r.case_id === c.id);
+    for (const r of related) {
+      activeRunStore.removeRun(r.id);
     }
     await load();
   } catch (e) {
@@ -1487,7 +1693,10 @@ async function tryResumeActiveRun() {
   const qRun = route.query.run ? Number(route.query.run) : null;
   const preferred = Number.isFinite(qRun) && qRun > 0 ? qRun : null;
   const hadStored = !!(preferred || sessionStorage.getItem("tcm_active_run_id"));
-  const data = await activeRunStore.resumeIfNeeded(preferred);
+  await activeRunStore.syncRunsFromRobots(robotInstances.value, selectedProjectId.value);
+  const data = preferred
+    ? await activeRunStore.resumeIfNeeded(preferred)
+    : await activeRunStore.resumeIfNeeded();
   if (!data) return;
   if (!runBelongsToCurrentProject(data)) {
     showResumeHint.value = false;
@@ -1495,34 +1704,57 @@ async function tryResumeActiveRun() {
     return;
   }
   selectedCaseId.value = data.case_id;
-  if (["success", "failed", "cancelled"].includes(data.status)) {
+  if (isTerminalRunStatus(data.status)) {
     resultRuns.value = [data];
-    activeRunStore.clear();
+    activeRunStore.removeRun(data.id);
     return;
-  } else if (hadStored) {
+  }
+  if (hadStored && isLiveRunStatus(data.status)) {
     showResumeHint.value = true;
+    if (preferred !== data.id) {
+      activeRunStore.focusRun(data.id);
+    }
     syncRunQuery(data.id);
   }
   await nextTick();
   scrollLiveLogToBottom();
 }
 
+async function cancelStaleRun(runId) {
+  if (!runId) return;
+  cancelStaleBusy.value = true;
+  try {
+    await activeRunStore.cancelRunById(runId);
+    parallelRunNotice.value = "";
+    await loadRobotInstances();
+  } catch (e) {
+    window.alert(e.response?.data?.detail || String(e.message || e));
+  } finally {
+    cancelStaleBusy.value = false;
+  }
+}
+
 async function runCaseById(caseId) {
-  resultRuns.value = [];
+  if (!activeRunStore.isActive) {
+    resultRuns.value = [];
+    absorbedRunIds.value = new Set();
+    parallelRunNotice.value = "";
+  }
   loadError.value = "";
   showResumeHint.value = false;
   activeRunStore.pollError = null;
+  startBusy.value = true;
   try {
-    const final = await activeRunStore.executeCase({
+    const started = await activeRunStore.executeCase({
       caseId,
       projectId: selectedProjectId.value,
       robotInstanceId: selectedRobotInstanceId.value,
       devicePlatform: normalizeDevicePlatform(selectedDevicePlatform.value),
       deviceId: selectedDeviceId.value,
     });
-    syncRunQuery(null);
-    resultRuns.value = [final];
-    activeRunStore.clear();
+    selectedCaseId.value = caseId;
+    await loadRobotInstances();
+    syncRunQuery(started.id);
     await nextTick();
     scrollLiveLogToBottom();
   } catch (e) {
@@ -1542,6 +1774,8 @@ async function runCaseById(caseId) {
       started_at: null,
       finished_at: null,
     });
+  } finally {
+    startBusy.value = false;
   }
 }
 
@@ -1914,6 +2148,17 @@ onUnmounted(() => {
   }
 }
 
+.status-task-line {
+  margin: 0 0 0.5rem;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: #0f172a;
+}
+
+.status-task-line .exec-task-name {
+  font-weight: 500;
+}
+
 .status-line {
   display: inline-flex;
   align-items: center;
@@ -1949,11 +2194,8 @@ onUnmounted(() => {
   border-top: none;
 }
 
-.run-head {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 0.5rem;
+.status-strip--result {
+  margin-bottom: 0.75rem;
 }
 
 .badge {
@@ -2045,6 +2287,59 @@ onUnmounted(() => {
 
 .report-none {
   margin: 0;
+}
+
+.run-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.75rem 0 0.35rem;
+}
+
+.run-tab {
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #334155;
+  border-radius: 999px;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.82rem;
+  max-width: min(100%, 320px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    color 0.15s;
+}
+
+.run-tab:hover {
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+
+.run-tab--active {
+  border-color: #2563eb;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+.watch-context {
+  margin: 0.35rem 0 0.65rem;
+  padding: 0.5rem 0.75rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.busy-robots-banner {
+  margin-top: 0.5rem;
+}
+
+.busy-robot-line {
+  margin: 0.25rem 0;
 }
 
 .exec-console {

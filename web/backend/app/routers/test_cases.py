@@ -51,7 +51,7 @@ router = APIRouter(prefix="/test-cases", tags=["test-cases"])
 
 log = logging.getLogger("app.routers.test_cases")
 
-_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="tcm_run")
+_executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="tcm_run")
 
 
 def _run_in_thread(run_id: int) -> None:

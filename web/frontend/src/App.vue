@@ -81,7 +81,10 @@
       v-if="showGlobalRunBanner"
       class="global-run-banner"
     >
-      <span>用例执行中（运行 ID {{ activeRunStore.runId }}）</span>
+      <span v-if="activeRunStore.activeRunCount > 1">
+        {{ activeRunStore.activeRunCount }} 个用例执行中（当前观看运行 ID {{ activeRunStore.runId }}）
+      </span>
+      <span v-else>用例执行中（运行 ID {{ activeRunStore.runId }}）</span>
       <router-link
         class="global-run-link"
         :to="{
@@ -107,7 +110,7 @@
 
     <router-view v-slot="{ Component, route }">
       <main class="main" :class="{ 'main--bleed': route.meta.fullBleed }">
-        <component v-if="Component" :is="Component" :key="route.fullPath" />
+        <component v-if="Component" :is="Component" :key="pageComponentKey" />
       </main>
     </router-view>
   </div>
@@ -127,6 +130,17 @@ const router = useRouter();
 const activeRunProjectId = computed(
   () => getActiveRunProjectId() || String(route.query.project || ""),
 );
+
+/**
+ * 用例页切换 ?run= 仅切换观看任务，不可整页销毁重挂（否则并行 Tab 会闪退只剩一个）。
+ * 其它页面仍按 fullPath 区分（含动态路由参数）。
+ */
+const pageComponentKey = computed(() => {
+  if (route.name === "cases") {
+    return `cases:${route.query.project ?? ""}`;
+  }
+  return route.fullPath;
+});
 
 /** 用例页已在当前项目空间展示实时面板时，不重复显示顶栏 */
 const showGlobalRunBanner = computed(() => {
