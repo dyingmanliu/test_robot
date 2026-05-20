@@ -1,6 +1,6 @@
 # autoglm-phone-test-agent
 
-基于 **AutoGLM-Phone**（智谱 + ADB）与 **Midscene.js**（视觉自动化，支持 **Android / 鸿蒙**）的移动端 UI 自动化，以及配套的 **Web 测试用例管理平台**（Vue 3 + FastAPI）。适用于在手机端按自然语言或 YAML 脚本执行自动化测试，并在浏览器中管理账号、项目空间、用例与执行记录。
+基于 **Web 测试用例管理平台**（Vue 3 + FastAPI），将 **测试分析机器人 Agent**（`analysis_agent`，用例生成）与 **测试执行机器人 Agent**（真机自动化）配合使用。测试执行侧当前实现 **两条技术路线**：**AutoGLM-Phone**（智谱 + `autoglm_phone_agent`）与 **Midscene.js**（视觉自动化，`midscene_agent`，支持 **Android / 鸿蒙**）。适用于在手机端按自然语言或 YAML 脚本执行自动化测试，并在浏览器中管理账号、项目空间、用例与执行记录；商城中的其他数字机器人品类可继续扩展独立 Agent 与路由。
 
 ---
 
@@ -15,16 +15,16 @@
 
 ---
 
-## 端到端工作流：测试分析机器人 × 功能测试执行
+## 端到端工作流：测试分析机器人 × 测试执行机器人
 
-平台将 **「用例写出来」** 与 **「在真机上跑起来」** 拆成两条能力线，由**两类租用的数字机器人实例**分别承担；在同一**项目空间**下串成完整闭环（对照表、mermaid 与实现提示见 [`ARCHITECTURE.md`](./ARCHITECTURE.md) 第 1.4 节）。
+平台将 **「用例写出来」** 与 **「在真机上跑起来」** 拆成两条能力线：**测试分析**与 **测试执行** 各对应一类租用的数字机器人实例；**测试执行**在实例上再选择 **AutoGLM 或 Midscene** 技术路线。在同一**项目空间**下串成完整闭环（概念分层、对照表与架构图见 [`ARCHITECTURE.md`](./ARCHITECTURE.md) §1.0、§1.4、§4）。
 
 | 阶段 | 做什么 | 谁参与 | 典型页面 / API |
 |------|--------|--------|------------------|
 | 1. 项目准备 | 维护被测应用、测试目标等上下文，便于生成与 KB 检索 | 项目空间 | `/api/projects` |
 | 2. 用例生成 | 一句话描述 → LLM 产出草稿 → 人工核对 → **保存入库** | **测试分析**机器人实例（商城「测试分析」目录；**不连手机**） | 测试用例页「创建用例 → **自动生成**」；`POST /api/test-cases/generate`（仅草稿）、`POST /api/test-cases`（持久化）；可选 `POST /api/test-cases/convert-format` |
-| 3. 执行准备 | 租用并启动 **AutoGLM 或 Midscene** 执行实例，配置默认平台；YAML 用例须 Midscene | **功能执行**类机器人 | 「我的机器人」；`PATCH /api/robot-instances/...` |
-| 4. 真机执行 | 选用例 → 选执行实例与（可选）本次 Android/鸿蒙 + 目标终端 → 发起运行 → 看日志 / 投屏 / 报告 | 执行实例 + ADB/HDC | 测试用例页「执行测试」；`POST /api/test-cases/{id}/run`、`GET /api/test-cases/runs/{id}` |
+| 3. 执行准备 | 租用并启动 **测试执行** 实例，选择 **AutoGLM 或 Midscene** 技术路线并配置默认平台；YAML 用例须 Midscene 路线 | **功能执行**等商城目录（实例即测试执行机器人） | 「我的机器人」；`PATCH /api/robot-instances/...` |
+| 4. 真机执行 | 选用例 → 选测试执行实例与（可选）本次 Android/鸿蒙 + 目标终端 → 发起运行 → 看日志 / 投屏 / 报告 | 测试执行实例 + ADB/HDC | 测试用例页「执行测试」；`POST /api/test-cases/{id}/run`、`GET /api/test-cases/runs/{id}` |
 
 **要点**：生成使用 `CASE_GEN_*` 与 `analysis_agent`，与真机执行的智谱 / Midscene Key 可分开配置；`generate` **不写库**，保存后写入 `test_cases`，再由 `run` 创建 `test_runs`。
 
@@ -32,30 +32,30 @@
 
 ## 系统模块一览
 
-### 1. AutoGLM Agent（`autoglm_phone_agent/`）
+### 1. AutoGLM Agent（`autoglm_phone_agent/`）— 测试执行 · 技术路线一
 
-- **职责**：观察屏幕 → 模型推理 → 执行 UI 动作（**Android/ADB** 或 **鸿蒙/HDC**），对齐 [Open-AutoGLM](https://github.com/zai-org/Open-AutoGLM) 的 `device_factory` 设计。
+- **定位**：**测试执行机器人 Agent** 在 **AutoGLM（智谱）** 路线下的实现包（与 `midscene_agent` 二选一，由实例 `test_agent_backend=autoglm` 触发）。
 - **模块**：`device/device_factory.py`、`adb_bridge.py`、`hdc_bridge.py`、`config/apps_harmonyos.py` 等，详见 [`autoglm_phone_agent/README.md`](./autoglm_phone_agent/README.md)。
 - **CLI**：`python main.py "任务"`（Android）；`python main.py --device-type hdc "任务"`（鸿蒙）。
 
-### 1b. Midscene Agent（`midscene_agent/`）
+### 1b. Midscene Agent（`midscene_agent/`）— 测试执行 · 技术路线二
 
-- **职责**：基于字节跳动 **[Midscene.js](https://midscenejs.com/)**，在 **Android**（`@midscene/android` + ADB）与 **鸿蒙**（`@midscene/harmony` + HDC）上做视觉驱动的自然语言 / YAML 自动化。
+- **定位**：**测试执行机器人 Agent** 在 **Midscene（视觉）** 路线下的实现包（与 `autoglm_phone_agent` 二选一，由实例 `test_agent_backend=midscene` 触发）。
 - **依赖**：Node.js ≥ 18；[`midscene_agent/package.json`](./midscene_agent/package.json)；模型变量 `MIDSCENE_MODEL_*`（或 DashScope 千问）、设备变量 `ADB_DEVICE_ID` / `HDC_*`。
 - **CLI**：`cd midscene_agent && npm install && npm run task -- "自然语言任务"`；`npm run explore -- --app-id <bundleName> --name 显示名` 遍历功能菜单树；详见 [`midscene_agent/README.md`](./midscene_agent/README.md)。
 
-### 1c. 执行引擎 × 设备平台（Web 机器人实例）
+### 1c. 测试执行：技术路线 × 设备平台（`robot_instances`）
 
-租用审批或「我的机器人」详情中，为每个实例配置两个维度（存于 `robot_instances` 表）：
+租用审批或「我的机器人」详情中，为每个**测试执行**实例配置 **技术路线**（`test_agent_backend`）与 **默认设备平台**（`device_platform`）：
 
-| 执行引擎 `test_agent_backend` | 设备平台 `device_platform` | 实际链路 |
+| 技术路线 `test_agent_backend` | 设备平台 `device_platform` | 实际链路 |
 |------------------------------|---------------------------|----------|
 | `autoglm` | `android` | `autoglm_phone_agent` + ADB（智谱） |
 | `autoglm` | `harmonyos` | `autoglm_phone_agent` + HDC（参考 [Open-AutoGLM](https://github.com/zai-org/Open-AutoGLM)） |
 | `midscene` | `android` | `midscene_agent` + `@midscene/android` |
 | `midscene` | `harmonyos` | `midscene_agent` + `@midscene/harmony`（千问/GLM 等） |
 
-- **YAML 用例**仅支持 **Midscene 引擎**（平台可选 Android 或鸿蒙）。
+- **YAML 用例**仅支持 **Midscene 技术路线**（平台可选 Android 或鸿蒙）。
 - `device_platform` 为实例**默认**值；用例页「本次执行设备」可在执行前切换 Android / 鸿蒙。
 - 路由逻辑：`web/backend/app/executor.py`、`app/services/device_platform.py`。
 
@@ -71,18 +71,18 @@
 
 未选终端时回退到 `.env` 的 `ADB_DEVICE_ID` / `HDC_DEVICE_ID`（若已配置）。
 
-### 1e. 用例编写 Agent（`analysis_agent/`，Web 同进程调用）
+### 1e. 测试分析机器人 Agent（`analysis_agent/`，Web 同进程调用）
 
 - **职责**：根据项目上下文与用户一句话，调用大模型生成 **structured** 用例草稿（`title` / `preconditions` / `steps` / `task_text` / `priority`）。LLM 始终产出结构化字段；若前端选择 YAML，由 `case_format_convert.py` 转为 Midscene `tasks:` 脚本。
 - **包**：[`analysis_agent/`](./analysis_agent/)（对齐 [`autoglm_phone_agent/`](./autoglm_phone_agent/) 模式：`AnalysisAgent` + `model/client` + `config`）。
 - **Web 适配**：`web/backend/app/services/case_generation.py` 组装 ORM / KB，调用 `AnalysisAgent.generate_case_draft()`；可选 `case_format=yaml` 时在生成后做格式转换。
 - **格式互转**：`web/backend/app/services/case_format_convert.py` — structured ↔ Midscene YAML（规则转换，编辑弹窗切换格式时调用）。
 - **入口**：测试用例页 **「创建用例」→「自动生成」**（须选择已租用的 **测试分析** 机器人实例；可选生成格式）→ 预览编辑（可再切换格式）→ `POST /api/test-cases` 保存。
-- **与功能执行配合**：保存后的用例与手动编写的用例相同，在列表中选中后用 **功能执行** 类机器人发起 `POST /api/test-cases/{id}/run`；生成与执行使用**不同**的 `robot_instance_id`。完整步骤见上文 **「端到端工作流」** 与架构文档第 1.4 节。
+- **与测试执行配合**：保存后的用例与手动编写的用例相同，在列表中选中后用 **测试执行** 类机器人发起 `POST /api/test-cases/{id}/run`；生成与执行使用**不同**的 `robot_instance_id`。完整步骤见上文 **「端到端工作流」** 与架构文档 §1.0、§1.4。
 - **API**（均不写库）：
   - `POST /api/test-cases/generate` — 请求体 `project_id`、`robot_instance_id`（`catalog_robot_id=test_analysis`）、`prompt`、可选 `case_format`（`structured` | `yaml`，默认 `structured`）
   - `POST /api/test-cases/convert-format` — 编辑时 structured ↔ yaml 互转
-- **与执行 Agent 分离**：不连手机；执行仍由 AutoGLM / Midscene 在 `executor.py` 路由。YAML 用例须 **Midscene** 引擎执行。
+- **与执行 Agent 分离**：不连手机；真机执行由 **测试执行机器人**在 `executor.py` 中按 **AutoGLM / Midscene** 技术路线路由。YAML 用例须 **Midscene** 路线执行。
 
 **环境变量（仓库根 `.env`）**
 
@@ -114,7 +114,7 @@ CASE_GEN_TIMEOUT_SEC=120
 | **项目空间** | `/api/projects` | 项目 CRUD；绑定被测应用与测试目标；多租户按 `owner_id` 隔离；`/projects/{id}/dashboard` 聚合执行次数、报告摘要、活跃机器人、缺陷趋势；`/reports`、`/task-summary` 等 |
 | **功能测试下发** | `/api/projects/{id}/app-packages`、`case-sets`、`functional-dispatches` | 上传 APK/AAB；维护用例集；`/functional-dispatches` POST 组装载荷写入 Kafka（未配置 `KAFKA_BOOTSTRAP_SERVERS` 时仅落库 `queued_local`）；`/api/device-pools` 设备池占位目录 |
 | **数据聚合服务（进程内）** | `app/services/project_dashboard.py` | 从执行记录、`project_reports`、`defects` 等表组装项目看板 JSON（后续可拆独立数据服务） |
-| **测试用例与执行** | `/api/test-cases` | 结构化用例与 Midscene YAML；`POST /generate`（可选 `case_format`）AI 生成草稿；`POST /convert-format` 格式互转；`POST /{id}/run` 支持 `robot_instance_id`、`device_platform`、`device_id`；异步 Agent；`test_runs` 记录本次平台与终端 |
+| **测试用例与执行** | `/api/test-cases` | 结构化用例与 Midscene YAML；**测试分析**：`POST /generate`（可选 `case_format`）、`convert-format`；**测试执行**：`POST /{id}/run`（`robot_instance_id`、`device_platform`、`device_id`）→ `executor` 异步 Agent；`test_runs` 记录本次平台与终端 |
 | **已连接设备** | `/api/devices/connected` | 按平台枚举本机 ADB/HDC 在线设备（供用例页「目标终端」） |
 | **APP 功能清单探索** | `/api/app-explore` | Midscene + HDC DFS 遍历导航菜单；`GET /installed-apps`（`hdc shell bm dump -a`）；`POST /runs` 需 `bundle_id`；完成后导出 Excel |
 | **知识库检索（用例）** | `/api/knowledge/cases/search` | 关键词检索扁平文本（可对接 Agent/RAG）；支持 `project_id` 与租户隔离 |
