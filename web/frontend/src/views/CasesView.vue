@@ -247,31 +247,34 @@
     <p v-if="parallelRunNotice" class="banner warn small">{{ parallelRunNotice }}</p>
 
     <div
-      v-if="projectExecutingRuns.length > 0"
+      v-if="workspaceRunTabs.length > 0"
       class="run-tabs"
       role="tablist"
-      aria-label="进行中的执行任务"
+      aria-label="执行任务"
     >
       <button
-        v-for="run in projectExecutingRuns"
-        :key="run.id"
+        v-for="tab in workspaceRunTabs"
+        :key="tab.id"
         type="button"
         role="tab"
         class="run-tab"
-        :class="{ 'run-tab--active': focusedRunId === run.id }"
-        :aria-selected="focusedRunId === run.id"
-        :title="runTabTitle(run)"
-        @click="focusRunTab(run.id)"
+        :class="{
+          'run-tab--active': isWorkspaceTabActive(tab),
+          'run-tab--ended': tab.kind === 'result',
+        }"
+        :aria-selected="isWorkspaceTabActive(tab)"
+        :title="runTabTitle(tab)"
+        @click="focusWorkspaceTab(tab)"
       >
-        {{ runTabLabel(run) }}
+        {{ tab.kind === "result" ? runResultTabLabel(tab) : runTabLabel(tab) }}
       </button>
     </div>
 
-    <p v-if="liveRunVisible && watchContextLine" class="watch-context muted small">
+    <p v-if="showLivePanel && watchContextLine" class="watch-context muted small">
       <strong>当前观看：</strong>{{ watchContextLine }}
     </p>
 
-    <div v-if="liveRunVisible" class="panel live-panel">
+    <div v-if="showLivePanel" class="panel live-panel">
       <div class="panel-head">
         <h2>执行进度（实时）</h2>
         <button
@@ -286,14 +289,14 @@
       </div>
       <div class="status-strip">
         <div class="status-strip-main">
-          <p class="status-task-line">
-            <strong>执行任务：</strong>
+          <div class="status-meta-line">
+            <span class="status-meta-label">执行任务：</span>
             <span class="exec-task-name">{{ liveRunCaseTitle }}</span>
-          </p>
-          <span class="status-line">
-            <strong>执行状态：</strong>
+          </div>
+          <div class="status-meta-line">
+            <span class="status-meta-label">执行状态：</span>
             <span class="badge inline" :class="liveRun.status">{{ statusLabel(liveRun.status) }}</span>
-          </span>
+          </div>
           <span class="muted small">
             运行 ID {{ liveRun.id }} · 用例 ID {{ liveRun.case_id }}
             · 已完成步骤 {{ stepCount(liveRun) }}
@@ -356,32 +359,37 @@
       </div>
     </div>
 
-    <div v-if="resultRuns.length" class="panel">
+    <div v-if="projectResultRuns.length && workspaceViewingResult" class="panel result-panel">
       <h2>执行结果</h2>
-      <div v-for="r in resultRuns" :key="r.id" class="run-block">
+      <p v-if="focusedResultRun" class="watch-context muted small">
+        <strong>当前查看：</strong>{{ runTabTitle(focusedResultRun) }}
+      </p>
+      <div v-if="focusedResultRun" :key="focusedResultRun.id" class="run-block">
         <div class="status-strip status-strip--result">
           <div class="status-strip-main">
-            <p class="status-task-line">
-              <strong>执行任务：</strong>
-              <span class="exec-task-name">{{ caseTitleForRun(r) }}</span>
-            </p>
-            <span class="status-line">
-              <strong>执行状态：</strong>
-              <span class="badge inline" :class="r.status">{{ statusLabel(r.status) }}</span>
-            </span>
+            <div class="status-meta-line">
+              <span class="status-meta-label">执行任务：</span>
+              <span class="exec-task-name">{{ caseTitleForRun(focusedResultRun) }}</span>
+            </div>
+            <div class="status-meta-line">
+              <span class="status-meta-label">执行状态：</span>
+              <span class="badge inline" :class="focusedResultRun.status">{{
+                statusLabel(focusedResultRun.status)
+              }}</span>
+            </div>
             <span class="muted small">
-              运行 ID {{ r.id }} · 用例 ID {{ r.case_id }}
+              运行 ID {{ focusedResultRun.id }} · 用例 ID {{ focusedResultRun.case_id }}
             </span>
           </div>
         </div>
-        <div v-if="r.step_log" class="exec-console exec-console--result">
+        <div v-if="focusedResultRun.step_log" class="exec-console exec-console--result">
           <aside class="exec-screen-pane">
             <DeviceScreenMirror
-              v-if="r.robot_instance_id"
-              :key="`result-${r.id}-${r.robot_instance_id}-${r.device_platform}-${r.device_id}`"
-              :robot-instance-id="r.robot_instance_id"
-              :device-platform="normalizeDevicePlatform(r.device_platform)"
-              :device-id="r.device_id || ''"
+              v-if="focusedResultRun.robot_instance_id"
+              :key="`result-${focusedResultRun.id}-${focusedResultRun.robot_instance_id}-${focusedResultRun.device_platform}-${focusedResultRun.device_id}`"
+              :robot-instance-id="focusedResultRun.robot_instance_id"
+              :device-platform="normalizeDevicePlatform(focusedResultRun.device_platform)"
+              :device-id="focusedResultRun.device_id || ''"
               :active="false"
             />
           </aside>
@@ -390,7 +398,7 @@
             <div class="exec-log-scroll">
               <div class="steps">
                 <div
-                  v-for="(st, idx) in parseStepLog(r.step_log)"
+                  v-for="(st, idx) in parseStepLog(focusedResultRun.step_log)"
                   :key="idx"
                   class="step-card"
                   :class="{ finished: st.finished }"
@@ -413,17 +421,19 @@
             </div>
           </div>
         </div>
-        <pre v-if="r.output_message" class="out summary">{{ r.output_message }}</pre>
-        <pre v-if="r.error_trace" class="out err">{{ r.error_trace }}</pre>
-        <div v-if="r.id" class="report-download">
+        <pre v-if="focusedResultRun.output_message" class="out summary">{{
+          focusedResultRun.output_message
+        }}</pre>
+        <pre v-if="focusedResultRun.error_trace" class="out err">{{ focusedResultRun.error_trace }}</pre>
+        <div v-if="focusedResultRun.id" class="report-download">
           <p class="report-desc">
             测试执行已结束。可下载 Midscene 可视化测试报告（HTML），查看步骤截图与详细执行过程。
           </p>
           <button
-            v-if="r.has_report"
+            v-if="focusedResultRun.has_report"
             type="button"
             class="report-link"
-            @click="downloadReport(r.id)"
+            @click="downloadReport(focusedResultRun.id)"
           >
             下载测试报告
           </button>
@@ -682,6 +692,7 @@ const startBusy = ref(false);
 const cancelStaleBusy = ref(false);
 const showResumeHint = ref(false);
 const resultRuns = ref([]);
+const focusedResultRunId = ref(null);
 const absorbedRunIds = ref(new Set());
 const parallelRunNotice = ref("");
 
@@ -705,6 +716,41 @@ const liveRunVisible = computed(() => {
 
 const projectExecutingRuns = computed(() =>
   activeRunStore.executingRuns.filter((r) => runBelongsToCurrentProject(r)),
+);
+
+const projectResultRuns = computed(() =>
+  resultRuns.value
+    .filter((r) => runBelongsToCurrentProject(r))
+    .sort((a, b) => b.id - a.id),
+);
+
+const focusedResultRun = computed(() => {
+  const runs = projectResultRuns.value;
+  if (!runs.length) return null;
+  const id = focusedResultRunId.value;
+  return runs.find((r) => r.id === id) || runs[0];
+});
+
+/** 工作台面板：实时进度 vs 已结束结果 */
+const workspacePanel = ref("live");
+
+const workspaceRunTabs = computed(() => {
+  const byId = new Map();
+  for (const r of projectExecutingRuns.value) {
+    byId.set(r.id, { ...r, kind: "live" });
+  }
+  for (const r of projectResultRuns.value) {
+    if (!byId.has(r.id)) {
+      byId.set(r.id, { ...r, kind: "result" });
+    }
+  }
+  return [...byId.values()].sort((a, b) => b.id - a.id);
+});
+
+const workspaceViewingResult = computed(() => workspacePanel.value === "result");
+
+const showLivePanel = computed(
+  () => liveRunVisible.value && workspacePanel.value === "live",
 );
 
 const mirrorInstanceId = computed(() => {
@@ -893,6 +939,9 @@ function absorbTerminalRun(run) {
 
   const others = resultRuns.value.filter((r) => r.id !== run.id);
   resultRuns.value = [run, ...others].slice(0, 5);
+  if (wasFocused || focusedResultRunId.value == null) {
+    focusedResultRunId.value = run.id;
+  }
 
   if (!wasFocused) {
     parallelRunNotice.value = `并行任务已结束：${code} · 运行 #${run.id}（${statusLabel(run.status)}）。可在下方「执行结果」查看详情。`;
@@ -905,7 +954,11 @@ function absorbTerminalRun(run) {
   activeRunStore.removeRun(run.id);
   const next = projectExecutingRuns.value[0];
   if (next && wasFocused) {
+    workspacePanel.value = "live";
     focusRunTab(next.id);
+  } else if (wasFocused) {
+    workspacePanel.value = "result";
+    focusedResultRunId.value = run.id;
   }
 }
 
@@ -944,6 +997,57 @@ function focusRunTab(runId) {
   scrollLiveLogToBottom();
   parallelRunNotice.value = "";
 }
+
+function focusResultRunTab(runId) {
+  focusedResultRunId.value = runId;
+  parallelRunNotice.value = "";
+}
+
+function isWorkspaceTabActive(tab) {
+  if (tab.kind === "live") {
+    return workspacePanel.value === "live" && focusedRunId.value === tab.id;
+  }
+  return workspacePanel.value === "result" && focusedResultRunId.value === tab.id;
+}
+
+function focusWorkspaceTab(tab) {
+  if (tab.kind === "live") {
+    workspacePanel.value = "live";
+    focusRunTab(tab.id);
+  } else {
+    workspacePanel.value = "result";
+    focusResultRunTab(tab.id);
+  }
+}
+
+function runResultTabLabel(run) {
+  const base = runTabLabel(run);
+  const st = statusLabel(run.status);
+  return `${base} · ${st}`;
+}
+
+watch(
+  projectResultRuns,
+  (runs) => {
+    if (!runs.length) {
+      focusedResultRunId.value = null;
+      return;
+    }
+    if (!runs.some((r) => r.id === focusedResultRunId.value)) {
+      focusedResultRunId.value = runs[0].id;
+    }
+  },
+  { immediate: true },
+);
+
+watch(projectExecutingRuns, (executing) => {
+  if (!executing.length && projectResultRuns.value.length) {
+    workspacePanel.value = "result";
+    if (!projectResultRuns.value.some((r) => r.id === focusedResultRunId.value)) {
+      focusedResultRunId.value = projectResultRuns.value[0].id;
+    }
+  }
+});
 
 const importMsg = ref("");
 
@@ -1628,7 +1732,13 @@ async function stopRun() {
   if (!id) return;
   stopBusy.value = true;
   try {
-    await activeRunStore.cancelCurrent();
+    await activeRunStore.cancelRunById(id);
+    try {
+      const { data } = await client.get(`/api/test-cases/runs/${id}`);
+      absorbTerminalRun(data);
+    } catch {
+      /* 轮询或 watcher 可能稍后 absorb */
+    }
   } catch (e) {
     window.alert(e.response?.data?.detail || String(e.message || e));
   } finally {
@@ -1752,6 +1862,7 @@ async function runCaseById(caseId) {
       devicePlatform: normalizeDevicePlatform(selectedDevicePlatform.value),
       deviceId: selectedDeviceId.value,
     });
+    workspacePanel.value = "live";
     selectedCaseId.value = caseId;
     await loadRobotInstances();
     syncRunQuery(started.id);
@@ -2148,22 +2259,27 @@ onUnmounted(() => {
   }
 }
 
-.status-task-line {
-  margin: 0 0 0.5rem;
-  font-size: 0.92rem;
-  line-height: 1.45;
+.status-meta-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.5rem;
+  margin: 0 0 0.4rem;
+  font-size: 0.88rem;
+  line-height: 1.5;
   color: #0f172a;
 }
 
-.status-task-line .exec-task-name {
-  font-weight: 500;
+.status-meta-label {
+  flex-shrink: 0;
+  font-size: inherit;
+  font-weight: 600;
+  color: #334155;
 }
 
-.status-line {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  margin-right: 0.5rem;
+.status-meta-line .exec-task-name {
+  font-weight: 500;
+  min-width: 0;
 }
 
 .hint {
@@ -2296,6 +2412,10 @@ onUnmounted(() => {
   margin: 0.75rem 0 0.35rem;
 }
 
+.run-tabs--result {
+  margin-top: 0.5rem;
+}
+
 .run-tab {
   border: 1px solid #cbd5e1;
   background: #fff;
@@ -2324,6 +2444,12 @@ onUnmounted(() => {
   background: #eff6ff;
   color: #1d4ed8;
   font-weight: 600;
+}
+
+.run-tab--ended:not(.run-tab--active) {
+  border-color: #e2e8f0;
+  background: #f8fafc;
+  color: #64748b;
 }
 
 .watch-context {

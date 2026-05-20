@@ -380,9 +380,7 @@ export const useActiveTestRunStore = defineStore("activeTestRun", {
       try {
         const { data } = await client.get(`/api/test-cases/runs/${id}`);
         this._upsertRun(data);
-        if (isTerminalStatus(data.status)) {
-          this.removeRun(id);
-        }
+        // 勿在此处 removeRun：与 _upsertRun 同 tick 会吞掉 watcher，CasesView 无法 absorb 到结果区
       } catch {
         this.removeRun(id);
       }

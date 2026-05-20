@@ -14,14 +14,14 @@
     </div>
     <div class="status-strip">
       <div class="status-strip-main">
-        <p v-if="executionTaskLabel" class="status-task-line">
-          <strong>执行任务：</strong>
+        <div v-if="executionTaskLabel" class="status-meta-line">
+          <span class="status-meta-label">执行任务：</span>
           <span class="exec-task-name">{{ executionTaskLabel }}</span>
-        </p>
-        <span class="status-line">
-          <strong>执行状态：</strong>
+        </div>
+        <div class="status-meta-line">
+          <span class="status-meta-label">执行状态：</span>
           <span class="badge inline" :class="liveRun.status">{{ statusLabel(liveRun.status) }}</span>
-        </span>
+        </div>
         <span class="muted small">
           运行 ID {{ liveRun.id }} · 用例 ID {{ liveRun.case_id }}
           · 已完成步骤 {{ stepCount(liveRun) }}
@@ -215,15 +215,27 @@ async function stopRun() {
   min-width: 0;
 }
 
-.status-task-line {
-  margin: 0 0 0.5rem;
-  font-size: 0.92rem;
-  line-height: 1.45;
+.status-meta-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.5rem;
+  margin: 0 0 0.4rem;
+  font-size: 0.88rem;
+  line-height: 1.5;
   color: #0f172a;
 }
 
-.status-task-line .exec-task-name {
+.status-meta-label {
+  flex-shrink: 0;
+  font-size: inherit;
+  font-weight: 600;
+  color: #334155;
+}
+
+.status-meta-line .exec-task-name {
   font-weight: 500;
+  min-width: 0;
 }
 
 .status-progress {
@@ -274,13 +286,6 @@ async function stopRun() {
   .status-progress {
     width: 100%;
   }
-}
-
-.status-line {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  margin-right: 0.5rem;
 }
 
 .hint {
