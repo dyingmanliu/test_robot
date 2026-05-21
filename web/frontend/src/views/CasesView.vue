@@ -438,7 +438,7 @@
             下载测试报告
           </button>
           <p v-else class="muted small report-none">
-            本次执行未生成可下载报告（非 Midscene 引擎或执行未产出报告文件）。
+            本次执行未生成可下载报告（非 Midscene 引擎、执行过短未落盘，或报告文件已被清理）。
           </p>
         </div>
       </div>

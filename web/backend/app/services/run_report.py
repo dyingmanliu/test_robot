@@ -19,6 +19,45 @@ _ALLOWED_ROOTS: tuple[Path, ...] = (
 )
 
 
+def find_latest_midscene_report(
+    *,
+    since_ts: float | None = None,
+    device_platform: str | None = None,
+) -> str | None:
+    """
+    在 midscene_run/report 中查找本次执行期间最新的 HTML 报告。
+    用于失败/取消时子进程未输出 done 行、但 Midscene 已落盘报告的场景。
+    """
+    report_dir = _MIDSCENE_RUN_ROOT / "report"
+    if not report_dir.is_dir():
+        return None
+    cutoff = (since_ts or 0.0) - 2.0
+    plat = (device_platform or "").strip().lower()
+    prefix: str | None = None
+    if plat in ("harmonyos", "harmony", "hmos", "ohos"):
+        prefix = "harmony-"
+    elif plat == "android":
+        prefix = "android-"
+
+    best_mtime = 0.0
+    best_path: Path | None = None
+    for path in report_dir.glob("*.html"):
+        if prefix and not path.name.startswith(prefix):
+            continue
+        try:
+            mtime = path.stat().st_mtime
+        except OSError:
+            continue
+        if mtime < cutoff:
+            continue
+        if mtime > best_mtime:
+            best_mtime = mtime
+            best_path = path
+    if best_path is None:
+        return None
+    return str(best_path.resolve())
+
+
 def normalize_report_path(raw: str | None) -> str | None:
     """将 CLI 返回的报告路径规范化为绝对路径字符串；无法解析时返回 None。"""
     if not raw or not str(raw).strip():

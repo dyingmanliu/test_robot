@@ -6,6 +6,7 @@ import queue
 import shutil
 import subprocess
 import threading
+import time
 from pathlib import Path
 from typing import Any, Callable
 from urllib.parse import urlparse
@@ -22,6 +23,53 @@ def _resolve_repo_root() -> Path:
 
 
 _REPO_ROOT = _resolve_repo_root()
+
+
+def _find_latest_midscene_report(
+    *,
+    since_ts: float,
+    device_platform: str | None,
+) -> str | None:
+    """与 web.backend.app.services.run_report.find_latest_midscene_report 逻辑一致（避免 agent 依赖 web）。"""
+    report_dir = _REPO_ROOT / "midscene_tech" / "midscene_run" / "report"
+    if not report_dir.is_dir():
+        return None
+    cutoff = since_ts - 2.0
+    plat = (device_platform or "").strip().lower()
+    prefix: str | None = None
+    if plat in ("harmonyos", "harmony", "hmos", "ohos"):
+        prefix = "harmony-"
+    elif plat == "android":
+        prefix = "android-"
+    best_mtime = 0.0
+    best_path: Path | None = None
+    for path in report_dir.glob("*.html"):
+        if prefix and not path.name.startswith(prefix):
+            continue
+        try:
+            mtime = path.stat().st_mtime
+        except OSError:
+            continue
+        if mtime < cutoff:
+            continue
+        if mtime > best_mtime:
+            best_mtime = mtime
+            best_path = path
+    return str(best_path.resolve()) if best_path else None
+
+
+def _resolve_report_file(
+    report_file: str | None,
+    *,
+    proc_started_at: float,
+    device_platform: str,
+) -> str | None:
+    if report_file and str(report_file).strip():
+        return str(report_file).strip()
+    return _find_latest_midscene_report(
+        since_ts=proc_started_at,
+        device_platform=device_platform,
+    )
 
 
 def _build_midscene_cli_cmd(mid_root: Path, cli_rel: Path) -> list[str]:
@@ -124,10 +172,21 @@ def run_midscene_task(
             line_q.put(None)
 
     threading.Thread(target=reader, daemon=True).start()
+    proc_started_at = time.time()
     final_ok: bool | None = None
     final_message = ""
     final_report_file: str | None = None
     non_json_lines: list[str] = []
+
+    def drain_queue() -> None:
+        while True:
+            try:
+                raw = line_q.get_nowait()
+            except queue.Empty:
+                break
+            if raw is None:
+                break
+            process_line(raw)
 
     def process_line(raw: str) -> None:
         nonlocal final_ok, final_message, final_report_file
@@ -157,19 +216,19 @@ def run_midscene_task(
                 proc.wait(timeout=15)
             except subprocess.TimeoutExpired:
                 proc.kill()
-            return False, "执行已取消", None
+                proc.wait(timeout=5)
+            drain_queue()
+            report = _resolve_report_file(
+                final_report_file,
+                proc_started_at=proc_started_at,
+                device_platform=platform,
+            )
+            return False, "执行已取消", report
         try:
             raw = line_q.get(timeout=0.35)
         except queue.Empty:
             if proc.poll() is not None:
-                while True:
-                    try:
-                        r = line_q.get_nowait()
-                    except queue.Empty:
-                        break
-                    if r is None:
-                        break
-                    process_line(r)
+                drain_queue()
                 break
             continue
         if raw is None:
@@ -181,9 +240,16 @@ def run_midscene_task(
     except subprocess.TimeoutExpired:
         proc.kill()
         proc.wait(timeout=5)
+    drain_queue()
+
+    report = _resolve_report_file(
+        final_report_file,
+        proc_started_at=proc_started_at,
+        device_platform=platform,
+    )
 
     if final_ok is not None:
-        return final_ok, final_message, final_report_file
+        return final_ok, final_message, report
     code = proc.returncode if proc.returncode is not None else -1
     detail = ""
     for candidate in reversed(non_json_lines):
@@ -193,5 +259,5 @@ def run_midscene_task(
     if not detail and non_json_lines:
         detail = non_json_lines[-1][:500]
     if detail:
-        return False, detail, None
-    return False, f"Midscene 子进程异常结束（exit {code}），未收到结果行", None
+        return False, detail, report
+    return False, f"Midscene 子进程异常结束（exit {code}），未收到结果行", report

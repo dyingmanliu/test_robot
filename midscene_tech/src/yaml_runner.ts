@@ -39,8 +39,9 @@ export async function runMidsceneYamlScript(
     });
   };
 
+  let runtime: Awaited<ReturnType<typeof createMidsceneRuntime>> | undefined;
   try {
-    const runtime = await createMidsceneRuntime(platform, cfg);
+    runtime = await createMidsceneRuntime(platform, cfg);
     await runtime.runYaml(trimmed, (tip) => {
       finishCurrent('done');
       currentStep += 1;
@@ -57,7 +58,7 @@ export async function runMidsceneYamlScript(
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     finishCurrent('error', message);
-    return { ok: false, message };
+    return { ok: false, message, reportFile: runtime?.reportFile };
   }
 }
 

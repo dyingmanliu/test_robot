@@ -76,9 +76,10 @@ export class MidsceneTestAgent {
 
     assertMidsceneModelEnv();
 
+    let runtime: Awaited<ReturnType<typeof createMidsceneRuntime>> | undefined;
     try {
       options.onStep?.({ step: 1, phase: 'start', task: trimmed });
-      const runtime = await createMidsceneRuntime(this.devicePlatform, this.cfg);
+      runtime = await createMidsceneRuntime(this.devicePlatform, this.cfg);
       await runtime.connect();
       await withStepTimeout(runtime.aiAct(trimmed), 1);
 
@@ -100,7 +101,7 @@ export class MidsceneTestAgent {
         task: trimmed,
         error: message,
       });
-      return { ok: false, message };
+      return { ok: false, message, reportFile: runtime?.reportFile };
     }
   }
 
@@ -115,8 +116,9 @@ export class MidsceneTestAgent {
       return { ok: false, message: '步骤列表为空' };
     }
 
+    let runtime: Awaited<ReturnType<typeof createMidsceneRuntime>> | undefined;
     try {
-      const runtime = await createMidsceneRuntime(this.devicePlatform, this.cfg);
+      runtime = await createMidsceneRuntime(this.devicePlatform, this.cfg);
       await runtime.connect();
 
       for (let i = 0; i < list.length; i += 1) {
@@ -149,7 +151,7 @@ export class MidsceneTestAgent {
       };
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      return { ok: false, message };
+      return { ok: false, message, reportFile: runtime?.reportFile };
     }
   }
 
