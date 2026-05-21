@@ -25,6 +25,34 @@ export type StepCallback = (info: {
   error?: string;
 }) => void;
 
+/** 单步 aiAct 超时（秒）；0 或未配置表示不限制。见 .env MIDSCENE_STEP_TIMEOUT_SEC */
+function stepTimeoutMs(): number {
+  const raw = process.env.MIDSCENE_STEP_TIMEOUT_SEC?.trim();
+  if (!raw) return 0;
+  const sec = Number(raw);
+  return Number.isFinite(sec) && sec > 0 ? sec * 1000 : 0;
+}
+
+async function withStepTimeout<T>(
+  promise: Promise<T>,
+  stepNo: number,
+): Promise<T> {
+  const ms = stepTimeoutMs();
+  if (!ms) return promise;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new Error(`第 ${stepNo} 步执行超时（${ms / 1000}s）`)),
+      ms,
+    );
+  });
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 export class MidsceneTestAgent {
   private readonly cfg: MidsceneAgentConfig;
 
@@ -52,7 +80,7 @@ export class MidsceneTestAgent {
       options.onStep?.({ step: 1, phase: 'start', task: trimmed });
       const runtime = await createMidsceneRuntime(this.devicePlatform, this.cfg);
       await runtime.connect();
-      await runtime.aiAct(trimmed);
+      await withStepTimeout(runtime.aiAct(trimmed), 1);
 
       if (this.cfg.verbose && runtime.reportFile) {
         console.log(`Midscene 报告: ${runtime.reportFile}`);
@@ -96,7 +124,7 @@ export class MidsceneTestAgent {
         const stepTask = list[i];
         options.onStep?.({ step: stepNo, phase: 'start', task: stepTask });
         try {
-          await runtime.aiAct(stepTask);
+          await withStepTimeout(runtime.aiAct(stepTask), stepNo);
           options.onStep?.({ step: stepNo, phase: 'done', task: stepTask });
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : String(err);

@@ -77,6 +77,15 @@ def _sanitize_midscene_instruction(text: str) -> str:
 def _split_compound_midscene_description(desc: str) -> list[str]:
     """将单步内多段 UI 操作拆成更短的 aiAct，降低规划失败率。"""
     d = desc.strip()
+    scroll_kw = ("滑动", "向下滑", "向上滑", "下滑", "上滑", "滚动")
+    if any(k in d for k in scroll_kw) and "点击" in d:
+        m = re.split(r"，并(?:点击)?|，然后(?:点击)?|，再(?:点击)?", d, maxsplit=1)
+        if len(m) == 2:
+            scroll_part, click_part = m[0].strip(), m[1].strip()
+            if click_part and not click_part.startswith("点击"):
+                click_part = f"点击{click_part}"
+            if scroll_part and click_part:
+                return [scroll_part, click_part]
     if len(d) < 48:
         return [d]
     if ("弹窗" in d or "弹出" in d) and ("选择" in d or "确认" in d):
