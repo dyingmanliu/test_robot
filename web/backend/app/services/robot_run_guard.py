@@ -62,9 +62,14 @@ def resolve_instance_runtime_status(db: Session, inst: RobotInstance) -> str:
     if find_active_run_for_instance(db, inst.id) is not None:
         return "executing"
     from app.services.analysis_instance_guard import is_instance_generating
+    from app.services.feature_analysis_guard import find_active_feature_analysis_for_instance
+    from app.services.robot_catalog import is_analysis_catalog
 
     if is_instance_generating(inst.id):
         return "executing"
+    if is_analysis_catalog(inst.catalog_robot_id):
+        if find_active_feature_analysis_for_instance(db, inst.id) is not None:
+            return "executing"
     return "idle"
 
 

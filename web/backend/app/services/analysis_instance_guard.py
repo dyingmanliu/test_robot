@@ -44,4 +44,12 @@ def instance_available_for_generation(db: Session, inst: RobotInstance) -> tuple
         return False, "该测试分析机器人正在执行其他任务，请稍后再试"
     if is_instance_generating(inst.id):
         return False, "该测试分析机器人正在生成用例，请等待当前任务完成后再试"
+    from app.services.feature_analysis_guard import (
+        feature_analysis_busy_message,
+        find_active_feature_analysis_for_instance,
+    )
+
+    busy_fa = find_active_feature_analysis_for_instance(db, inst.id)
+    if busy_fa is not None:
+        return False, feature_analysis_busy_message(busy_fa)
     return True, ""

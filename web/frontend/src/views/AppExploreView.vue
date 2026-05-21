@@ -1,7 +1,13 @@
 <template>
   <div class="app-explore">
     <header class="page-head">
-      <h1>APP 功能清单探索</h1>
+      <p v-if="projectMode" class="back-row">
+        <router-link class="back-link" :to="{ name: 'projects' }">← 项目空间</router-link>
+      </p>
+      <h1>{{ pageTitle }}</h1>
+      <p v-if="project" class="project-sub">
+        项目空间：<strong>{{ project.name }}</strong> · 被测应用：{{ project.tested_app_name }}
+      </p>
       <p class="hint">
         通过 <strong>Midscene + HDC</strong> 连接鸿蒙真机，仅遍历<strong>按钮与导航菜单</strong>（不含列表正文），生成
         <strong>功能菜单树</strong> 并导出 Excel。请确保机器人实例执行引擎为
@@ -13,6 +19,7 @@
 
     <section class="card block">
       <h2>探索配置</h2>
+      <p v-if="projectError" class="banner err">{{ projectError }}</p>
       <p v-if="robotsError" class="banner err">{{ robotsError }}</p>
       <p v-if="appsError" class="banner err">{{ appsError }}</p>
       <div class="form-grid">
@@ -133,7 +140,22 @@
 
 <script setup>
 import { computed, onMounted, onUnmounted, reactive, ref } from "vue";
+import { useRoute } from "vue-router";
 import client, { formatApiError } from "@/api/client";
+
+const route = useRoute();
+const projectId = computed(() => {
+  const raw = route.params.projectId;
+  const n = Number(Array.isArray(raw) ? raw[0] : raw);
+  return Number.isFinite(n) && n > 0 ? n : null;
+});
+const projectMode = computed(() => projectId.value != null);
+const pageTitle = computed(() =>
+  projectMode.value ? "功能点分析" : "APP 功能清单探索",
+);
+
+const project = ref(null);
+const projectError = ref("");
 
 const REGION_LABELS = {
   top_tab: "顶部 Tab",
@@ -246,6 +268,40 @@ function onBundleChange() {
   }
 }
 
+function applyProjectAppHint() {
+  const hint = (project.value?.tested_app_name || "").trim();
+  if (!hint) return;
+  if (!form.app_name.trim()) {
+    form.app_name = hint;
+  }
+  const exact = installedApps.value.find((a) => a.bundle_id === hint);
+  if (exact) {
+    form.bundle_id = exact.bundle_id;
+    return;
+  }
+  const partial = installedApps.value.find(
+    (a) => a.bundle_id.includes(hint) || hint.includes(a.bundle_id),
+  );
+  if (partial) {
+    form.bundle_id = partial.bundle_id;
+    if (!form.app_name.trim()) {
+      form.app_name = partial.label || partial.bundle_id;
+    }
+  }
+}
+
+async function loadProject() {
+  if (!projectId.value) return;
+  projectError.value = "";
+  try {
+    const { data } = await client.get(`/api/projects/${projectId.value}`);
+    project.value = data;
+    applyProjectAppHint();
+  } catch (e) {
+    projectError.value = formatApiError(e);
+  }
+}
+
 async function loadInstalledApps() {
   appsLoading.value = true;
   appsError.value = "";
@@ -253,8 +309,14 @@ async function loadInstalledApps() {
     const { data } = await client.get("/api/app-explore/installed-apps");
     installedApps.value = data || [];
     if (installedApps.value.length && !form.bundle_id) {
-      form.bundle_id = installedApps.value[0].bundle_id;
-      onBundleChange();
+      if (!projectMode.value) {
+        form.bundle_id = installedApps.value[0].bundle_id;
+        onBundleChange();
+      } else {
+        applyProjectAppHint();
+      }
+    } else {
+      applyProjectAppHint();
     }
   } catch (e) {
     appsError.value = formatApiError(e);
@@ -353,7 +415,10 @@ async function downloadExcel() {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
+  if (projectMode.value) {
+    await loadProject();
+  }
   loadRobots();
   loadInstalledApps();
 });
@@ -366,9 +431,25 @@ onUnmounted(stopPoll);
   margin: 0 auto;
   padding: 1rem 1.25rem 2rem;
 }
+.back-row {
+  margin: 0 0 0.5rem;
+}
+.back-link {
+  font-size: 0.9rem;
+  color: var(--link, #2563eb);
+  text-decoration: none;
+}
+.back-link:hover {
+  text-decoration: underline;
+}
 .page-head h1 {
   margin: 0 0 0.35rem;
   font-size: 1.5rem;
+}
+.project-sub {
+  margin: 0 0 0.5rem;
+  font-size: 0.92rem;
+  color: var(--text-muted, #64748b);
 }
 .hint {
   color: var(--text-muted);

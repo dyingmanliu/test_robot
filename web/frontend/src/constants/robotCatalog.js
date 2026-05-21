@@ -94,7 +94,12 @@ export function analysisRobotUnselectableHint(ins) {
   if (!isAnalysisInstance(ins)) return "（非测试分析）";
   if (!isInstanceStarted(ins.status)) return "（已停用）";
   const rt = String(ins.runtime_status || "").toLowerCase();
-  if (rt === "executing") return "（生成中）";
+  if (rt === "executing") return "（分析/生成中）";
   if (rt === "abnormal") return "（异常）";
   return "";
+}
+
+/** 功能点分析：须为测试分析实例且空闲 */
+export function isRobotRunnableForFeatureAnalysis(ins) {
+  return isRobotRunnableForAnalysis(ins);
 }

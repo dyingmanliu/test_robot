@@ -43,6 +43,7 @@ from app.routers import (
     mai_ui,
     monitor_api,
     platform_api,
+    project_feature_analysis,
     project_functional,
     projects,
     rentals,
@@ -113,6 +114,7 @@ app.include_router(auth.router, prefix="/api")
 app.include_router(companies.router, prefix="/api")
 app.include_router(projects.router, prefix="/api")
 app.include_router(project_functional.router, prefix="/api")
+app.include_router(project_feature_analysis.router, prefix="/api")
 app.include_router(device_pools_api.router, prefix="/api")
 app.include_router(devices.router, prefix="/api")
 app.include_router(test_cases.router, prefix="/api")

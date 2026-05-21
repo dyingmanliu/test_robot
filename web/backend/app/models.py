@@ -345,3 +345,60 @@ class AppExploreRun(Base):
 
     robot_instance: Mapped["RobotInstance"] = relationship()
 
+
+class ProjectFeatureAnalysisRun(Base):
+    """项目功能点分析：测试分析机器人实例 + Midscene 真机 DFS 遍历。"""
+
+    __tablename__ = "project_feature_analysis_runs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), index=True)
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    robot_instance_id: Mapped[int] = mapped_column(
+        ForeignKey("robot_instances.id", ondelete="CASCADE"),
+        index=True,
+    )
+    device_platform: Mapped[str] = mapped_column(String(32), default="harmonyos", index=True)
+    device_id: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
+    app_source: Mapped[str] = mapped_column(String(32), default="installed")
+    app_artifact_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("project_app_artifacts.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    bundle_id: Mapped[str] = mapped_column(String(256), default="")
+    app_display_name: Mapped[str] = mapped_column(String(256), default="")
+    max_screens: Mapped[int] = mapped_column(Integer, default=30)
+    max_depth: Mapped[int] = mapped_column(Integer, default=4)
+    status: Mapped[str] = mapped_column(String(32), default="pending", index=True)
+    feature_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    excel_path: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    step_log: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    output_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    error_trace: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    report_path: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    feature_count: Mapped[int] = mapped_column(Integer, default=0)
+    screens_visited: Mapped[int] = mapped_column(Integer, default=0)
+    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    robot_instance: Mapped["RobotInstance"] = relationship()
+
+
+class ProjectFeatureTree(Base):
+    """用户确认后的功能菜单树（多版本保留）。"""
+
+    __tablename__ = "project_feature_trees"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), index=True)
+    run_id: Mapped[int] = mapped_column(
+        ForeignKey("project_feature_analysis_runs.id", ondelete="CASCADE"),
+        index=True,
+    )
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    tree_json: Mapped[str] = mapped_column(Text, default="{}")
+    version_label: Mapped[str] = mapped_column(String(64), default="")
+    confirmed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+

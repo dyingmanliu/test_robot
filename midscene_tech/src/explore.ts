@@ -2,14 +2,8 @@
  * 通过 Midscene + HDC 遍历鸿蒙 APP，采集功能菜单树。
  */
 
-import {
-  HarmonyAgent,
-  HarmonyDevice,
-  getConnectedDevices,
-} from '@midscene/harmony';
-
 import { assertMidsceneModelEnv, loadAgentConfig } from './config.js';
-import { resolveDeviceId, resolveHdcExecutablePath } from './hdc.js';
+import { createExploreAgent, type ExploreAgentHandle } from './explore_agent.js';
 import type {
   ExploreMachineEvent,
   ExploreOptions,
@@ -19,11 +13,7 @@ import type {
   NavItem,
 } from './explore_types.js';
 import { logModelCall } from './model_log.js';
-import {
-  applyAppNameMappingToDevice,
-  launchAppByBundleId,
-  launchAppByName,
-} from './resolve_app_launch.js';
+import { launchAppByBundleId, launchAppByName } from './resolve_app_launch.js';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -221,49 +211,47 @@ export async function runAppFeatureExplore(
     return entry;
   };
 
-  let device: HarmonyDevice | undefined;
-  let agent: HarmonyAgent | undefined;
+  let handle: ExploreAgentHandle | undefined;
 
   try {
-    const deviceId = cfg.deviceId
-      ? await resolveDeviceId(cfg.deviceId, cfg.hdcHome)
-      : (await getConnectedDevices(resolveHdcExecutablePath(cfg.hdcHome)))[0]
-          ?.deviceId ?? (await resolveDeviceId(undefined, cfg.hdcHome));
-
-    const deviceOpts: ConstructorParameters<typeof HarmonyDevice>[1] = {
-      autoDismissKeyboard: cfg.autoDismissKeyboard,
-    };
-    deviceOpts.hdcPath = resolveHdcExecutablePath(cfg.hdcHome);
-
-      device = new HarmonyDevice(deviceId, deviceOpts);
-      applyAppNameMappingToDevice(device);
-      agent = new HarmonyAgent(device, {
-        aiActionContext: cfg.aiActionContext,
-      });
-      await device.connect();
-
+    handle = await createExploreAgent(cfg, options.devicePlatform);
     const machineOut = Boolean(options.machineOut);
 
     const bundleIdOpt = options.bundleId?.trim();
     emitStep('start', `启动应用 ${bundleIdOpt || `「${appName}」`}`);
-    if (bundleIdOpt) {
-      const launchInfo = await launchAppByBundleId(bundleIdOpt, cfg.hdcHome);
-      resolvedBundleId = launchInfo.bundle_id;
-      emitStep('done', `启动 APP ID ${launchInfo.launch_uri}`);
+    if (handle.platform === 'harmonyos' && handle.harmonyAgent && handle.harmonyDevice) {
+      if (bundleIdOpt) {
+        const launchInfo = await launchAppByBundleId(bundleIdOpt, cfg.hdcHome);
+        resolvedBundleId = launchInfo.bundle_id;
+        emitStep('done', `启动 APP ID ${launchInfo.launch_uri}`);
+      } else {
+        const launchInfo = await launchAppByName(
+          handle.harmonyAgent,
+          handle.harmonyDevice,
+          appName,
+          { hdcHome: cfg.hdcHome, machineOut },
+        );
+        resolvedBundleId = launchInfo.bundle_id;
+        emitStep('done', `启动应用「${appName}」(${launchInfo.launch_uri})`);
+      }
     } else {
-      const launchInfo = await launchAppByName(agent, device, appName, {
-        hdcHome: cfg.hdcHome,
+      const pkg = bundleIdOpt || appName;
+      const launchTask = bundleIdOpt
+        ? `打开已安装的应用，应用包名为 ${bundleIdOpt}`
+        : `打开应用「${appName}」`;
+      await logModelCall('aiAct', launchTask, () => handle!.aiAct(launchTask), {
         machineOut,
+        promptHint: launchTask,
       });
-      resolvedBundleId = launchInfo.bundle_id;
-      emitStep('done', `启动应用「${appName}」(${launchInfo.launch_uri})`);
+      resolvedBundleId = pkg;
+      emitStep('done', launchTask);
     }
     await sleep(2500);
 
     const dismissTask = '若出现权限、协议或引导弹窗，按任务需要点击同意或关闭，直到看到主界面';
     emitStep('start', dismissTask);
     try {
-      await logModelCall('aiAct', dismissTask, () => agent!.aiAct(dismissTask), {
+      await logModelCall('aiAct', dismissTask, () => handle!.aiAct(dismissTask), {
         machineOut,
         promptHint: dismissTask,
       });
@@ -279,7 +267,7 @@ export async function runAppFeatureExplore(
         const t = await logModelCall(
           'aiQuery',
           '页面标题',
-          () => agent!.aiQuery<string>(prompt),
+          () => handle!.aiQuery<string>(prompt),
           { machineOut, promptHint: prompt },
         );
         return String(t ?? '').trim() || '未知页面';
@@ -300,7 +288,7 @@ export async function runAppFeatureExplore(
         const raw = await logModelCall(
           'aiQuery',
           '导航菜单',
-          () => agent!.aiQuery<unknown>(navQueryPrompt),
+          () => handle!.aiQuery<unknown>(navQueryPrompt),
           {
             machineOut,
             promptHint: navQueryPrompt,
@@ -315,7 +303,7 @@ export async function runAppFeatureExplore(
           const names = await logModelCall(
             'aiQuery',
             '导航菜单(简)',
-            () => agent!.aiQuery<string[]>(fallbackPrompt),
+            () => handle!.aiQuery<string[]>(fallbackPrompt),
             {
               machineOut,
               promptHint: fallbackPrompt,
@@ -348,7 +336,7 @@ export async function runAppFeatureExplore(
         const r = await logModelCall(
           'aiQuery',
           '是否有下级',
-          () => agent!.aiQuery<boolean>(prompt),
+          () => handle!.aiQuery<boolean>(prompt),
           { machineOut, promptHint: prompt },
         );
         return r === true;
@@ -424,7 +412,7 @@ export async function runAppFeatureExplore(
         const tapTask = `点击「${item.name}」进入对应页面`;
         emitStep('start', tapTask);
         try {
-          await logModelCall('aiAct', tapTask, () => agent!.aiAct(tapTask), {
+          await logModelCall('aiAct', tapTask, () => handle!.aiAct(tapTask), {
             machineOut,
             promptHint: tapTask,
           });
@@ -443,7 +431,7 @@ export async function runAppFeatureExplore(
           const backTask = '返回上一页';
           emitStep('start', backTask);
           try {
-            await logModelCall('aiAct', backTask, () => agent!.aiAct(backTask), {
+            await logModelCall('aiAct', backTask, () => handle!.aiAct(backTask), {
               machineOut,
               promptHint: backTask,
             });
@@ -460,7 +448,7 @@ export async function runAppFeatureExplore(
           const backTask = '返回上一页';
           emitStep('start', backTask);
           try {
-            await logModelCall('aiAct', backTask, () => agent!.aiAct(backTask), {
+            await logModelCall('aiAct', backTask, () => handle!.aiAct(backTask), {
               machineOut,
               promptHint: backTask,
             });
@@ -476,7 +464,7 @@ export async function runAppFeatureExplore(
         const backTask = '返回上一页';
         emitStep('start', backTask);
         try {
-          await logModelCall('aiAct', backTask, () => agent!.aiAct(backTask), {
+          await logModelCall('aiAct', backTask, () => handle!.aiAct(backTask), {
             machineOut,
             promptHint: backTask,
           });
@@ -487,7 +475,7 @@ export async function runAppFeatureExplore(
           emitStep('error', backTask, msg);
           try {
             const alt = '按系统返回键返回';
-            await logModelCall('aiAct', alt, () => agent!.aiAct(alt), {
+            await logModelCall('aiAct', alt, () => handle!.aiAct(alt), {
               machineOut,
               promptHint: alt,
             });
@@ -511,7 +499,7 @@ export async function runAppFeatureExplore(
     };
 
     const reportFile =
-      typeof agent.reportFile === 'string' ? agent.reportFile : undefined;
+      typeof handle.reportFile === 'string' ? handle.reportFile : undefined;
 
     return {
       ok: true,
@@ -536,8 +524,8 @@ export async function runAppFeatureExplore(
       message: `${message}${partial}`,
       tree,
       reportFile:
-        agent && typeof agent.reportFile === 'string'
-          ? agent.reportFile
+        handle && typeof handle.reportFile === 'string'
+          ? handle.reportFile
           : undefined,
     };
   }

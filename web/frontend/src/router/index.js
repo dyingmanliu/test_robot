@@ -26,6 +26,9 @@ import MyRentalApplicationsView from "@/views/MyRentalApplicationsView.vue";
 import RunExecutionLiveView from "@/views/RunExecutionLiveView.vue";
 import MaiUiStudioView from "@/views/MaiUiStudioView.vue";
 import AppExploreView from "@/views/AppExploreView.vue";
+import ProjectFeatureAnalysisView from "@/views/ProjectFeatureAnalysisView.vue";
+import ProjectFeatureAnalysisHistoryView from "@/views/ProjectFeatureAnalysisHistoryView.vue";
+import ProjectFeatureTreeDetailView from "@/views/ProjectFeatureTreeDetailView.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -73,6 +76,24 @@ const router = createRouter({
       path: "/projects/:projectId/functional-task",
       name: "functionalTaskWizard",
       component: FunctionalTaskWizardView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/projects/:projectId/feature-analysis",
+      name: "projectFeatureAnalysis",
+      component: ProjectFeatureAnalysisView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/projects/:projectId/feature-analysis/history",
+      name: "projectFeatureAnalysisHistory",
+      component: ProjectFeatureAnalysisHistoryView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/projects/:projectId/feature-trees/:treeId",
+      name: "projectFeatureTreeDetail",
+      component: ProjectFeatureTreeDetailView,
       meta: { requiresAuth: true },
     },
     {

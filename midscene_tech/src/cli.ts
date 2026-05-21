@@ -169,16 +169,17 @@ async function main(): Promise<number> {
   if (webExploreMode || cliExplore) {
     const bundleId = (webPayload?.bundle_id ?? values['app-id'] ?? '').trim();
     const appName = (webPayload?.app_name ?? values.name ?? bundleId).trim();
-    if (!bundleId) {
-      console.error('explore 模式需要 --app-id 或 bundle_id（hdc shell bm dump -a）');
+    if (!bundleId && !appName) {
+      console.error('explore 模式需要 bundle_id 或 app_name（已安装应用可按名称启动）');
       return 1;
     }
     const maxScreens = webPayload?.max_screens ?? numOpt(values['max-screens'], 30);
     const maxDepth = webPayload?.max_depth ?? numOpt(values['max-depth'], 4);
 
     const exploreOutcome = await runAppFeatureExplore({
-      appName: appName || bundleId,
-      bundleId,
+      appName: appName || bundleId || 'APP',
+      bundleId: bundleId || undefined,
+      devicePlatform,
       maxScreens,
       maxDepth,
       deviceId: resolvedDeviceId,

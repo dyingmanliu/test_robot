@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, EmailStr, Field, computed_field, field_validator, model_validator
 
@@ -211,6 +211,7 @@ class ProjectWithStatsOut(ProjectOut):
     """项目列表附聚合字段。"""
 
     test_case_count: int = 0
+    confirmed_feature_tree_count: int = 0
 
 
 class CaseStepJson(BaseModel):
@@ -646,6 +647,20 @@ class InstalledAppOut(BaseModel):
     label: str = ""
 
 
+class PlatformInstalledCatalogItem(BaseModel):
+    platform: Literal["android", "harmonyos"]
+    platform_label: str = ""
+    devices: list[ConnectedDeviceOut] = Field(default_factory=list)
+    apps: list[InstalledAppOut] = Field(default_factory=list)
+    error: str = ""
+
+
+class InstalledAppsCatalogOut(BaseModel):
+    """按平台分组的已安装应用（仅包含有在线设备的平台）。"""
+
+    items: list[PlatformInstalledCatalogItem] = Field(default_factory=list)
+
+
 class AppExploreRunCreate(BaseModel):
     robot_instance_id: int = Field(..., ge=1)
     bundle_id: str = Field(
@@ -702,3 +717,92 @@ class RunCaseBody(BaseModel):
 
 class RentalRejectBody(BaseModel):
     reason: str = Field(default="", max_length=500)
+
+
+class FeatureAnalysisRunCreate(BaseModel):
+    robot_instance_id: int = Field(..., ge=1)
+    device_platform: Optional[Literal["android", "harmonyos"]] = Field(
+        default=None,
+        description="可选；未传时按安装包/包名后缀自动识别",
+    )
+    device_id: Optional[str] = Field(default=None, max_length=256)
+    app_source: Literal["uploaded", "installed"] = "installed"
+    app_artifact_id: Optional[int] = Field(default=None, ge=1)
+    bundle_id: str = Field(default="", max_length=256)
+    app_display_name: str = Field(default="", max_length=256)
+    #: 已安装应用模式：平台+应用名，如「鸿蒙京东app」
+    platform_app_text: str = Field(default="", max_length=256)
+    max_screens: int = Field(default=30, ge=5, le=80)
+    max_depth: int = Field(default=4, ge=1, le=10)
+
+
+class FeatureAnalysisRunOut(BaseModel):
+    id: int
+    project_id: int
+    owner_id: int
+    robot_instance_id: int
+    device_platform: str
+    device_id: Optional[str] = None
+    app_source: str
+    app_artifact_id: Optional[int] = None
+    bundle_id: str
+    app_display_name: str
+    max_screens: int
+    max_depth: int
+    status: str
+    feature_count: int
+    screens_visited: int
+    feature_json: Optional[str] = None
+    output_message: Optional[str] = None
+    step_log: Optional[str] = None
+    excel_path: Optional[str] = None
+    started_at: Optional[datetime] = None
+    finished_at: Optional[datetime] = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+    @computed_field
+    @property
+    def has_excel(self) -> bool:
+        return bool((self.excel_path or "").strip())
+
+
+class FeatureAnalysisTreeConfirmIn(BaseModel):
+    tree_json: dict[str, Any] = Field(default_factory=dict)
+    version_label: str = Field(default="", max_length=64)
+
+
+class FeatureAnalysisTreeOut(BaseModel):
+    id: int
+    project_id: int
+    run_id: int
+    owner_id: int
+    tree_json: str
+    version_label: str
+    confirmed_at: datetime
+    created_at: datetime
+    app_display_name: str = ""
+    bundle_id: str = ""
+
+    model_config = {"from_attributes": True}
+
+
+class FeatureAnalysisTreeUpdateIn(BaseModel):
+    tree_json: dict[str, Any] = Field(default_factory=dict)
+    version_label: str = Field(default="", max_length=64)
+
+
+class AppInstallIn(BaseModel):
+    device_platform: Optional[Literal["android", "harmonyos"]] = None
+    device_id: Optional[str] = Field(default=None, max_length=256)
+
+
+class AppInstallOut(BaseModel):
+    ok: bool = True
+    message: str = ""
+    bundle_id: str = ""
+    app_display_name: str = ""
+    device_platform: Literal["android", "harmonyos"] = "harmonyos"
+    platform_label: str = ""
+    device_id: Optional[str] = None

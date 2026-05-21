@@ -14,7 +14,7 @@ from app.database import SessionLocal, get_db
 from app.deps import get_current_user
 from app.models import AppExploreRun, RobotInstance, User
 from app.schemas import AppExploreRunCreate, AppExploreRunOut, InstalledAppOut
-from app.services.hdc_apps import list_installed_bundle_ids
+from app.services.hdc_apps import list_installed_harmony_apps
 from app.services.app_explore_service import (
     execute_app_explore_run,
     explore_busy_message,
@@ -45,18 +45,15 @@ def _run_in_thread(run_id: int) -> None:
 def list_installed_apps(
     _user: User = Depends(get_current_user),
 ) -> list[InstalledAppOut]:
-    """列出设备已安装应用（hdc shell bm dump -a）。"""
+    """列出设备已安装应用（hdc shell bm dump -a -l，含中文显示名）。"""
     try:
-        bundles = list_installed_bundle_ids()
+        entries = list_installed_harmony_apps()
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_503_UNAVAILABLE,
             detail=f"无法获取已安装应用列表：{e}",
         ) from e
-    return [
-        InstalledAppOut(bundle_id=b, label=b.rsplit(".", 1)[-1] if "." in b else b)
-        for b in bundles
-    ]
+    return [InstalledAppOut(bundle_id=b, label=label) for b, label in entries]
 
 
 @router.post("/runs", response_model=AppExploreRunOut, status_code=status.HTTP_201_CREATED)

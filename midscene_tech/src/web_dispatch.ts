@@ -100,8 +100,8 @@ export function parseWebDispatchJson(raw: string): WebTestDispatch {
       throw new Error('YAML 模式缺少 yaml_script');
     }
   } else if (execution_mode === 'explore') {
-    if (!bundle_id) {
-      throw new Error('explore 模式缺少 bundle_id（APP ID）');
+    if (!bundle_id && !app_name) {
+      throw new Error('explore 模式需要 bundle_id 或 app_name（已安装应用按名称启动）');
     }
   } else if (!agent_task && !(agent_steps && agent_steps.length)) {
     throw new Error('自然语言模式缺少 agent_task / agent_steps 或内容为空');

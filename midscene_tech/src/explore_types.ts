@@ -33,6 +33,8 @@ export interface ExploreOptions {
   appName: string;
   /** APP ID，与 `hdc shell bm dump -a` 中的 bundleName 一致；优先用于启动 */
   bundleId?: string;
+  /** android | harmonyos */
+  devicePlatform?: string;
   maxScreens?: number;
   maxDepth?: number;
   maxTapsPerScreen?: number;

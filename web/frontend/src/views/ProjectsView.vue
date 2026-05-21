@@ -26,6 +26,8 @@
           <dd class="obj">{{ p.test_objective || "—" }}</dd>
           <dt>测试用例</dt>
           <dd>{{ p.test_case_count ?? 0 }} 条</dd>
+          <dt>已确认功能树</dt>
+          <dd>{{ p.confirmed_feature_tree_count ?? 0 }} 版</dd>
         </dl>
         <div class="ops">
           <button type="button" class="btn" @click="openEdit(p)">编辑</button>
@@ -45,6 +47,16 @@
             class="btn link"
             :to="{ name: 'cases', query: { project: p.id } }"
             >进入用例</router-link
+          >
+          <router-link
+            class="btn link"
+            :to="{ name: 'projectFeatureAnalysis', params: { projectId: p.id } }"
+            >功能点分析</router-link
+          >
+          <router-link
+            class="btn link"
+            :to="{ name: 'projectFeatureAnalysisHistory', params: { projectId: p.id } }"
+            >功能树记录</router-link
           >
         </div>
       </article>

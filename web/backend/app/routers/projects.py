@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.deps import get_current_user
-from app.models import Project, TestCase, TestRun, User
+from app.models import Project, ProjectFeatureTree, TestCase, TestRun, User
 from app.rbac import can_view_all_cases
 from app.schemas import ProjectCreate, ProjectOut, ProjectUpdate, ProjectWithStatsOut
 from app.services.company_scope import project_owned_by_user, project_scope_query
@@ -62,6 +62,15 @@ def list_projects(
             .all()
         )
         counts = {int(pid): int(n) for pid, n in rows if pid is not None}
+    tree_counts: dict[int, int] = {}
+    if ids:
+        trows = (
+            db.query(ProjectFeatureTree.project_id, func.count(ProjectFeatureTree.id))
+            .filter(ProjectFeatureTree.project_id.in_(ids))
+            .group_by(ProjectFeatureTree.project_id)
+            .all()
+        )
+        tree_counts = {int(pid): int(n) for pid, n in trows if pid is not None}
     return [
         ProjectWithStatsOut(
             id=p.id,
@@ -72,6 +81,7 @@ def list_projects(
             created_at=p.created_at,
             updated_at=p.updated_at,
             test_case_count=counts.get(p.id, 0),
+            confirmed_feature_tree_count=tree_counts.get(p.id, 0),
         )
         for p in projects
     ]
