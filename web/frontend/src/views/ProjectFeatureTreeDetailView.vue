@@ -41,8 +41,17 @@
         <button v-else type="button" class="btn btn-primary action-btn" @click="enterEdit">
           编辑
         </button>
+        <button
+          type="button"
+          class="btn btn-outline action-btn"
+          :disabled="exporting"
+          @click="exportExcel"
+        >
+          {{ exporting ? "导出中…" : "导出" }}
+        </button>
         <span v-if="saveOk" class="feedback ok">{{ saveOk }}</span>
         <p v-if="saveErr" class="feedback err">{{ saveErr }}</p>
+        <p v-if="exportErr" class="feedback err">{{ exportErr }}</p>
       </div>
       <FeatureAnalysisWorkbench
         ref="workbenchRef"
@@ -79,6 +88,8 @@ const dirty = ref(false);
 const saving = ref(false);
 const saveErr = ref("");
 const saveOk = ref("");
+const exporting = ref(false);
+const exportErr = ref("");
 let saveOkTimer = null;
 
 function clearSaveFeedback() {
@@ -139,6 +150,28 @@ async function cancelEdit() {
   dirty.value = false;
   await load();
   await reloadWorkbench();
+}
+
+async function exportExcel() {
+  if (!tree.value) return;
+  exporting.value = true;
+  exportErr.value = "";
+  try {
+    const { data } = await client.get(`${apiBase.value}/trees/${treeId.value}/export`, {
+      responseType: "blob",
+    });
+    const url = URL.createObjectURL(data);
+    const a = document.createElement("a");
+    a.href = url;
+    const ver = (tree.value.version_label || "export").replace(/[/\\]/g, "_");
+    a.download = `${displayAppName.value}-${ver}-功能树导出.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    exportErr.value = formatApiError(e);
+  } finally {
+    exporting.value = false;
+  }
 }
 
 async function saveEdit() {
@@ -242,6 +275,19 @@ onUnmounted(() => {
 }
 .feedback.warn {
   color: #b45309;
+}
+.btn-outline {
+  background: #fff;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+.btn-outline:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+.btn-outline:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 .banner.err {
   background: #fef2f2;

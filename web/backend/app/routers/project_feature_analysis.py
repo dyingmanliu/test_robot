@@ -8,9 +8,10 @@ import re
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from sqlalchemy import desc, func
 from sqlalchemy.orm import Session
 
@@ -88,6 +89,20 @@ def _app_name_from_tree_json(tree_json: str) -> str:
         return ""
     except (json.JSONDecodeError, TypeError):
         return ""
+
+
+def _content_disposition_attachment(filename: str) -> str:
+    """Content-Disposition 含中文时须 RFC 5987 filename*，避免 latin-1 编码错误。"""
+    clean = filename.replace("\\", "_").replace("/", "_")
+    try:
+        clean.encode("ascii")
+        return f'attachment; filename="{clean}"'
+    except UnicodeEncodeError:
+        ascii_fallback = "feature-tree-export.xlsx"
+        return (
+            f'attachment; filename="{ascii_fallback}"; '
+            f"filename*=UTF-8''{quote(clean, safe='')}"
+        )
 
 
 def _resolved_app_display_name(
@@ -600,6 +615,51 @@ def get_feature_tree(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="功能树不存在")
     run = db.query(ProjectFeatureAnalysisRun).filter(ProjectFeatureAnalysisRun.id == t.run_id).first()
     return _feature_tree_out(t, run)
+
+
+@router.get("/{project_id}/feature-analysis/trees/{tree_id}/export")
+def export_feature_tree_excel(
+    project_id: int,
+    tree_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """导出已确认功能树：功能点信息 + 功能清单树 两个 sheet。"""
+    _require_project(db, project_id, user)
+    t = (
+        db.query(ProjectFeatureTree)
+        .filter(
+            ProjectFeatureTree.id == tree_id,
+            ProjectFeatureTree.project_id == project_id,
+        )
+        .first()
+    )
+    if t is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="功能树不存在")
+    try:
+        tree_data = json.loads(t.tree_json or "{}")
+    except json.JSONDecodeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="功能树数据格式无效",
+        ) from exc
+    if not isinstance(tree_data, dict):
+        tree_data = {}
+
+    from app.services.app_explore_export import tree_detail_workbook_to_bytes
+
+    run = db.query(ProjectFeatureAnalysisRun).filter(ProjectFeatureAnalysisRun.id == t.run_id).first()
+    content = tree_detail_workbook_to_bytes(tree_data)
+    app_name = _resolved_app_display_name(run, t.tree_json) or "应用"
+    version = (t.version_label or "export").replace("/", "_")
+    filename = f"{app_name}-{version}-功能树导出.xlsx".replace("/", "_")
+    return Response(
+        content=content,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": _content_disposition_attachment(filename),
+        },
+    )
 
 
 @router.patch("/{project_id}/feature-analysis/trees/{tree_id}", response_model=FeatureAnalysisTreeOut)
