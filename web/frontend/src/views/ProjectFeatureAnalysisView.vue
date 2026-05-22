@@ -165,6 +165,16 @@
         </button>
         <button v-if="running && runId" type="button" class="btn" @click="cancelRun">取消</button>
       </div>
+      <p v-if="!running && !canStart && startBlockedReason" class="err small start-hint">
+        {{ startBlockedReason }}
+      </p>
+      <p
+        v-if="staleBlockingRun && !running"
+        class="warn-banner small"
+      >
+        该机器人有未结束的分析任务（#{{ staleBlockingRun.id }}，{{ staleBlockingRun.status }}）。
+        <button type="button" class="btn-link" @click="cancelStaleRun">点击终止并释放机器人</button>
+      </p>
     </section>
 
     <section v-if="run" class="card block">
@@ -182,33 +192,76 @@
       </div>
     </section>
 
-    <section v-if="editableFeatures.length && run?.status === 'success'" class="card block">
-      <h2>功能菜单树（可编辑）</h2>
-      <p class="muted small">确认后将保存为新版本，可在「功能树记录」中查看。</p>
-      <div class="table-wrap">
-        <table class="tbl">
-          <thead>
-            <tr>
-              <th>路径</th>
-              <th>区域</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(row, i) in editableFeatures" :key="row._key">
-              <td>
-                <input v-model="row.pathText" class="cell-input" type="text" />
-              </td>
-              <td><input v-model="row.region" class="cell-input" type="text" /></td>
-              <td>
-                <button type="button" class="btn-link danger" @click="removeRow(i)">删除</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+    <section v-if="showWorkbench" class="card block live-block">
+      <div class="live-head">
+        <h2>{{ running ? "分析过程（实时）" : "功能完备度分析结果" }}</h2>
+        <div v-if="running || run?.status === 'pending'" class="live-progress" aria-label="分析进度">
+          <span class="progress-label">预估进度</span>
+          <span class="progress-pct">{{ progressPercent }}%</span>
+          <div class="progress-track">
+            <div
+              class="progress-fill"
+              :class="{ done: progressPercent >= 100 }"
+              :style="{ width: `${progressPercent}%` }"
+            />
+          </div>
+        </div>
       </div>
-      <button type="button" class="btn" @click="addRow">添加一行</button>
-      <div class="confirm-row">
+      <p v-if="running" class="live-hint muted small">
+        按界面深度优先遍历（DFS），记录每屏功能点并组装为 GIIC 层级功能树；右侧为真机投屏。
+      </p>
+      <div
+        v-if="running && liveLocation"
+        class="location-banner"
+        :class="{ 'location-off': !liveLocation.inTarget }"
+        role="status"
+      >
+        <div class="location-row">
+          <span class="location-label">当前界面</span>
+          <strong>{{ liveLocation.screenTitle || "识别中…" }}</strong>
+        </div>
+        <div class="location-row muted small">
+          <span>遍历路径 {{ liveLocation.path }}</span>
+          <span v-if="liveLocation.foreground"> · 前台 {{ liveLocation.foreground }}</span>
+        </div>
+        <p v-if="liveLocation.lastAction" class="location-action small">
+          正在执行：{{ liveLocation.lastAction }}
+        </p>
+        <p v-if="!liveLocation.inTarget" class="location-warn small">
+          设备已离开被测应用，正在尝试拉回；若投屏与日志不一致，请以投屏为准并等待恢复。
+        </p>
+      </div>
+      <FeatureAnalysisWorkbench
+        ref="workbenchRef"
+        :feature-json="run?.feature_json || ''"
+        :app-display-name="form.app_display_name || form.bundle_id"
+        :editable="run?.status === 'success'"
+        :show-mirror="running"
+        :robot-instance-id="mirrorInstanceId"
+        :device-platform="mirrorPlatform"
+        :device-id="mirrorDeviceId"
+        :mirror-active="screenMirrorActive"
+      />
+      <details v-if="liveLogEntries.length" class="log-fold">
+        <summary class="muted small">探索步骤日志（{{ liveLogEntries.length }} 条）</summary>
+        <div ref="liveLogScrollRef" class="exec-log-scroll compact">
+          <div class="fa-log-list">
+            <div
+              v-for="(ev, idx) in liveLogEntries"
+              :key="idx"
+              class="fa-log-card"
+              :class="ev.tone"
+            >
+              <div class="fa-log-meta">
+                <span class="fa-log-title">{{ ev.title }}</span>
+                <span v-if="ev.meta" class="fa-log-tag">{{ ev.meta }}</span>
+              </div>
+              <p v-if="ev.body" class="fa-log-body">{{ ev.body }}</p>
+            </div>
+          </div>
+        </div>
+      </details>
+      <div v-if="run?.status === 'success'" class="confirm-row">
         <input v-model="confirmLabel" class="ver-input" placeholder="版本标签（可选，默认 vN）" />
         <button type="button" class="btn primary" :disabled="confirming" @click="confirmTree">
           {{ confirming ? "保存中…" : "确认并保存功能树" }}
@@ -223,13 +276,19 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import client, { formatApiError } from "@/api/client";
+import FeatureAnalysisWorkbench from "@/components/FeatureAnalysisWorkbench.vue";
 import {
   analysisRobotUnselectableHint,
   isRobotRunnableForFeatureAnalysis,
 } from "@/constants/robotCatalog";
+import {
+  estimateFeatureProgress,
+  parseFeatureStepLog,
+  summarizeFeatureAnalysisLocation,
+} from "@/utils/featureAnalysisLive";
 import { inferDevicePlatform, platformLabel } from "@/utils/packagePlatform";
 
 const route = useRoute();
@@ -305,11 +364,12 @@ const form = reactive({
 
 const run = ref(null);
 const runId = ref(null);
-const editableFeatures = ref([]);
+const workbenchRef = ref(null);
 const confirmLabel = ref("");
 const confirming = ref(false);
 const confirmErr = ref("");
 const confirmOk = ref("");
+const liveLogScrollRef = ref(null);
 let pollTimer = null;
 
 const apiBase = computed(() => `/api/projects/${projectId.value}/feature-analysis`);
@@ -323,20 +383,105 @@ const running = computed(() => {
   return s === "pending" || s === "running";
 });
 
-const canStart = computed(() => {
-  if (form.robot_instance_id <= 0) return false;
-  if (
-    !isRobotRunnableForFeatureAnalysis(
-      analysisRobots.value.find((r) => r.id === form.robot_instance_id),
-    )
-  ) {
-    return false;
+const showWorkbench = computed(() => {
+  if (!run.value) return false;
+  const s = run.value.status;
+  if (s === "pending" || s === "running") return true;
+  if (s === "success") return true;
+  return Boolean(run.value.feature_json || run.value.step_log);
+});
+
+const screenMirrorActive = computed(() => running.value);
+
+const mirrorInstanceId = computed(() => {
+  const fromRun = run.value?.robot_instance_id;
+  if (fromRun != null) return fromRun;
+  return form.robot_instance_id > 0 ? form.robot_instance_id : null;
+});
+
+const mirrorPlatform = computed(() => {
+  const p = run.value?.device_platform || detectedPlatform.value || "harmonyos";
+  return String(p).toLowerCase();
+});
+
+const mirrorDeviceId = computed(() => {
+  const fromRun = (run.value?.device_id || "").trim();
+  if (fromRun) return fromRun;
+  if (form.app_source === "installed" && detectedPlatform.value) {
+    return selectedDeviceByPlatform[detectedPlatform.value] || "";
+  }
+  if (form.app_source === "uploaded") return uploadedDeviceId.value || "";
+  return "";
+});
+
+const liveLogEntries = computed(() => parseFeatureStepLog(run.value?.step_log));
+
+const liveLocation = computed(() =>
+  summarizeFeatureAnalysisLocation(run.value?.step_log),
+);
+
+const progressPercent = computed(() => estimateFeatureProgress(run.value));
+
+function scrollLiveLogToBottom() {
+  nextTick(() => {
+    const el = liveLogScrollRef.value;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+  });
+}
+
+watch(
+  () => run.value?.step_log,
+  () => {
+    if (showWorkbench.value) scrollLiveLogToBottom();
+  },
+);
+
+const recentRuns = ref([]);
+
+const selectedRobot = computed(() =>
+  analysisRobots.value.find((r) => r.id === form.robot_instance_id),
+);
+
+const staleBlockingRun = computed(() => {
+  const rid = form.robot_instance_id;
+  if (rid <= 0) return null;
+  return (
+    (recentRuns.value || []).find(
+      (r) =>
+        r.robot_instance_id === rid &&
+        (r.status === "pending" || r.status === "running"),
+    ) || null
+  );
+});
+
+const startBlockedReason = computed(() => {
+  if (running.value) return "";
+  if (form.robot_instance_id <= 0) {
+    return "请先选择测试分析机器人。";
+  }
+  const inst = selectedRobot.value;
+  if (!inst) return "所选机器人无效，请重新选择。";
+  if (!isRobotRunnableForFeatureAnalysis(inst)) {
+    const hint = analysisRobotUnselectableHint(inst);
+    if (staleBlockingRun.value) {
+      return `测试分析机器人不可用${hint}：存在未结束的分析任务，请先终止。`;
+    }
+    return `测试分析机器人不可用${hint || "（非空闲）"}，请在「我的机器人」确认已启用且空闲。`;
   }
   if (form.app_source === "installed") {
-    return form.bundle_id.trim().includes(".");
+    if (!form.bundle_id.trim().includes(".")) {
+      return "请从已安装应用列表中选择应用（需包含有效包名）。";
+    }
+    return "";
   }
-  return uploadInstallSucceeded.value && form.bundle_id.trim().includes(".");
+  if (!uploadInstallSucceeded.value || !form.bundle_id.trim().includes(".")) {
+    return "请先上传安装包并完成安装，确保识别到应用包名。";
+  }
+  return "";
 });
+
+const canStart = computed(() => !startBlockedReason.value && form.robot_instance_id > 0);
 
 const statusLabel = computed(() => {
   const m = {
@@ -357,46 +502,6 @@ const statusClass = computed(() => {
   return "";
 });
 
-function parseTreeToRows(tree) {
-  const feats = tree?.features || [];
-  return feats.map((f, i) => ({
-    _key: f.id || `f-${i}`,
-    pathText: Array.isArray(f.path) ? f.path.join(" > ") : f.name || "",
-    region: f.region || "",
-    name: f.name || "",
-  }));
-}
-
-function rowsToTreeJson() {
-  const base = run.value?.feature_json ? JSON.parse(run.value.feature_json) : { features: [] };
-  base.features = editableFeatures.value.map((row, i) => {
-    const parts = row.pathText.split(">").map((s) => s.trim()).filter(Boolean);
-    const name = parts.length ? parts[parts.length - 1] : row.pathText.trim();
-    return {
-      id: String(i + 1),
-      name,
-      path: parts.length ? parts : [name],
-      depth: parts.length || 1,
-      region: row.region || "other",
-      status: "listed",
-    };
-  });
-  return base;
-}
-
-function syncEditableFromRun() {
-  if (!run.value?.feature_json) {
-    editableFeatures.value = [];
-    return;
-  }
-  try {
-    const tree = JSON.parse(run.value.feature_json);
-    editableFeatures.value = parseTreeToRows(tree);
-  } catch {
-    editableFeatures.value = [];
-  }
-}
-
 async function loadProject() {
   try {
     const { data } = await client.get(`/api/projects/${projectId.value}`);
@@ -409,15 +514,50 @@ async function loadProject() {
   }
 }
 
+async function loadRecentRuns() {
+  try {
+    const { data } = await client.get(`${apiBase.value}/runs`);
+    recentRuns.value = data || [];
+    const active = (data || []).find(
+      (r) =>
+        (r.status === "pending" || r.status === "running") &&
+        (!form.robot_instance_id || r.robot_instance_id === form.robot_instance_id),
+    );
+    if (active && !run.value) {
+      run.value = active;
+      runId.value = active.id;
+      if (active.status === "pending" || active.status === "running") {
+        pollTimer = setTimeout(pollRun, 500);
+      }
+    }
+  } catch {
+    recentRuns.value = [];
+  }
+}
+
 async function loadRobots() {
   try {
     const { data } = await client.get("/api/robot-instances/mine");
     robots.value = data || [];
+    const current = analysisRobots.value.find((r) => r.id === form.robot_instance_id);
+    if (current && isRobotRunnableForFeatureAnalysis(current)) return;
     const first = analysisRobots.value.find((r) => isRobotRunnableForFeatureAnalysis(r));
-    if (first && !form.robot_instance_id) form.robot_instance_id = first.id;
+    if (first) form.robot_instance_id = first.id;
+    else if (!form.robot_instance_id && analysisRobots.value.length) {
+      form.robot_instance_id = analysisRobots.value[0].id;
+    }
   } catch (e) {
     pageErr.value = formatApiError(e);
   }
+}
+
+async function cancelStaleRun() {
+  const r = staleBlockingRun.value;
+  if (!r) return;
+  runId.value = r.id;
+  await cancelRun();
+  await loadRobots();
+  await loadRecentRuns();
 }
 
 function setActiveInstalledPlatform(platform) {
@@ -624,7 +764,7 @@ async function pollRun() {
   try {
     const { data } = await client.get(`${apiBase.value}/runs/${runId.value}`);
     run.value = data;
-    if (data.status === "success") syncEditableFromRun();
+    scrollLiveLogToBottom();
     if (data.status === "pending" || data.status === "running") {
       pollTimer = setTimeout(pollRun, 2000);
     } else {
@@ -707,21 +847,13 @@ async function downloadExcel() {
   }
 }
 
-function addRow() {
-  editableFeatures.value.push({ _key: `new-${Date.now()}`, pathText: "", region: "other", name: "" });
-}
-
-function removeRow(i) {
-  editableFeatures.value.splice(i, 1);
-}
-
 async function confirmTree() {
   if (!runId.value) return;
   confirming.value = true;
   confirmErr.value = "";
   confirmOk.value = "";
   try {
-    const tree_json = rowsToTreeJson();
+    const tree_json = workbenchRef.value?.getTreeJson?.() || { features: [] };
     const { data } = await client.post(`${apiBase.value}/runs/${runId.value}/confirm`, {
       tree_json,
       version_label: confirmLabel.value.trim(),
@@ -766,6 +898,7 @@ watch(
 onMounted(async () => {
   await loadProject();
   await loadRobots();
+  await loadRecentRuns();
   if (form.app_source === "installed") {
     await loadInstalledCatalog();
   } else {
@@ -777,9 +910,146 @@ onUnmounted(stopPoll);
 
 <style scoped>
 .fa-page {
-  max-width: 1000px;
+  max-width: 1280px;
   margin: 0 auto;
   padding: 1rem 1.25rem 2rem;
+}
+.live-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.65rem;
+}
+.live-head h2 {
+  margin: 0;
+}
+.live-progress {
+  flex-shrink: 0;
+  width: min(220px, 42%);
+}
+.live-progress .progress-label {
+  display: block;
+  font-size: 0.72rem;
+  color: #64748b;
+}
+.live-progress .progress-pct {
+  display: block;
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-align: right;
+  margin-bottom: 0.35rem;
+}
+.progress-track {
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #38bdf8, #2563eb);
+  border-radius: 999px;
+  transition: width 0.45s ease;
+}
+.progress-fill.done {
+  background: linear-gradient(90deg, #4ade80, #16a34a);
+}
+.live-hint {
+  margin: 0 0 0.75rem;
+}
+.location-banner {
+  margin: 0 0 0.85rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+}
+.location-banner.location-off {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+.location-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.location-label {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+.location-action {
+  margin: 0.35rem 0 0;
+  color: #475569;
+}
+.location-warn {
+  margin: 0.4rem 0 0;
+  color: #b91c1c;
+  font-weight: 500;
+}
+.log-fold {
+  margin-top: 1rem;
+}
+.log-fold summary {
+  cursor: pointer;
+  margin-bottom: 0.5rem;
+}
+.exec-log-scroll.compact {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 0.65rem 0.75rem;
+}
+.fa-log-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.fa-log-card {
+  padding: 0.5rem 0.65rem;
+  border-radius: 6px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  font-size: 0.85rem;
+}
+.fa-log-card.page {
+  border-left: 3px solid #2563eb;
+}
+.fa-log-card.feature {
+  border-left: 3px solid #16a34a;
+}
+.fa-log-card.step {
+  border-left: 3px solid #7c3aed;
+}
+.fa-log-card.error {
+  border-left: 3px solid #dc2626;
+  background: #fef2f2;
+}
+.fa-log-card.done {
+  border-left: 3px solid #0d9488;
+}
+.fa-log-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.fa-log-title {
+  font-weight: 600;
+  color: #0f172a;
+}
+.fa-log-tag {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+.fa-log-body {
+  margin: 0.25rem 0 0;
+  color: #334155;
+  word-break: break-word;
 }
 .back-row {
   display: flex;
@@ -984,6 +1254,17 @@ onUnmounted(stopPoll);
   margin: 0.35rem 0 0;
 }
 .form-actions,
+.start-hint {
+  margin: 0.5rem 0 0;
+}
+.warn-banner {
+  margin: 0.65rem 0 0;
+  padding: 0.55rem 0.75rem;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  color: #92400e;
+}
 .confirm-row {
   display: flex;
   gap: 0.65rem;

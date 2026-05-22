@@ -8,7 +8,9 @@
       >
       <h1>功能菜单树 · {{ tree?.version_label || "详情" }}</h1>
       <p v-if="tree" class="sub">
-        {{ tree.app_display_name || tree.bundle_id }} · 确认于 {{ fmtDate(tree.confirmed_at) }}
+        {{ displayAppName }} · 确认于 {{ fmtDate(tree.confirmed_at) }}
+        <span v-if="editing" class="mode-tag">编辑中</span>
+        <span v-else class="mode-tag view">查看</span>
       </p>
     </header>
 
@@ -17,50 +19,50 @@
 
     <section v-if="tree && !loading" class="card">
       <div class="head-actions">
-        <button type="button" class="btn" :disabled="editing" @click="editing = !editing">
-          {{ editing ? "取消编辑" : "编辑" }}
+        <template v-if="editing">
+          <span v-if="dirty" class="feedback warn">有未保存的修改</span>
+          <button
+            type="button"
+            class="btn btn-primary action-btn"
+            :disabled="saving"
+            @click="saveEdit"
+          >
+            {{ saving ? "保存中…" : "保存修改" }}
+          </button>
+          <button
+            type="button"
+            class="btn btn-outline action-btn"
+            :disabled="saving"
+            @click="cancelEdit"
+          >
+            取消编辑
+          </button>
+        </template>
+        <button v-else type="button" class="btn btn-primary action-btn" @click="enterEdit">
+          编辑
         </button>
+        <span v-if="saveOk" class="feedback ok">{{ saveOk }}</span>
+        <p v-if="saveErr" class="feedback err">{{ saveErr }}</p>
       </div>
-      <div class="table-wrap">
-        <table class="tbl">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>完整路径</th>
-              <th>区域</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(row, i) in rows" :key="row._key">
-              <td>{{ i + 1 }}</td>
-              <td>
-                <input v-if="editing" v-model="row.pathText" class="cell-input" type="text" />
-                <span v-else>{{ row.pathText }}</span>
-              </td>
-              <td>
-                <input v-if="editing" v-model="row.region" class="cell-input" type="text" />
-                <span v-else>{{ row.region || "—" }}</span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <p v-if="!rows.length" class="muted">该版本无功能项数据。</p>
-      <div v-if="editing" class="actions">
-        <button type="button" class="btn primary" :disabled="saving" @click="saveEdit">
-          {{ saving ? "保存中…" : "保存修改" }}
-        </button>
-      </div>
-      <p v-if="saveErr" class="err">{{ saveErr }}</p>
-      <p v-if="saveOk" class="ok">{{ saveOk }}</p>
+      <FeatureAnalysisWorkbench
+        ref="workbenchRef"
+        :feature-json="tree.tree_json || ''"
+        :app-display-name="displayAppName"
+        :editable="editing"
+        :freeze-json-reload="editing"
+        :show-mirror="false"
+        @change="onWorkbenchChange"
+      />
     </section>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
 import { useRoute } from "vue-router";
 import client, { formatApiError } from "@/api/client";
+import FeatureAnalysisWorkbench from "@/components/FeatureAnalysisWorkbench.vue";
+import { appDisplayNameFromTreeRecord } from "@/utils/featureTree";
 
 const route = useRoute();
 const projectId = computed(() => Number(route.params.projectId));
@@ -68,47 +70,38 @@ const treeId = computed(() => Number(route.params.treeId));
 const apiBase = computed(() => `/api/projects/${projectId.value}/feature-analysis`);
 
 const tree = ref(null);
-const rows = ref([]);
+const displayAppName = computed(() => appDisplayNameFromTreeRecord(tree.value) || "应用");
+const workbenchRef = ref(null);
 const loading = ref(true);
 const error = ref("");
 const editing = ref(false);
+const dirty = ref(false);
 const saving = ref(false);
 const saveErr = ref("");
 const saveOk = ref("");
+let saveOkTimer = null;
+
+function clearSaveFeedback() {
+  saveOk.value = "";
+  saveErr.value = "";
+  if (saveOkTimer) {
+    clearTimeout(saveOkTimer);
+    saveOkTimer = null;
+  }
+}
+
+function showSaveOk(msg = "已保存") {
+  saveOk.value = msg;
+  if (saveOkTimer) clearTimeout(saveOkTimer);
+  saveOkTimer = setTimeout(() => {
+    saveOk.value = "";
+    saveOkTimer = null;
+  }, 2500);
+}
 
 function fmtDate(v) {
   if (!v) return "—";
   return new Date(v).toLocaleString();
-}
-
-function parseRows(treeJsonStr) {
-  try {
-    const data = JSON.parse(treeJsonStr || "{}");
-    return (data.features || []).map((f, i) => ({
-      _key: f.id || `r-${i}`,
-      pathText: Array.isArray(f.path) ? f.path.join(" > ") : f.name || "",
-      region: f.region || "",
-    }));
-  } catch {
-    return [];
-  }
-}
-
-function buildTreeJson() {
-  const data = tree.value?.tree_json ? JSON.parse(tree.value.tree_json) : { features: [] };
-  data.features = rows.value.map((row, i) => {
-    const parts = row.pathText.split(">").map((s) => s.trim()).filter(Boolean);
-    const name = parts.length ? parts[parts.length - 1] : row.pathText.trim();
-    return {
-      id: String(i + 1),
-      name,
-      path: parts.length ? parts : [name],
-      depth: parts.length || 1,
-      region: row.region || "other",
-      status: "listed",
-    };
-  });
-  return data;
 }
 
 async function load() {
@@ -117,7 +110,6 @@ async function load() {
   try {
     const { data } = await client.get(`${apiBase.value}/trees/${treeId.value}`);
     tree.value = data;
-    rows.value = parseRows(data.tree_json);
   } catch (e) {
     error.value = formatApiError(e);
   } finally {
@@ -125,19 +117,51 @@ async function load() {
   }
 }
 
+async function reloadWorkbench() {
+  await nextTick();
+  workbenchRef.value?.reload?.();
+}
+
+function onWorkbenchChange() {
+  if (editing.value) dirty.value = true;
+}
+
+function enterEdit() {
+  editing.value = true;
+  dirty.value = false;
+  clearSaveFeedback();
+}
+
+async function cancelEdit() {
+  if (dirty.value && !window.confirm("放弃未保存的修改？")) return;
+  clearSaveFeedback();
+  editing.value = false;
+  dirty.value = false;
+  await load();
+  await reloadWorkbench();
+}
+
 async function saveEdit() {
+  if (!tree.value || !workbenchRef.value?.getTreeJson) return;
   saving.value = true;
   saveErr.value = "";
-  saveOk.value = "";
+  clearSaveFeedback();
   try {
     const { data } = await client.patch(`${apiBase.value}/trees/${treeId.value}`, {
-      tree_json: buildTreeJson(),
-      version_label: tree.value?.version_label || "",
+      tree_json: workbenchRef.value.getTreeJson(),
+      bump_version: true,
     });
-    tree.value = data;
-    rows.value = parseRows(data.tree_json);
+    tree.value = {
+      ...tree.value,
+      tree_json: data.tree_json,
+      version_label: data.version_label,
+      confirmed_at: data.confirmed_at,
+      app_display_name: data.app_display_name,
+    };
     editing.value = false;
-    saveOk.value = "已保存";
+    dirty.value = false;
+    await reloadWorkbench();
+    showSaveOk(`已保存为 ${data.version_label}`);
   } catch (e) {
     saveErr.value = formatApiError(e);
   } finally {
@@ -146,11 +170,15 @@ async function saveEdit() {
 }
 
 onMounted(load);
+
+onUnmounted(() => {
+  if (saveOkTimer) clearTimeout(saveOkTimer);
+});
 </script>
 
 <style scoped>
 .tree-page {
-  max-width: 900px;
+  max-width: 1280px;
   margin: 0 auto;
   padding: 1rem 1.25rem 2rem;
 }
@@ -164,40 +192,56 @@ onMounted(load);
 }
 .sub {
   color: #64748b;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.mode-tag {
+  font-size: 0.75rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+  background: #fef3c7;
+  color: #92400e;
+}
+.mode-tag.view {
+  background: #e0f2fe;
+  color: #0369a1;
 }
 .card {
-  background: #fff;
+  background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
-  padding: 1rem;
-}
-.tbl {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.88rem;
-}
-.tbl th,
-.tbl td {
-  border-bottom: 1px solid #e2e8f0;
-  padding: 0.45rem 0.5rem;
-}
-.cell-input {
-  width: 100%;
-  padding: 0.35rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 4px;
+  padding: 1.15rem 1.25rem 1.25rem;
 }
 .head-actions {
-  margin-bottom: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin-bottom: 0.85rem;
 }
-.actions {
-  margin-top: 1rem;
+.head-actions .action-btn {
+  min-width: 6.75rem;
+  padding: 0.5rem 1.15rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25;
+  border-radius: 8px;
 }
-.err {
+.feedback {
+  margin: 0;
+  font-size: 0.875rem;
+}
+.feedback.err {
   color: #b91c1c;
+  width: 100%;
 }
-.ok {
+.feedback.ok {
   color: #166534;
+}
+.feedback.warn {
+  color: #b45309;
 }
 .banner.err {
   background: #fef2f2;

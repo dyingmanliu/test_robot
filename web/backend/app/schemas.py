@@ -791,6 +791,7 @@ class FeatureAnalysisTreeOut(BaseModel):
 class FeatureAnalysisTreeUpdateIn(BaseModel):
     tree_json: dict[str, Any] = Field(default_factory=dict)
     version_label: str = Field(default="", max_length=64)
+    bump_version: bool = False
 
 
 class AppInstallIn(BaseModel):

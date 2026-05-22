@@ -1,8 +1,13 @@
-"""测试用例分析 / 编写 Agent（进程内 LLM，与设备执行 Agent 分离）。"""
+"""测试分析机器人 Agent：用例生成（LLM）+ 功能点遍历（Midscene explore）。"""
 
 from agent_service.analysis_agent.agent import AnalysisAgent
 from agent_service.analysis_agent.config import AnalysisAgentConfig, load_analysis_config
 from agent_service.analysis_agent.errors import AnalysisAgentError
+from agent_service.analysis_agent.feature_explore import (
+    ExploreDispatch,
+    ExploreRunResult,
+    FeatureExploreAgent,
+)
 from agent_service.analysis_agent.types import CaseDraft, CaseStep, ProjectContext
 
 __all__ = [
@@ -13,4 +18,7 @@ __all__ = [
     "CaseStep",
     "ProjectContext",
     "load_analysis_config",
+    "FeatureExploreAgent",
+    "ExploreDispatch",
+    "ExploreRunResult",
 ]

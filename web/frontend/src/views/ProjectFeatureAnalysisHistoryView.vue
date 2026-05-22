@@ -23,20 +23,31 @@
             <th>版本</th>
             <th>应用</th>
             <th>确认时间</th>
-            <th></th>
+            <th class="th-actions">操作</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="t in trees" :key="t.id">
             <td>{{ t.version_label || `树 #${t.id}` }}</td>
-            <td>{{ t.app_display_name || t.bundle_id || "—" }}</td>
+            <td>{{ treeAppName(t) }}</td>
             <td>{{ fmtDate(t.confirmed_at) }}</td>
-            <td>
+            <td class="actions-cell">
               <router-link
                 class="btn link"
-                :to="{ name: 'projectFeatureTreeDetail', params: { projectId, treeId: t.id } }"
+                :to="{
+                  name: 'projectFeatureTreeDetail',
+                  params: { projectId, treeId: t.id },
+                }"
                 >查看</router-link
               >
+              <button
+                type="button"
+                class="btn link danger"
+                :disabled="deletingId === t.id"
+                @click="deleteTree(t)"
+              >
+                {{ deletingId === t.id ? "删除中…" : "删除" }}
+              </button>
             </td>
           </tr>
         </tbody>
@@ -75,10 +86,12 @@
 
 <script setup>
 import { computed, onMounted, ref } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import client, { formatApiError } from "@/api/client";
+import { appDisplayNameFromTreeRecord } from "@/utils/featureTree";
 
 const route = useRoute();
+const router = useRouter();
 const projectId = computed(() => Number(route.params.projectId));
 const apiBase = computed(() => `/api/projects/${projectId.value}/feature-analysis`);
 
@@ -87,6 +100,7 @@ const trees = ref([]);
 const runs = ref([]);
 const loading = ref(true);
 const error = ref("");
+const deletingId = ref(null);
 
 function fmtDate(v) {
   if (!v) return "—";
@@ -95,6 +109,11 @@ function fmtDate(v) {
   } catch {
     return String(v);
   }
+}
+
+function treeAppName(t) {
+  const name = appDisplayNameFromTreeRecord(t);
+  return name || "—";
 }
 
 function statusLabel(s) {
@@ -108,7 +127,7 @@ function statusLabel(s) {
   return m[s] || s;
 }
 
-onMounted(async () => {
+async function load() {
   loading.value = true;
   error.value = "";
   try {
@@ -125,7 +144,31 @@ onMounted(async () => {
   } finally {
     loading.value = false;
   }
-});
+}
+
+async function deleteTree(t) {
+  const label = t.version_label || `树 #${t.id}`;
+  const app = t.app_display_name || t.bundle_id || "该应用";
+  if (!window.confirm(`确定删除「${app}」的版本 ${label}？此操作不可恢复。`)) return;
+  deletingId.value = t.id;
+  error.value = "";
+  try {
+    await client.delete(`${apiBase.value}/trees/${t.id}`);
+    trees.value = trees.value.filter((x) => x.id !== t.id);
+    if (Number(route.params.treeId) === t.id) {
+      router.replace({
+        name: "projectFeatureAnalysisHistory",
+        params: { projectId: projectId.value },
+      });
+    }
+  } catch (e) {
+    error.value = formatApiError(e);
+  } finally {
+    deletingId.value = null;
+  }
+}
+
+onMounted(load);
 </script>
 
 <style scoped>
@@ -164,9 +207,30 @@ onMounted(async () => {
   padding: 0.45rem 0.5rem;
   text-align: left;
 }
+.th-actions {
+  min-width: 10rem;
+}
+.actions-cell {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.65rem;
+}
 .btn.link {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: inherit;
   text-decoration: none;
   color: #2563eb;
+}
+.btn.link.danger {
+  color: #b91c1c;
+}
+.btn.link:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 .banner.err {
   background: #fef2f2;

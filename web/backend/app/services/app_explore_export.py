@@ -49,6 +49,10 @@ def build_feature_workbook(
 
     headers = [
         "序号",
+        "功能类型",
+        "功能点名称",
+        "功能点描述",
+        "位置信息",
         "一级功能",
         "二级功能",
         "三级功能",
@@ -79,9 +83,14 @@ def build_feature_workbook(
         full_path = " > ".join(path) if path else ""
         region = str(raw.get("region") or "")
         status = str(raw.get("status") or "listed")
+        name = str(raw.get("name") or (path[-1] if path else ""))
         ws.append(
             [
                 idx,
+                raw.get("function_type") or REGION_LABELS.get(region, region or "—"),
+                name,
+                raw.get("description") or "",
+                raw.get("location") or full_path,
                 levels["level_1"],
                 levels["level_2"],
                 levels["level_3"],

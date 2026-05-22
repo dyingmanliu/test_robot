@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
@@ -67,6 +69,88 @@ def _run_in_thread(run_id: int) -> None:
         execute_feature_analysis_run(db, run_id)
     finally:
         db.close()
+
+
+def _app_name_from_tree_json(tree_json: str) -> str:
+    if not tree_json:
+        return ""
+    try:
+        data = json.loads(tree_json)
+        name = str(data.get("app_name") or "").strip()
+        if name:
+            return name
+        for key in ("function_tree", "function_tree_by_path"):
+            ft = data.get(key)
+            if isinstance(ft, dict) and ft.get("node_type") == "application":
+                root_name = str(ft.get("name") or "").strip()
+                if root_name:
+                    return root_name
+        return ""
+    except (json.JSONDecodeError, TypeError):
+        return ""
+
+
+def _resolved_app_display_name(
+    run: ProjectFeatureAnalysisRun | None, tree_json: str
+) -> str:
+    """列表/详情展示名：优先 tree_json.app_name，与编辑器内应用根一致。"""
+    from_json = _app_name_from_tree_json(tree_json)
+    if from_json:
+        return from_json[:256]
+    if run:
+        return (run.app_display_name or run.bundle_id or "").strip()
+    return ""
+
+
+def _sync_run_app_display_name(
+    db: Session,
+    run: ProjectFeatureAnalysisRun | None,
+    normalized: dict[str, object],
+) -> None:
+    if run is None:
+        return
+    app_name = str(normalized.get("app_name") or "").strip()
+    if not app_name:
+        app_name = _app_name_from_tree_json(json.dumps(normalized, ensure_ascii=False))
+    if app_name:
+        run.app_display_name = app_name[:256]
+        db.add(run)
+
+
+def _next_version_label(db: Session, project_id: int, current: str) -> str:
+    """编辑保存时递增版本号：v1 → v2；非 vN 格式则取项目内最大 v 序号 +1。"""
+    cur = (current or "").strip()
+    m = re.match(r"^v(\d+)$", cur, re.IGNORECASE)
+    if m:
+        return f"v{int(m.group(1)) + 1}"
+    rows = (
+        db.query(ProjectFeatureTree.version_label)
+        .filter(ProjectFeatureTree.project_id == project_id)
+        .all()
+    )
+    max_n = 0
+    for (lbl,) in rows:
+        mm = re.match(r"^v(\d+)$", (lbl or "").strip(), re.IGNORECASE)
+        if mm:
+            max_n = max(max_n, int(mm.group(1)))
+    return f"v{max_n + 1}"
+
+
+def _feature_tree_out(
+    t: ProjectFeatureTree, run: ProjectFeatureAnalysisRun | None
+) -> FeatureAnalysisTreeOut:
+    return FeatureAnalysisTreeOut(
+        id=t.id,
+        project_id=t.project_id,
+        run_id=t.run_id,
+        owner_id=t.owner_id,
+        tree_json=t.tree_json,
+        version_label=t.version_label,
+        confirmed_at=t.confirmed_at,
+        created_at=t.created_at,
+        app_display_name=_resolved_app_display_name(run, t.tree_json),
+        bundle_id=run.bundle_id if run else "",
+    )
 
 
 def _artifact_path(art: ProjectAppArtifact) -> Path:
@@ -459,28 +543,21 @@ def confirm_feature_tree(
     )
     label = (body.version_label or "").strip() or f"v{int(n) + 1}"
 
+    from agent_service.analysis_agent.feature_explore.tree_build import sync_giic_tree_from_features
+
+    normalized = sync_giic_tree_from_features(dict(body.tree_json))
+    _sync_run_app_display_name(db, run, normalized)
     tree = ProjectFeatureTree(
         project_id=project_id,
         run_id=run.id,
         owner_id=user.id,
-        tree_json=json.dumps(body.tree_json, ensure_ascii=False),
+        tree_json=json.dumps(normalized, ensure_ascii=False),
         version_label=label[:64],
     )
     db.add(tree)
     db.commit()
     db.refresh(tree)
-    return FeatureAnalysisTreeOut(
-        id=tree.id,
-        project_id=tree.project_id,
-        run_id=tree.run_id,
-        owner_id=tree.owner_id,
-        tree_json=tree.tree_json,
-        version_label=tree.version_label,
-        confirmed_at=tree.confirmed_at,
-        created_at=tree.created_at,
-        app_display_name=run.app_display_name,
-        bundle_id=run.bundle_id,
-    )
+    return _feature_tree_out(tree, run)
 
 
 @router.get("/{project_id}/feature-analysis/trees", response_model=list[FeatureAnalysisTreeOut])
@@ -499,20 +576,7 @@ def list_feature_trees(
     out: list[FeatureAnalysisTreeOut] = []
     for t in trees:
         run = db.query(ProjectFeatureAnalysisRun).filter(ProjectFeatureAnalysisRun.id == t.run_id).first()
-        out.append(
-            FeatureAnalysisTreeOut(
-                id=t.id,
-                project_id=t.project_id,
-                run_id=t.run_id,
-                owner_id=t.owner_id,
-                tree_json=t.tree_json,
-                version_label=t.version_label,
-                confirmed_at=t.confirmed_at,
-                created_at=t.created_at,
-                app_display_name=run.app_display_name if run else "",
-                bundle_id=run.bundle_id if run else "",
-            )
-        )
+        out.append(_feature_tree_out(t, run))
     return out
 
 
@@ -535,18 +599,7 @@ def get_feature_tree(
     if t is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="功能树不存在")
     run = db.query(ProjectFeatureAnalysisRun).filter(ProjectFeatureAnalysisRun.id == t.run_id).first()
-    return FeatureAnalysisTreeOut(
-        id=t.id,
-        project_id=t.project_id,
-        run_id=t.run_id,
-        owner_id=t.owner_id,
-        tree_json=t.tree_json,
-        version_label=t.version_label,
-        confirmed_at=t.confirmed_at,
-        created_at=t.created_at,
-        app_display_name=run.app_display_name if run else "",
-        bundle_id=run.bundle_id if run else "",
-    )
+    return _feature_tree_out(t, run)
 
 
 @router.patch("/{project_id}/feature-analysis/trees/{tree_id}", response_model=FeatureAnalysisTreeOut)
@@ -568,21 +621,42 @@ def update_feature_tree(
     )
     if t is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="功能树不存在")
-    t.tree_json = json.dumps(body.tree_json, ensure_ascii=False)
-    if body.version_label.strip():
+    from agent_service.analysis_agent.feature_explore.tree_build import sync_giic_tree_from_features
+
+    normalized = sync_giic_tree_from_features(dict(body.tree_json))
+    t.tree_json = json.dumps(normalized, ensure_ascii=False)
+    if body.bump_version:
+        t.version_label = _next_version_label(db, project_id, t.version_label)[:64]
+        t.confirmed_at = datetime.utcnow()
+    elif body.version_label.strip():
         t.version_label = body.version_label.strip()[:64]
+    run = db.query(ProjectFeatureAnalysisRun).filter(ProjectFeatureAnalysisRun.id == t.run_id).first()
+    _sync_run_app_display_name(db, run, normalized)
     db.commit()
     db.refresh(t)
-    run = db.query(ProjectFeatureAnalysisRun).filter(ProjectFeatureAnalysisRun.id == t.run_id).first()
-    return FeatureAnalysisTreeOut(
-        id=t.id,
-        project_id=t.project_id,
-        run_id=t.run_id,
-        owner_id=t.owner_id,
-        tree_json=t.tree_json,
-        version_label=t.version_label,
-        confirmed_at=t.confirmed_at,
-        created_at=t.created_at,
-        app_display_name=run.app_display_name if run else "",
-        bundle_id=run.bundle_id if run else "",
+    return _feature_tree_out(t, run)
+
+
+@router.delete(
+    "/{project_id}/feature-analysis/trees/{tree_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_feature_tree(
+    project_id: int,
+    tree_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> None:
+    _require_project_owner(db, project_id, user)
+    t = (
+        db.query(ProjectFeatureTree)
+        .filter(
+            ProjectFeatureTree.id == tree_id,
+            ProjectFeatureTree.project_id == project_id,
+        )
+        .first()
     )
+    if t is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="功能树不存在")
+    db.delete(t)
+    db.commit()

@@ -25,32 +25,12 @@ export type StepCallback = (info: {
   error?: string;
 }) => void;
 
-/** 单步 aiAct 超时（秒）；0 或未配置表示不限制。见 .env MIDSCENE_STEP_TIMEOUT_SEC */
-function stepTimeoutMs(): number {
-  const raw = process.env.MIDSCENE_STEP_TIMEOUT_SEC?.trim();
-  if (!raw) return 0;
-  const sec = Number(raw);
-  return Number.isFinite(sec) && sec > 0 ? sec * 1000 : 0;
-}
+import { stepTimeoutMs, withStepTimeout as withStepTimeoutBase } from './step_timeout.js';
 
-async function withStepTimeout<T>(
-  promise: Promise<T>,
-  stepNo: number,
-): Promise<T> {
+async function withStepTimeout<T>(promise: Promise<T>, stepNo: number): Promise<T> {
   const ms = stepTimeoutMs();
   if (!ms) return promise;
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(
-      () => reject(new Error(`第 ${stepNo} 步执行超时（${ms / 1000}s）`)),
-      ms,
-    );
-  });
-  try {
-    return await Promise.race([promise, timeout]);
-  } finally {
-    if (timer) clearTimeout(timer);
-  }
+  return withStepTimeoutBase(promise, `第 ${stepNo} 步`, ms);
 }
 
 export class MidsceneTestAgent {

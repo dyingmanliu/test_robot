@@ -146,6 +146,7 @@ def on_startup() -> None:
     ensure_projects_bootstrap()
     bootstrap_rbac()
     from app.database import SessionLocal
+    from app.services.feature_analysis_guard import reconcile_stale_feature_analysis_on_startup
     from app.services.robot_run_guard import reconcile_stale_runs_on_startup
 
     db = SessionLocal()
@@ -153,6 +154,9 @@ def on_startup() -> None:
         n = reconcile_stale_runs_on_startup(db)
         if n:
             _startup_log.info("已清理残留执行任务 %s 条", n)
+        fa = reconcile_stale_feature_analysis_on_startup(db)
+        if fa:
+            _startup_log.info("已清理残留功能点分析任务 %s 条", fa)
     finally:
         db.close()
     _startup_log.info("应用启动完成")

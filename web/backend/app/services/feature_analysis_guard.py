@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
+import logging
+from datetime import datetime
+
 from sqlalchemy.orm import Session
 
 from app.models import ProjectFeatureAnalysisRun, RobotInstance
 from app.services.robot_catalog import is_analysis_catalog
+
+log = logging.getLogger("app.feature_analysis_guard")
 
 
 def find_active_feature_analysis_for_instance(
@@ -47,3 +52,25 @@ def instance_available_for_feature_analysis(
     if busy is not None:
         return False, feature_analysis_busy_message(busy)
     return True, ""
+
+
+def reconcile_stale_feature_analysis_on_startup(db: Session) -> int:
+    """服务重启后无内存 worker，将残留的 pending/running 标记为已终止。"""
+    stale = (
+        db.query(ProjectFeatureAnalysisRun)
+        .filter(ProjectFeatureAnalysisRun.status.in_(("pending", "running")))
+        .order_by(ProjectFeatureAnalysisRun.id.asc())
+        .all()
+    )
+    if not stale:
+        return 0
+    now = datetime.utcnow()
+    for run in stale:
+        run.status = "cancelled"
+        run.finished_at = now
+        if not (run.output_message or "").strip():
+            run.output_message = "服务重启，分析任务已自动终止"
+    db.commit()
+    ids = [r.id for r in stale]
+    log.warning("启动时清理残留功能点分析任务 run_ids=%s", ids)
+    return len(stale)

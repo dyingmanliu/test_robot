@@ -16,7 +16,7 @@
         />
         <div v-else class="mirror-placeholder">
           <p v-if="!robotInstanceId">请先选择机器人实例</p>
-          <p v-else-if="!active">执行开始后显示设备画面</p>
+          <p v-else-if="!active">{{ idleHint }}</p>
           <p v-else-if="loading">正在连接设备…</p>
           <p v-else>{{ placeholderText }}</p>
         </div>
@@ -38,6 +38,8 @@ const props = defineProps({
   deviceId: { type: String, default: "" },
   active: { type: Boolean, default: false },
   intervalMs: { type: Number, default: 1500 },
+  /** 未激活时的提示文案 */
+  idleHint: { type: String, default: "执行开始后显示设备画面" },
 });
 
 const imageSrc = ref("");
