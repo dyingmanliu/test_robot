@@ -12,7 +12,7 @@
       </p>
       <h1>功能点分析</h1>
       <p v-if="project" class="project-sub">
-        {{ project.name }} · 被测应用：{{ project.tested_app_name }}
+        {{ project.name }} · 被测应用：{{ pageTestedAppLabel }}
       </p>
       <p class="hint">
         选择<strong>测试分析</strong>机器人；<strong>已安装应用</strong>按探测到的平台维度选择，选中后自动带出包名与应用名称；
@@ -94,11 +94,17 @@
           <label class="field field-wide">
             <span>安装应用</span>
             <select
-              :value="selectedByPlatform[activeCatalogBlock.platform] || ''"
-              :disabled="running || catalogLoading || !activeCatalogBlock.apps.length"
+              :value="installedSelectValue"
+              :disabled="running || catalogLoading"
               @change="onSelectInstalledApp(activeCatalogBlock.platform, $event.target.value)"
             >
               <option value="">请选择已安装应用</option>
+              <option
+                v-if="orphanInstalledBundle"
+                :value="orphanInstalledBundle"
+              >
+                {{ activeRunAppName }}（{{ orphanInstalledBundle }}）· 当前分析
+              </option>
               <option v-for="a in activeCatalogBlock.apps" :key="a.bundle_id" :value="a.bundle_id">
                 {{ a.label || a.bundle_id }}（{{ a.bundle_id }}）
               </option>
@@ -156,6 +162,20 @@
         <p class="muted small readonly-hint">
           分析平台：<strong>{{ summaryPlatformLabel }}</strong>
           · 将使用首台在线设备
+        </p>
+      </div>
+      <div v-else-if="showActiveRunAppSummary" class="selected-app-readonly">
+        <div class="readonly-row">
+          <span class="readonly-label">应用包名</span>
+          <span class="readonly-value">{{ activeRunBundleId }}</span>
+        </div>
+        <div class="readonly-row">
+          <span class="readonly-label">应用名称</span>
+          <span class="readonly-value">{{ activeRunAppName }}</span>
+        </div>
+        <p class="muted small readonly-hint">
+          分析平台：<strong>{{ activeRunPlatformLabel }}</strong>
+          · 任务 #{{ run.id }} 进行中
         </p>
       </div>
 
@@ -234,7 +254,7 @@
       <FeatureAnalysisWorkbench
         ref="workbenchRef"
         :feature-json="run?.feature_json || ''"
-        :app-display-name="form.app_display_name || form.bundle_id"
+        :app-display-name="workbenchAppDisplayName"
         :editable="run?.status === 'success'"
         :show-mirror="running"
         :robot-instance-id="mirrorInstanceId"
@@ -290,6 +310,7 @@ import {
   summarizeFeatureAnalysisLocation,
 } from "@/utils/featureAnalysisLive";
 import { inferDevicePlatform, platformLabel } from "@/utils/packagePlatform";
+import { normalizeAppDisplayLabel } from "@/utils/featureTree";
 
 const route = useRoute();
 const router = useRouter();
@@ -336,6 +357,63 @@ const showSelectedAppSummary = computed(() => {
   if (!form.bundle_id.trim().includes(".")) return false;
   if (form.app_source === "installed") return hasInstalledAppSelected.value;
   return uploadInstallSucceeded.value;
+});
+
+/** 从「我的机器人」等入口恢复任务时，配置区可能未选应用，用 run 字段展示 */
+const showActiveRunAppSummary = computed(() => {
+  if (!run.value) return false;
+  const bundle = String(run.value.bundle_id || "").trim();
+  const name = String(run.value.app_display_name || "").trim();
+  return bundle.includes(".") || Boolean(name);
+});
+
+const activeRunBundleId = computed(
+  () => String(run.value?.bundle_id || form.bundle_id || "").trim(),
+);
+
+const activeRunAppName = computed(() => {
+  const fromRun = String(run.value?.app_display_name || "").trim();
+  if (fromRun) return fromRun;
+  const fromForm = String(form.app_display_name || parsedAppName.value || "").trim();
+  if (fromForm) return fromForm;
+  return activeRunBundleId.value || "—";
+});
+
+const activeRunPlatformLabel = computed(() => {
+  const p = String(run.value?.device_platform || detectedPlatform.value || "").toLowerCase();
+  return p ? platformLabel(p) : "—";
+});
+
+/** 功能树/表格展示名：优先当前分析任务，避免被项目 tested_app_name 占位值覆盖 */
+const workbenchAppDisplayName = computed(() =>
+  normalizeAppDisplayLabel(
+    run.value?.app_display_name ||
+      form.app_display_name ||
+      parsedAppName.value ||
+      run.value?.bundle_id ||
+      form.bundle_id,
+    "应用",
+  ),
+);
+
+const pageTestedAppLabel = computed(() => {
+  if (run.value) return activeRunAppName.value;
+  const tested = normalizeAppDisplayLabel(project.value?.tested_app_name, "");
+  return tested || "—";
+});
+
+const installedSelectValue = computed(() => {
+  const plat = activeCatalogBlock.value?.platform;
+  if (!plat) return String(form.bundle_id || "").trim();
+  return String(selectedByPlatform[plat] || form.bundle_id || "").trim();
+});
+
+/** 分析任务中的包名不在当前设备列表时，下拉仍回显 */
+const orphanInstalledBundle = computed(() => {
+  const bid = installedSelectValue.value;
+  if (!bid || !activeCatalogBlock.value) return "";
+  const inList = (activeCatalogBlock.value.apps || []).some((a) => a.bundle_id === bid);
+  return inList ? "" : bid;
 });
 
 const fileInstallBusy = computed(() => uploading.value || installingFromFile.value);
@@ -506,11 +584,89 @@ async function loadProject() {
   try {
     const { data } = await client.get(`/api/projects/${projectId.value}`);
     project.value = data;
-    if (!form.app_display_name.trim()) {
-      form.app_display_name = data.tested_app_name || "";
+    if (!run.value && !form.app_display_name.trim()) {
+      const tested = String(data.tested_app_name || "").trim();
+      if (tested && tested !== "无") form.app_display_name = tested;
     }
   } catch (e) {
     pageErr.value = formatApiError(e);
+  }
+}
+
+function hydrateFormFromRun(data) {
+  if (!data) return;
+  if (data.robot_instance_id) form.robot_instance_id = data.robot_instance_id;
+  if (data.app_source) form.app_source = data.app_source;
+  if (data.app_artifact_id != null) form.app_artifact_id = data.app_artifact_id;
+  const bundle = String(data.bundle_id || "").trim();
+  if (bundle) form.bundle_id = bundle;
+  const name = String(data.app_display_name || "").trim();
+  if (name) {
+    form.app_display_name = name;
+    parsedAppName.value = name;
+  }
+  const plat = String(data.device_platform || "").trim().toLowerCase();
+  if (plat === "android" || plat === "harmonyos") {
+    detectedPlatform.value = plat;
+    if (form.app_source === "installed" && bundle) {
+      selectedByPlatform[plat] = bundle;
+      const dev = String(data.device_id || "").trim();
+      if (dev) selectedDeviceByPlatform[plat] = dev;
+      activeInstalledPlatform.value = plat;
+    }
+    if (form.app_source === "uploaded" && String(data.device_id || "").trim()) {
+      uploadedDeviceId.value = String(data.device_id).trim();
+    }
+  } else if (bundle.includes(".")) {
+    const inferred = inferDevicePlatform(bundle);
+    if (inferred) detectedPlatform.value = inferred;
+  }
+}
+
+/** 已安装应用列表加载后，把 run/form 中的包名同步到下拉与平台 Tab */
+function reconcileInstalledAppUiFromForm() {
+  if (form.app_source !== "installed") return;
+  const bundle = String(form.bundle_id || run.value?.bundle_id || "").trim();
+  if (!bundle) return;
+  let plat = String(detectedPlatform.value || run.value?.device_platform || "").toLowerCase();
+  if (plat !== "android" && plat !== "harmonyos") {
+    plat = inferDevicePlatform(bundle) || "";
+  }
+  if (!plat) return;
+  const block = installedCatalog.value.find((b) => b.platform === plat);
+  if (block) activeInstalledPlatform.value = plat;
+  selectedByPlatform[plat] = bundle;
+  const dev = String(run.value?.device_id || selectedDeviceByPlatform[plat] || "").trim();
+  if (dev) selectedDeviceByPlatform[plat] = dev;
+  const app = block?.apps?.find((a) => a.bundle_id === bundle);
+  if (app) {
+    parsedAppName.value = app.label || bundle;
+    if (!String(form.app_display_name || "").trim() || form.app_display_name === "无") {
+      form.app_display_name = String(run.value?.app_display_name || "").trim() || parsedAppName.value;
+    }
+  }
+  detectedPlatform.value = plat;
+  form.bundle_id = bundle;
+}
+
+async function attachRunById(id, { startPoll = true } = {}) {
+  const rid = Number(id);
+  if (!Number.isFinite(rid) || rid < 1) return false;
+  stopPoll();
+  try {
+    const { data } = await client.get(`${apiBase.value}/runs/${rid}`);
+    run.value = data;
+    runId.value = data.id;
+    hydrateFormFromRun(data);
+    if (
+      startPoll &&
+      (data.status === "pending" || data.status === "running")
+    ) {
+      pollTimer = setTimeout(pollRun, 500);
+    }
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -518,14 +674,16 @@ async function loadRecentRuns() {
   try {
     const { data } = await client.get(`${apiBase.value}/runs`);
     recentRuns.value = data || [];
+    if (run.value) return;
     const active = (data || []).find(
       (r) =>
         (r.status === "pending" || r.status === "running") &&
         (!form.robot_instance_id || r.robot_instance_id === form.robot_instance_id),
     );
-    if (active && !run.value) {
+    if (active) {
       run.value = active;
       runId.value = active.id;
+      hydrateFormFromRun(active);
       if (active.status === "pending" || active.status === "running") {
         pollTimer = setTimeout(pollRun, 500);
       }
@@ -539,6 +697,10 @@ async function loadRobots() {
   try {
     const { data } = await client.get("/api/robot-instances/mine");
     robots.value = data || [];
+    if (run.value?.robot_instance_id) {
+      form.robot_instance_id = run.value.robot_instance_id;
+      return;
+    }
     const current = analysisRobots.value.find((r) => r.id === form.robot_instance_id);
     if (current && isRobotRunnableForFeatureAnalysis(current)) return;
     const first = analysisRobots.value.find((r) => isRobotRunnableForFeatureAnalysis(r));
@@ -568,6 +730,13 @@ function syncActiveInstalledPlatform() {
   const items = installedCatalog.value;
   if (!items.length) {
     activeInstalledPlatform.value = "";
+    return;
+  }
+  const preferred = String(
+    detectedPlatform.value || run.value?.device_platform || activeInstalledPlatform.value || "",
+  ).toLowerCase();
+  if (preferred && items.some((b) => b.platform === preferred)) {
+    activeInstalledPlatform.value = preferred;
     return;
   }
   if (items.some((b) => b.platform === activeInstalledPlatform.value)) return;
@@ -626,6 +795,7 @@ async function loadInstalledCatalog() {
     const { data } = await client.get(`${apiBase.value}/installed-apps-catalog`);
     installedCatalog.value = data?.items || [];
     syncActiveInstalledPlatform();
+    reconcileInstalledAppUiFromForm();
   } catch (e) {
     catalogError.value = formatApiError(e);
     installedCatalog.value = [];
@@ -764,6 +934,9 @@ async function pollRun() {
   try {
     const { data } = await client.get(`${apiBase.value}/runs/${runId.value}`);
     run.value = data;
+    if (!String(form.app_display_name || "").trim() || String(form.app_display_name).trim() === "无") {
+      hydrateFormFromRun(data);
+    }
     scrollLiveLogToBottom();
     if (data.status === "pending" || data.status === "running") {
       pollTimer = setTimeout(pollRun, 2000);
@@ -895,16 +1068,38 @@ watch(
   },
 );
 
+async function resumeFromQueryRunId() {
+  const raw = route.query.runId;
+  const qid = Array.isArray(raw) ? raw[0] : raw;
+  if (!qid) return false;
+  return attachRunById(qid);
+}
+
 onMounted(async () => {
   await loadProject();
+  const fromQuery = await resumeFromQueryRunId();
+  if (!fromQuery) await loadRecentRuns();
   await loadRobots();
-  await loadRecentRuns();
   if (form.app_source === "installed") {
     await loadInstalledCatalog();
   } else {
     refreshDetectedPlatform();
   }
 });
+
+watch(
+  () => route.query.runId,
+  async (qid, prev) => {
+    const next = Array.isArray(qid) ? qid[0] : qid;
+    const old = Array.isArray(prev) ? prev[0] : prev;
+    if (!next || next === old) return;
+    const ok = await resumeFromQueryRunId();
+    if (ok && form.app_source === "installed") {
+      await loadInstalledCatalog();
+    }
+  },
+);
+
 onUnmounted(stopPoll);
 </script>
 

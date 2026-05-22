@@ -26,6 +26,13 @@ export function isFunctionLikeNode(node) {
   return t === "function" || t === "module" || t === "screen";
 }
 
+/** 项目占位或空串不应作为应用展示名 */
+export function normalizeAppDisplayLabel(name, fallback = "应用") {
+  const n = String(name || "").trim();
+  if (!n || n === "无") return fallback;
+  return n;
+}
+
 export function parseFeatureJson(raw) {
   if (!raw) return { features: [], function_tree: null, screens: [] };
   try {
@@ -499,7 +506,10 @@ export function isSameFeatureRow(row, node) {
 
 export function resolveWorkbenchData(featureJsonStr, appDisplayName) {
   const parsed = parseFeatureJson(featureJsonStr);
-  const appName = parsed.app_name || appDisplayName;
+  const appName = normalizeAppDisplayLabel(
+    parsed.app_name || appDisplayName,
+    normalizeAppDisplayLabel(appDisplayName),
+  );
   const features = parsed.features || [];
   const treeFromFeatures = buildTreeFromFeatures(appName, features);
   let tree = parsed.function_tree;
@@ -584,7 +594,10 @@ function resolveRowForTreeNode(tableRows, treeNode) {
 /** 保证表格含应用根行（选中根节点时右侧可展示） */
 export function ensureAppTableRow(tree, rows, appDisplayName = "") {
   const list = [...(rows || [])];
-  const appName = tree?.name || appDisplayName || "应用";
+  const appName = normalizeAppDisplayLabel(
+    tree?.name || appDisplayName,
+    "应用",
+  );
   const idx = list.findIndex(
     (r) => r.node_type === "application" || String(r.function_type || "").trim() === "应用",
   );
@@ -601,12 +614,13 @@ export function ensureAppTableRow(tree, rows, appDisplayName = "") {
     node_type: "application",
   };
   if (idx >= 0) {
-    const editedName = String(list[idx].name || "").trim();
+    const editedName = normalizeAppDisplayLabel(list[idx].name, "");
     list[idx] = {
       ...appRow,
       ...list[idx],
       name: editedName || appName,
-      location: String(list[idx].location || "").trim() || editedName || appName,
+      location:
+        normalizeAppDisplayLabel(list[idx].location, "") || editedName || appName,
     };
     return list;
   }

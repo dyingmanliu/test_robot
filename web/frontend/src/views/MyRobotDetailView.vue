@@ -21,6 +21,30 @@
         </div>
       </header>
 
+      <section
+        v-if="inst.runtime_status === 'executing' && (featureAnalysisLiveRoute(inst) || testRunLiveRoute(inst))"
+        class="card detail active-task"
+      >
+        <h2>进行中的任务</h2>
+        <p class="hint">离开分析/执行页后，可由此继续查看实时过程。</p>
+        <div class="task-links">
+          <router-link
+            v-if="featureAnalysisLiveRoute(inst)"
+            class="btn primary"
+            :to="featureAnalysisLiveRoute(inst)"
+          >
+            分析详情
+          </router-link>
+          <router-link
+            v-if="testRunLiveRoute(inst)"
+            class="btn primary"
+            :to="testRunLiveRoute(inst)"
+          >
+            执行详情
+          </router-link>
+        </div>
+      </section>
+
       <section class="card detail">
         <h2>基础信息</h2>
         <dl class="kv">
@@ -105,10 +129,12 @@ import client, { formatApiError } from "@/api/client";
 import { useAuthStore } from "@/stores/auth";
 import RobotMascotAvatar from "@/components/RobotMascotAvatar.vue";
 import {
+  featureAnalysisLiveRoute,
   instanceStatusClass,
   instanceStatusLabel,
   robotTypeLabel,
   runtimeStatusLabel,
+  testRunLiveRoute,
 } from "@/constants/robotCatalog";
 
 const route = useRoute();
@@ -388,5 +414,17 @@ watch(
 
 .muted {
   color: #64748b;
+}
+
+.active-task .task-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+}
+
+.active-task .btn {
+  display: inline-block;
+  text-decoration: none;
+  text-align: center;
 }
 </style>

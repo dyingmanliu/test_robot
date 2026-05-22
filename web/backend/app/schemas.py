@@ -574,6 +574,14 @@ class RobotInstanceOut(BaseModel):
         default=None,
         description="当前 pending/running 的 test_run.id；无则 null",
     )
+    active_feature_analysis_run_id: Optional[int] = Field(
+        default=None,
+        description="当前 pending/running 的功能点分析任务 ID；无则 null",
+    )
+    active_feature_analysis_project_id: Optional[int] = Field(
+        default=None,
+        description="功能点分析任务所属 project_id，供「分析详情」跳转",
+    )
     test_agent_backend: str = Field(
         default="autoglm",
         description="执行用例时使用的引擎：autoglm 或 midscene",

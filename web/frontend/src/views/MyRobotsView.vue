@@ -63,18 +63,26 @@
             <td class="muted small">{{ fmt(r.created_at) }}</td>
             <td class="link-cell" @click.stop>
               <router-link
-                v-if="r.runtime_status === 'executing' && r.active_run_id"
+                v-if="r.runtime_status === 'executing' && featureAnalysisLiveRoute(r)"
                 class="row-link row-link--primary"
-                :to="{
-                  name: 'runExecutionLive',
-                  params: { runId: String(r.active_run_id) },
-                }"
+                :to="featureAnalysisLiveRoute(r)"
+              >
+                分析详情
+              </router-link>
+              <router-link
+                v-if="r.runtime_status === 'executing' && testRunLiveRoute(r)"
+                class="row-link row-link--primary"
+                :to="testRunLiveRoute(r)"
               >
                 执行详情
               </router-link>
               <router-link
                 class="row-link"
-                :class="{ 'row-link--secondary': r.runtime_status === 'executing' && r.active_run_id }"
+                :class="{
+                  'row-link--secondary':
+                    r.runtime_status === 'executing' &&
+                    (featureAnalysisLiveRoute(r) || testRunLiveRoute(r)),
+                }"
                 :to="{ name: 'myRobotDetail', params: { instanceId: String(r.id) } }"
               >
                 详情
@@ -96,10 +104,12 @@ import { onMounted, onUnmounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import client, { formatApiError } from "@/api/client";
 import {
+  featureAnalysisLiveRoute,
   instanceStatusClass,
   instanceStatusLabel,
   robotTypeLabel,
   runtimeStatusLabel,
+  testRunLiveRoute,
 } from "@/constants/robotCatalog";
 
 const router = useRouter();

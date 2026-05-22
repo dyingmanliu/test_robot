@@ -94,7 +94,7 @@
                   />
                   <span v-else class="loc-cell">{{ tableRows[idx].location }}</span>
                 </td>
-                <td v-if="editable">
+                <td v-if="editable" class="td-act">
                   <button
                     v-if="tableRows[idx]?.node_type !== 'application'"
                     type="button"
@@ -569,7 +569,7 @@ function getTreeJson() {
 }
 
 watch(
-  () => props.featureJson,
+  () => [props.featureJson, props.appDisplayName],
   () => {
     // 首次进入须加载树；已有树时跳过外部 JSON 回写，避免打断编辑
     if (props.freezeJsonReload && props.editable && treeRoot.value) return;
@@ -591,8 +591,8 @@ defineExpose({ getTreeJson, reload, syncTreeFromRows });
 }
 .wb-grid {
   display: grid;
-  grid-template-columns: minmax(260px, 300px) minmax(0, 1fr) minmax(240px, 280px);
-  gap: 1.25rem;
+  grid-template-columns: minmax(220px, 260px) minmax(360px, 1fr) minmax(220px, 260px);
+  gap: 1rem;
   min-height: 440px;
   align-items: stretch;
 }
@@ -643,27 +643,29 @@ defineExpose({ getTreeJson, reload, syncTreeFromRows });
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   background: #fafbfc;
+  -webkit-overflow-scrolling: touch;
 }
 .giic-tbl {
   width: 100%;
+  min-width: 32rem;
   border-collapse: collapse;
   font-size: 0.875rem;
   table-layout: fixed;
 }
 .giic-tbl col.col-type {
-  width: 7.5rem;
+  width: 6.5rem;
 }
 .giic-tbl col.col-name {
-  width: 10rem;
+  width: 7.5rem;
 }
 .giic-tbl col.col-desc {
-  width: auto;
+  width: 38%;
 }
 .giic-tbl col.col-loc {
-  width: 14rem;
+  width: 26%;
 }
 .giic-tbl col.col-act {
-  width: 4.5rem;
+  width: 3.5rem;
 }
 .giic-tbl thead {
   position: sticky;
@@ -677,16 +679,21 @@ defineExpose({ getTreeJson, reload, syncTreeFromRows });
   color: #475569;
   background: #f1f5f9;
   border-bottom: 1px solid #cbd5e1;
-  padding: 0.6rem 0.85rem;
+  padding: 0.55rem 0.65rem;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .giic-tbl td {
   border-bottom: 1px solid #e2e8f0;
-  padding: 0.65rem 0.85rem;
+  padding: 0.55rem 0.65rem;
   vertical-align: top;
   background: #fff;
   color: #334155;
   line-height: 1.45;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 .giic-tbl tbody tr:hover td {
   background: #f8fafc;
@@ -705,8 +712,9 @@ defineExpose({ getTreeJson, reload, syncTreeFromRows });
   border-bottom: none;
 }
 .th-act,
-.giic-tbl td:last-child {
+.td-act {
   text-align: center;
+  white-space: nowrap;
 }
 .empty-cell {
   text-align: center;
@@ -715,6 +723,7 @@ defineExpose({ getTreeJson, reload, syncTreeFromRows });
 }
 .cell-input {
   width: 100%;
+  min-width: 0;
   box-sizing: border-box;
   padding: 0.4rem 0.55rem;
   border: 1px solid #cbd5e1;
@@ -729,7 +738,10 @@ defineExpose({ getTreeJson, reload, syncTreeFromRows });
 }
 .desc-cell,
 .loc-cell {
+  display: block;
   word-break: break-word;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 .table-foot {
   margin-top: 0.85rem;

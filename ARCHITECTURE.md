@@ -61,6 +61,7 @@ Web 将租用的**数字机器人实例**按商城 **功能定位（`catalog_rob
 - **解析**：`resolve_execution_platform()`、`resolve_execution_device_id()`（`device_platform.py`）。
 - 前端在 `CasesView.vue` 选择机器人 / 平台 / 终端；浏览器 `sessionStorage` 按实例记住上次平台与终端。
 - **跨页实时执行**：Pinia `activeTestRun` 轮询 `GET /api/test-cases/runs/{id}`；离开用例页后顶栏可跳转 `/runs/:runId/live`（`RunExecutionLiveView.vue` + `RunLivePanel.vue`）。`RobotInstanceOut.active_run_id` 与 `runtime_status=executing` 供「我的机器人」列表展示 **执行详情** 入口。
+- **跨页功能点分析**：`RobotInstanceOut.active_feature_analysis_run_id` / `active_feature_analysis_project_id` 与 `runtime_status=executing` 供「我的机器人」展示 **分析详情**，跳转 `/projects/:projectId/feature-analysis?runId=`；`ProjectFeatureAnalysisView` 按 `runId` 恢复轮询 `step_log` 与投屏。
 
 ### 1.3 测试分析机器人 Agent（`agent_service/analysis_agent/`）与用例格式（structured / YAML）
 

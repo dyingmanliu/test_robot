@@ -22,6 +22,28 @@ export function isExecutionInstance(ins) {
   return !isAnalysisInstance(ins);
 }
 
+/** 「我的机器人」→ 功能点分析实时页（需 project_id + run_id） */
+export function featureAnalysisLiveRoute(ins) {
+  const runId = ins?.active_feature_analysis_run_id;
+  const projectId = ins?.active_feature_analysis_project_id;
+  if (!runId || !projectId) return null;
+  return {
+    name: "projectFeatureAnalysis",
+    params: { projectId: String(projectId) },
+    query: { runId: String(runId) },
+  };
+}
+
+/** 「我的机器人」→ 用例执行实时页 */
+export function testRunLiveRoute(ins) {
+  const runId = ins?.active_run_id;
+  if (!runId) return null;
+  return {
+    name: "runExecutionLive",
+    params: { runId: String(runId) },
+  };
+}
+
 /** 实例运行态 API 值 → 中文 */
 export const RUNTIME_STATUS_LABELS = {
   executing: "执行中",
