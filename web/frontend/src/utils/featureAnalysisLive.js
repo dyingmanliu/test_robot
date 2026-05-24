@@ -85,8 +85,17 @@ function formatExploreEvent(obj) {
       tone: "done",
     };
   }
-  if (kind === "model_usage") {
+  if (kind === "model_usage" || kind === "explore_queue") {
     return { kind: "skip" };
+  }
+  if (kind === "explore_metrics") {
+    return {
+      kind,
+      title: "遍历观测",
+      body: `LLM ${obj.llm_total ?? 0} 次 · 返回 ${obj.back_count ?? 0} · 点击 ${obj.tap_count ?? 0} · 已访问 ${obj.screens_visited ?? 0} 屏`,
+      meta: `耗时 ${Math.round((obj.elapsed_ms ?? 0) / 1000)}s · 均屏 ${obj.screen_record_ms_avg ?? 0}ms`,
+      tone: "muted",
+    };
   }
   return {
     kind: kind || "event",

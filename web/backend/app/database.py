@@ -139,6 +139,29 @@ def ensure_schema() -> None:
                             "WHERE device_platform IS NULL OR TRIM(device_platform) = ''"
                         )
                     )
+                if inspector.has_table("project_feature_analysis_runs"):
+                    fa_cols = {c["name"] for c in inspector.get_columns("project_feature_analysis_runs")}
+                    if "traverse_mode" not in fa_cols:
+                        conn.execute(
+                            text(
+                                "ALTER TABLE project_feature_analysis_runs "
+                                "ADD COLUMN traverse_mode VARCHAR(16) DEFAULT 'hybrid'"
+                            )
+                        )
+                    if "bfs_max_depth" not in fa_cols:
+                        conn.execute(
+                            text(
+                                "ALTER TABLE project_feature_analysis_runs "
+                                "ADD COLUMN bfs_max_depth INTEGER DEFAULT 1"
+                            )
+                        )
+                    if "fair_share_per_root" not in fa_cols:
+                        conn.execute(
+                            text(
+                                "ALTER TABLE project_feature_analysis_runs "
+                                "ADD COLUMN fair_share_per_root INTEGER DEFAULT 0"
+                            )
+                        )
     except Exception:
         pass
 

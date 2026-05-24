@@ -31,6 +31,10 @@ export interface WebTestDispatch {
   max_screens?: number;
   max_depth?: number;
   max_taps_per_screen?: number;
+  /** explore：dfs | bfs | hybrid */
+  traverse_mode?: string;
+  bfs_max_depth?: number;
+  fair_share_per_root?: number;
   task_text?: string;
   preconditions?: string;
   steps_json?: string | unknown[];
@@ -137,6 +141,15 @@ export function parseWebDispatchJson(raw: string): WebTestDispatch {
     max_screens: optPositiveInt(o.max_screens, 30),
     max_depth: optPositiveInt(o.max_depth, 4),
     max_taps_per_screen: optPositiveInt(o.max_taps_per_screen, 8),
+    traverse_mode:
+      o.traverse_mode !== undefined ? String(o.traverse_mode).trim() : undefined,
+    bfs_max_depth: optPositiveInt(o.bfs_max_depth, 1),
+    fair_share_per_root: (() => {
+      const v = o.fair_share_per_root;
+      if (v === undefined || v === null) return 0;
+      const n = Number(v);
+      return Number.isFinite(n) ? Math.floor(n) : 0;
+    })(),
     task_text: o.task_text !== undefined ? String(o.task_text) : undefined,
     preconditions:
       o.preconditions !== undefined ? String(o.preconditions) : undefined,

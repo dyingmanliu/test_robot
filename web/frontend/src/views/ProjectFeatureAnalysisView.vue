@@ -179,6 +179,57 @@
         </p>
       </div>
 
+      <div class="traverse-config">
+        <p class="traverse-config-label">遍历参数</p>
+        <div class="form-grid traverse-params">
+          <label class="field">
+            <span>遍历策略</span>
+            <select v-model="form.traverse_mode" :disabled="running">
+              <option value="hybrid">混合（先 Tab 后深入，推荐）</option>
+              <option value="bfs">广度优先</option>
+              <option value="dfs">深度优先</option>
+            </select>
+          </label>
+          <label v-if="form.traverse_mode !== 'dfs'" class="field">
+            <span>广度层级</span>
+            <input
+              v-model.number="form.bfs_max_depth"
+              type="number"
+              min="0"
+              max="5"
+              :disabled="running"
+            />
+          </label>
+          <label class="field">
+            <span>最大界面数</span>
+            <input
+              v-model.number="form.max_screens"
+              type="number"
+              min="5"
+              max="80"
+              :disabled="running"
+            />
+          </label>
+          <label class="field">
+            <span>最大深度</span>
+            <input
+              v-model.number="form.max_depth"
+              type="number"
+              min="1"
+              max="10"
+              :disabled="running"
+            />
+          </label>
+        </div>
+        <label class="fair-share-toggle">
+          <input v-model="form.fair_share_enabled" type="checkbox" :disabled="running" />
+          <span class="fair-share-text">
+            <strong>各 Tab 公平分配界面数</strong>
+            <small class="muted">按「最大界面数 ÷ Tab 数」自动分配每分支预算</small>
+          </span>
+        </label>
+      </div>
+
       <div class="form-actions">
         <button type="button" class="btn primary" :disabled="running || !canStart" @click="startAnalysis">
           {{ running ? "分析进行中…" : "开始分析" }}
@@ -228,7 +279,8 @@
         </div>
       </div>
       <p v-if="running" class="live-hint muted small">
-        按界面深度优先遍历（DFS），记录每屏功能点并组装为 GIIC 层级功能树；右侧为真机投屏。
+        {{ traverseModeHint }}；右侧为真机投屏。
+        <span v-if="queuePending != null" class="queue-hint">待探索 {{ queuePending }} 个入口</span>
       </p>
       <div
         v-if="running && liveLocation"
@@ -255,7 +307,7 @@
         ref="workbenchRef"
         :feature-json="run?.feature_json || ''"
         :app-display-name="workbenchAppDisplayName"
-        :editable="run?.status === 'success'"
+        :editable="canSaveFeatureTree"
         :show-mirror="running"
         :robot-instance-id="mirrorInstanceId"
         :device-platform="mirrorPlatform"
@@ -281,7 +333,11 @@
           </div>
         </div>
       </details>
-      <div v-if="run?.status === 'success'" class="confirm-row">
+      <p v-if="canSaveFeatureTree && run?.status !== 'success'" class="confirm-hint muted small">
+        分析已{{ run?.status === "cancelled" ? "取消" : "中断" }}，可基于已采集的
+        {{ run?.feature_count ?? 0 }} 项功能点确认保存（可编辑后保存）。
+      </p>
+      <div v-if="canSaveFeatureTree" class="confirm-row">
         <input v-model="confirmLabel" class="ver-input" placeholder="版本标签（可选，默认 vN）" />
         <button type="button" class="btn primary" :disabled="confirming" @click="confirmTree">
           {{ confirming ? "保存中…" : "确认并保存功能树" }}
@@ -438,6 +494,9 @@ const form = reactive({
   app_display_name: "",
   max_screens: 30,
   max_depth: 4,
+  traverse_mode: "hybrid",
+  bfs_max_depth: 1,
+  fair_share_enabled: true,
 });
 
 const run = ref(null);
@@ -467,6 +526,26 @@ const showWorkbench = computed(() => {
   if (s === "pending" || s === "running") return true;
   if (s === "success") return true;
   return Boolean(run.value.feature_json || run.value.step_log);
+});
+
+const TERMINAL_SAVE_STATUSES = new Set(["success", "cancelled", "failed"]);
+
+function featureCountFromJson(raw) {
+  if (!raw || typeof raw !== "string") return 0;
+  try {
+    const o = JSON.parse(raw);
+    return Array.isArray(o?.features) ? o.features.length : 0;
+  } catch {
+    return 0;
+  }
+}
+
+/** 已结束且含功能点数据时可编辑并确认保存 */
+const canSaveFeatureTree = computed(() => {
+  const r = run.value;
+  if (!r || !TERMINAL_SAVE_STATUSES.has(r.status)) return false;
+  const n = r.feature_count ?? featureCountFromJson(r.feature_json);
+  return n > 0;
 });
 
 const screenMirrorActive = computed(() => running.value);
@@ -499,6 +578,40 @@ const liveLocation = computed(() =>
 );
 
 const progressPercent = computed(() => estimateFeatureProgress(run.value));
+
+const activeTraverseMode = computed(() => {
+  const fromRun = run.value?.traverse_mode;
+  if (fromRun) return fromRun;
+  return form.traverse_mode || "hybrid";
+});
+
+const traverseModeHint = computed(() => {
+  const m = activeTraverseMode.value;
+  if (m === "bfs") {
+    return "按界面广度优先遍历（BFS），记录每屏功能点并组装 GIIC 功能树";
+  }
+  if (m === "dfs") {
+    return "按界面深度优先遍历（DFS），记录每屏功能点并组装 GIIC 功能树";
+  }
+  return "混合遍历：先扫 Tab/主导航再深入页面，记录功能点并组装 GIIC 功能树";
+});
+
+const queuePending = computed(() => {
+  const raw = run.value?.step_log;
+  if (!raw) return null;
+  const lines = raw.trim().split("\n").filter(Boolean);
+  for (let i = lines.length - 1; i >= 0; i -= 1) {
+    try {
+      const o = JSON.parse(lines[i]);
+      if (o?.kind === "explore_queue" && typeof o.pending === "number") {
+        return o.pending;
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  return null;
+});
 
 function scrollLiveLogToBottom() {
   nextTick(() => {
@@ -982,6 +1095,9 @@ async function startAnalysis() {
           : form.app_display_name.trim() || form.bundle_id.trim(),
       max_screens: form.max_screens,
       max_depth: form.max_depth,
+      traverse_mode: form.traverse_mode,
+      bfs_max_depth: form.bfs_max_depth,
+      fair_share_per_root: form.fair_share_enabled ? -1 : 0,
     };
     const { data } = await client.post(`${apiBase.value}/runs`, body);
     run.value = data;
@@ -1279,6 +1395,54 @@ onUnmounted(stopPoll);
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 0.85rem;
 }
+.traverse-config {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e2e8f0;
+}
+.traverse-config-label {
+  margin: 0 0 0.65rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #64748b;
+  letter-spacing: 0.02em;
+}
+.traverse-params {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.75rem 1rem;
+}
+.traverse-params .field input,
+.traverse-params .field select {
+  width: 100%;
+  box-sizing: border-box;
+}
+.fair-share-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  margin-top: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.88rem;
+}
+.fair-share-toggle input {
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.fair-share-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  line-height: 1.4;
+  color: #334155;
+}
+.fair-share-text small {
+  font-size: 0.8rem;
+}
 .field {
   display: flex;
   flex-direction: column;
@@ -1450,11 +1614,25 @@ onUnmounted(stopPoll);
 }
 .form-actions,
 .start-hint {
-  margin: 0.5rem 0 0;
+  margin: 1rem 0 0;
+}
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
 }
 .warn-banner {
   margin: 0.65rem 0 0;
   padding: 0.55rem 0.75rem;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  color: #92400e;
+}
+.confirm-hint {
+  margin: 0.75rem 0 0;
+  padding: 0.5rem 0.65rem;
   background: #fffbeb;
   border: 1px solid #fde68a;
   border-radius: 8px;

@@ -1,5 +1,7 @@
 /** APP 功能遍历 — 数据结构 */
 
+export type TraverseMode = 'dfs' | 'bfs' | 'hybrid';
+
 export type FeatureStatus = 'listed' | 'visited';
 
 export interface NavItem {
@@ -80,6 +82,15 @@ export interface ExploreOptions {
   maxScreens?: number;
   maxDepth?: number;
   maxTapsPerScreen?: number;
+  /** dfs | bfs | hybrid（默认 hybrid，可被 EXPLORE_TRAVERSE_MODE 覆盖） */
+  traverseMode?: TraverseMode;
+  /** hybrid/bfs：优先广度扫描的层级深度，默认 1 */
+  bfsMaxDepth?: number;
+  /**
+   * 每一级 Tab 分支最多访问界面数。
+   * 0=关闭；-1=按 maxScreens/一级入口数自动分配；正数=每分支固定上限。
+   */
+  fairSharePerRoot?: number;
   deviceId?: string;
   hdcHome?: string;
   aiActionContext?: string;
@@ -114,6 +125,25 @@ export type ExploreMachineEvent =
       foreground_bundle?: string;
       target_bundle: string;
       message: string;
+    }
+  | {
+      kind: 'explore_queue';
+      pending: number;
+      mode: TraverseMode;
+      next?: string;
+    }
+  | {
+      kind: 'explore_metrics';
+      traverse_mode: TraverseMode;
+      screens_visited: number;
+      llm_query: number;
+      llm_act: number;
+      llm_total: number;
+      back_count: number;
+      tap_count: number;
+      screen_record_ms_avg: number;
+      elapsed_ms: number;
+      queue_pending?: number;
     };
 
 export interface ExploreRunOutcome {

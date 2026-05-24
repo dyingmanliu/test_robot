@@ -347,7 +347,7 @@ class AppExploreRun(Base):
 
 
 class ProjectFeatureAnalysisRun(Base):
-    """项目功能点分析：测试分析机器人实例 + Midscene 真机 DFS 遍历。"""
+    """项目功能点分析：测试分析机器人实例 + Midscene 真机遍历（hybrid/bfs/dfs）。"""
 
     __tablename__ = "project_feature_analysis_runs"
 
@@ -369,6 +369,9 @@ class ProjectFeatureAnalysisRun(Base):
     app_display_name: Mapped[str] = mapped_column(String(256), default="")
     max_screens: Mapped[int] = mapped_column(Integer, default=30)
     max_depth: Mapped[int] = mapped_column(Integer, default=4)
+    traverse_mode: Mapped[str] = mapped_column(String(16), default="hybrid")
+    bfs_max_depth: Mapped[int] = mapped_column(Integer, default=1)
+    fair_share_per_root: Mapped[int] = mapped_column(Integer, default=0)
     status: Mapped[str] = mapped_column(String(32), default="pending", index=True)
     feature_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     excel_path: Mapped[Optional[str]] = mapped_column(Text, nullable=True)

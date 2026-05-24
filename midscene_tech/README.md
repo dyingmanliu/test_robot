@@ -70,8 +70,11 @@ MIDSCENE_DEVICE_PLATFORM=android npm run task -- "打开设置"
 # 多步
 npm run task -- --steps "打开设置" "向下滑动一屏"
 
-# APP 功能清单遍历（输出 JSONL，含 explore_feature / done.tree）
+# APP 功能清单遍历（输出 JSONL，含 explore_feature / explore_metrics / done.tree）
 npm run explore -- --app-id com.huawei.hmos.settings --name 设置
+
+# Web 下发时可传 traverse_mode、max_screens、max_depth、bfs_max_depth、fair_share_per_root
+# 环境变量 EXPLORE_TRAVERSE_MODE=hybrid|bfs|dfs
 
 # 鸿蒙 Demo
 npm run demo
@@ -106,7 +109,12 @@ await android.run('打开浏览器并搜索 Headphones');
 | `src/device_runtime.ts` | Android / 鸿蒙 Device+Agent 创建 |
 | `src/platform.ts` | `DevicePlatform`、`AgentBackend` 解析 |
 | `src/cli.ts` | CLI；`--web-dispatch` 供 Web 后端 |
-| `src/explore.ts` | APP 功能菜单 DFS 遍历（aiQuery + aiAct） |
+| `src/explore.ts` | APP 功能菜单遍历入口（默认 **hybrid**；可选 bfs/dfs） |
+| `src/explore_traverse.ts` | frontier 队列与混合/广度主循环 |
+| `src/explore_snapshot.ts` | 合并界面快照 `aiQuery`、点击后稳定等待 |
+| `src/explore_nav.ts` | 路径 LCA 回退与重放 |
+| `src/explore_metrics.ts` | 遍历观测（LLM/返回/耗时） |
+| `src/explore_fair_share.ts` | 按一级 Tab 公平分配 `max_screens` |
 | `src/web_dispatch.ts` | Web 下发 JSON 协议 |
 | `src/yaml_runner.ts` | YAML 脚本执行 |
 | `src/hdc.ts` | HDC 工具链 |

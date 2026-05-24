@@ -3,7 +3,7 @@
     <div class="wb-grid" :class="{ 'no-mirror': !showMirror }">
       <aside class="wb-tree-pane">
         <h3 class="wb-pane-title">功能树</h3>
-        <p class="muted small wb-pane-hint">界面深度优先遍历 · GIIC 功能完备度</p>
+        <p class="muted small wb-pane-hint">界面遍历分析 · GIIC 功能完备度</p>
         <div v-if="!treeRoot" class="muted small">等待分析产出功能树…</div>
         <ul v-if="treeRoot" class="tree-root">
           <FeatureTreeBranch

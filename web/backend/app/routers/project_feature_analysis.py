@@ -105,6 +105,33 @@ def _content_disposition_attachment(filename: str) -> str:
         )
 
 
+_TERMINAL_FEATURE_TREE_STATUSES = frozenset({"success", "cancelled", "failed"})
+
+
+def _feature_count_in_tree(tree_json: dict | str | None) -> int:
+    if tree_json is None:
+        return 0
+    try:
+        data = tree_json if isinstance(tree_json, dict) else json.loads(tree_json or "{}")
+        feats = data.get("features")
+        return len(feats) if isinstance(feats, list) else 0
+    except (json.JSONDecodeError, TypeError):
+        return 0
+
+
+def _assert_run_confirmable(run: ProjectFeatureAnalysisRun, body_tree: dict) -> None:
+    if run.status not in _TERMINAL_FEATURE_TREE_STATUSES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="分析进行中，请先等待结束或取消后再确认功能树",
+        )
+    if _feature_count_in_tree(body_tree) < 1 and _feature_count_in_tree(run.feature_json) < 1:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="功能树为空，无法保存",
+        )
+
+
 def _resolved_app_display_name(
     run: ProjectFeatureAnalysisRun | None, tree_json: str
 ) -> str:
@@ -429,6 +456,9 @@ async def start_feature_analysis(
         app_display_name=app_name,
         max_screens=body.max_screens,
         max_depth=body.max_depth,
+        traverse_mode=body.traverse_mode,
+        bfs_max_depth=body.bfs_max_depth,
+        fair_share_per_root=body.fair_share_per_root,
         status="pending",
     )
     db.add(run)
@@ -544,11 +574,7 @@ def confirm_feature_tree(
     )
     if run is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="分析任务不存在")
-    if run.status != "success":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="仅成功的分析任务可确认功能树",
-        )
+    _assert_run_confirmable(run, body.tree_json)
 
     n = (
         db.query(func.count(ProjectFeatureTree.id))

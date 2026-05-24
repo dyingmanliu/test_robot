@@ -13,7 +13,31 @@ import type {
   FeatureEntry,
   NavItem,
   ScreenRecord,
+  TraverseMode,
 } from './explore_types.js';
+import {
+  DEFAULT_MAX_DEPTH,
+  DEFAULT_MAX_SCREENS,
+  DEFAULT_MAX_TAPS,
+  DEFAULT_BFS_MAX_DEPTH,
+  filterNavItemsForScreen,
+  inferHasSubPages,
+  parseTraverseMode,
+  regionRank,
+  screenFingerprint,
+  tapKey,
+} from './explore_common.js';
+import { ExploreNavigation } from './explore_nav.js';
+import {
+  queryScreenSnapshot,
+  waitAfterTap,
+  type ScreenSnapshot,
+} from './explore_snapshot.js';
+import {
+  runDfsTraverse,
+  runFrontierTraverse,
+  type TraverseEngineCtx,
+} from './explore_traverse.js';
 import {
   attachTreesToResult,
   enrichFeatureGiicFields,
@@ -30,155 +54,18 @@ import {
   scopedTapTask,
 } from './app_scope.js';
 import { withStepTimeout } from './step_timeout.js';
+import { ExploreMetrics } from './explore_metrics.js';
+import {
+  createFairShareBudget,
+  type FairShareBudget,
+  FAIR_SHARE_OFF,
+} from './explore_fair_share.js';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-const DEFAULT_MAX_SCREENS = 30;
-const DEFAULT_MAX_DEPTH = 4;
-const DEFAULT_MAX_TAPS = 8;
-
-/** 仅遍历导航类控件，不包含列表正文行 */
-const NAV_REGIONS = new Set([
-  'top_tab',
-  'bottom_tab',
-  'top',
-  'bottom',
-  'side',
-  'left',
-  'right',
-  'button',
-  'tab',
-  'list_item',
-]);
-
-const REGION_RANK: Record<string, number> = {
-  bottom_tab: 0,
-  bottom: 0,
-  top_tab: 1,
-  top: 1,
-  side: 2,
-  left: 3,
-  right: 3,
-  button: 4,
-  tab: 4,
-  list_item: 5,
-  other: 6,
-};
-
-function isNavigationItem(item: NavItem): boolean {
-  const r = (item.region || 'other').toLowerCase();
-  if (r === 'list' || r === 'content' || r === 'row') {
-    return false;
-  }
-  if (NAV_REGIONS.has(r)) return true;
-  // 未标注 region 时仅保留短标签（避免长列表文案）
-  if (r === 'other' && item.name.length <= 12) return true;
-  return false;
-}
-
-function normalizeNavItems(raw: unknown): NavItem[] {
-  if (!raw) return [];
-  const list = Array.isArray(raw) ? raw : [raw];
-  const out: NavItem[] = [];
-  for (const item of list) {
-    if (typeof item === 'string') {
-      const name = item.trim();
-      if (name) out.push({ name, clickable: true, region: 'other' });
-      continue;
-    }
-    if (typeof item === 'object' && item !== null) {
-      const o = item as Record<string, unknown>;
-      const name = String(o.name ?? o.title ?? o.label ?? '').trim();
-      if (!name) continue;
-      const region = o.region != null ? String(o.region).trim() : 'other';
-      const clickable =
-        o.clickable === undefined
-          ? true
-          : Boolean(o.clickable);
-      out.push({ name, region, clickable });
-    }
-  }
-  const seen = new Set<string>();
-  return out.filter((n) => {
-    const k = n.name.toLowerCase();
-    if (seen.has(k)) return false;
-    seen.add(k);
-    return isNavigationItem(n);
-  });
-}
-
-function sortNavItems(items: NavItem[]): NavItem[] {
-  return [...items].sort((a, b) => {
-    const ra = REGION_RANK[(a.region || 'other').toLowerCase()] ?? 8;
-    const rb = REGION_RANK[(b.region || 'other').toLowerCase()] ?? 8;
-    if (ra !== rb) return ra - rb;
-    return a.name.localeCompare(b.name, 'zh');
-  });
-}
-
-function pathKey(path: string[]): string {
-  return path.join(' > ') || '(root)';
-}
-
-function tapKey(path: string[], name: string): string {
-  return `${pathKey(path)}|${name}`;
-}
-
-/** 功能路径唯一键（用于去重） */
 function fullPathKey(path: string[], name: string): string {
   const parts = [...path, name].map((s) => s.trim()).filter(Boolean);
   return parts.join(' > ');
-}
-
-function screenFingerprint(screenTitle: string, path: string[]): string {
-  return `${pathKey(path)}@@${screenTitle.trim()}`;
-}
-
-/** 不参与自动点击的控件（易误入弹窗关闭或无法返回） */
-const AUTO_TAP_BLOCKLIST = new Set(
-  [
-    '关闭',
-    '取消',
-    '跳过',
-    '知道了',
-    '以后再说',
-    '不再提示',
-    '同意',
-    '拒绝',
-    '允许',
-    '返回',
-    '×',
-    'x',
-  ].map((s) => s.toLowerCase()),
-);
-
-function isBlockedTapName(name: string): boolean {
-  const n = name.trim().toLowerCase();
-  if (AUTO_TAP_BLOCKLIST.has(n)) return true;
-  if (/^关闭|^取消|^跳过/.test(name.trim())) return true;
-  return false;
-}
-
-function filterNavItemsForScreen(
-  items: NavItem[],
-  path: string[],
-  depth: number,
-): NavItem[] {
-  const inPath = new Set(path.map((p) => p.trim().toLowerCase()));
-  return items.filter((item) => {
-    if (!isNavigationItem(item)) return false;
-    const name = item.name.trim();
-    if (!name) return false;
-    if (isBlockedTapName(name)) return false;
-    if (inPath.has(name.toLowerCase())) return false;
-    if (depth > 0) {
-      const r = (item.region || 'other').toLowerCase();
-      if (r === 'bottom_tab' || r === 'bottom' || r === 'top_tab' || r === 'top') {
-        return false;
-      }
-    }
-    return true;
-  });
 }
 
 export async function runAppFeatureExplore(
@@ -209,6 +96,11 @@ export async function runAppFeatureExplore(
   const maxScreens = options.maxScreens ?? DEFAULT_MAX_SCREENS;
   const maxDepth = options.maxDepth ?? DEFAULT_MAX_DEPTH;
   const maxTaps = options.maxTapsPerScreen ?? DEFAULT_MAX_TAPS;
+  const traverseMode: TraverseMode = parseTraverseMode(options.traverseMode);
+  const bfsMaxDepth = options.bfsMaxDepth ?? DEFAULT_BFS_MAX_DEPTH;
+  const fairSharePerRoot = options.fairSharePerRoot ?? FAIR_SHARE_OFF;
+  const metrics = new ExploreMetrics();
+  const fairShareState: { budget: FairShareBudget | null } = { budget: null };
   let resolvedBundleId = '';
 
   const startedAt = new Date().toISOString();
@@ -306,7 +198,7 @@ export async function runAppFeatureExplore(
         'aiAct',
         launchTask,
         () => withStepTimeout(handle!.aiAct(launchTask), launchTask),
-        { machineOut, promptHint: launchTask },
+        { machineOut, metrics, promptHint: launchTask },
       );
       resolvedBundleId = pkg;
       emitStep('done', launchTask);
@@ -316,7 +208,7 @@ export async function runAppFeatureExplore(
     const targetBundle = () =>
       (resolvedBundleId || bundleIdOpt || '').trim();
 
-    let scopeOffAppStreak = 0;
+    const scopeOffAppStreakRef = { value: 0 };
 
     async function relaunchTargetApp(reason: string): Promise<void> {
       const bundle = targetBundle();
@@ -336,7 +228,7 @@ export async function runAppFeatureExplore(
             'aiAct',
             launchTask,
             () => withStepTimeout(handle!.aiAct(launchTask), launchTask),
-            { machineOut, promptHint: launchTask },
+            { machineOut, metrics, promptHint: launchTask },
           );
         } else {
           const launchTask = `打开应用「${appName}」，不要打开其他应用`;
@@ -344,7 +236,7 @@ export async function runAppFeatureExplore(
             'aiAct',
             launchTask,
             () => withStepTimeout(handle!.aiAct(launchTask), launchTask),
-            { machineOut, promptHint: launchTask },
+            { machineOut, metrics, promptHint: launchTask },
           );
         }
         await sleep(2200);
@@ -375,7 +267,7 @@ export async function runAppFeatureExplore(
           '是否在目标应用',
           () =>
             withStepTimeout(handle!.aiQuery<boolean>(prompt), '是否在目标应用'),
-          { machineOut, promptHint: prompt },
+          { machineOut, metrics, promptHint: prompt },
         );
       } catch {
         return null;
@@ -401,7 +293,7 @@ export async function runAppFeatureExplore(
       }
 
       if (!offByBundle && !offByVision) {
-        scopeOffAppStreak = 0;
+        scopeOffAppStreakRef.value = 0;
         emit({
           kind: 'explore_scope',
           in_target: true,
@@ -412,7 +304,7 @@ export async function runAppFeatureExplore(
         return true;
       }
 
-      scopeOffAppStreak += 1;
+      scopeOffAppStreakRef.value += 1;
       const msg = offByBundle
         ? `前台 ${foreground} ≠ 目标 ${target}（${context}）`
         : `视觉判断已离开「${appName}」（${context}）`;
@@ -432,7 +324,7 @@ export async function runAppFeatureExplore(
         await sleep(1500);
         foreground = await readForeground();
         if (foreground && bundleMatches(foreground, target)) {
-          scopeOffAppStreak = 0;
+          scopeOffAppStreakRef.value = 0;
           emit({
             kind: 'explore_scope',
             in_target: true,
@@ -444,7 +336,7 @@ export async function runAppFeatureExplore(
         }
         const vision = await visionSaysInTargetApp();
         if (vision === true) {
-          scopeOffAppStreak = 0;
+          scopeOffAppStreakRef.value = 0;
           emit({
             kind: 'explore_scope',
             in_target: true,
@@ -458,6 +350,7 @@ export async function runAppFeatureExplore(
     }
 
     async function tryNavigateBack(context?: string): Promise<void> {
+      metrics.onBack();
       const suffix = context ? `（${context}）` : '';
       if (handle!.platform === 'harmonyos') {
         for (let i = 0; i < 2; i += 1) {
@@ -483,7 +376,7 @@ export async function runAppFeatureExplore(
           'aiAct',
           task,
           () => withStepTimeout(handle!.aiAct(task), task),
-          { machineOut, promptHint: task },
+          { machineOut, metrics, promptHint: task },
         );
         emitStep('done', task);
         await sleep(1000);
@@ -508,7 +401,7 @@ export async function runAppFeatureExplore(
           'aiAct',
           dismissTask,
           () => withStepTimeout(handle!.aiAct(dismissTask), dismissTask),
-          { machineOut, promptHint: dismissTask },
+          { machineOut, metrics, promptHint: dismissTask },
         );
       }
     } catch {
@@ -517,128 +410,60 @@ export async function runAppFeatureExplore(
     emitStep('done', dismissTask);
     await ensureInTargetApp('处理弹窗后');
 
-    async function queryScreenTitle(): Promise<string> {
-      const prompt =
-        'string, 用简短中文描述当前页面标题或所在位置（不超过20字）';
-      try {
-        const t = await logModelCall(
-          'aiQuery',
-          '页面标题',
-          () => withStepTimeout(handle!.aiQuery<string>(prompt), '页面标题'),
-          { machineOut, promptHint: prompt },
-        );
-        return String(t ?? '').trim() || '未知页面';
-      } catch {
-        return '未知页面';
-      }
-    }
+    const navigation = new ExploreNavigation({
+      handle: handle!,
+      appName,
+      targetBundle,
+      machineOut,
+      metrics,
+      emitStep,
+      tryNavigateBack,
+      ensureInTargetApp,
+      tappedKeys,
+    });
 
-    const navQueryPrompt =
-      `{name: string, region: string, clickable: boolean}[], 仅在「${appName}」应用当前界面列出功能入口（GIIC 扫描）：` +
-      '包括顶部/底部 Tab、侧栏、工具栏按钮、页面内按钮。' +
-      '若当前界面不属于该应用或是华为商城/应用市场/桌面，返回空数组 []。' +
-      '不要包含纯展示正文、广告、头像昵称；不要单独列出「关闭」「取消」「跳过」。' +
-      'region 取 top_tab|bottom_tab|side|button|tab|list_item|other；去重；不要编造。';
+    const screensVisitedRef = { value: screensVisited };
 
-    async function queryNavItems(): Promise<NavItem[]> {
-      try {
-        const raw = await logModelCall(
-          'aiQuery',
-          '导航菜单',
-          () => withStepTimeout(handle!.aiQuery<unknown>(navQueryPrompt), '导航菜单'),
-          {
-            machineOut,
-            promptHint: navQueryPrompt,
-            resultToText: (r) => JSON.stringify(r ?? ''),
-          },
-        );
-        return sortNavItems(normalizeNavItems(raw));
-      } catch {
-        const fallbackPrompt =
-          'string[], 仅列出底部Tab、顶部Tab、侧栏、工具栏按钮名称（中文），不要列表行内容';
-        try {
-          const names = await logModelCall(
-            'aiQuery',
-            '导航菜单(简)',
-            () => withStepTimeout(handle!.aiQuery<string[]>(fallbackPrompt), '导航菜单(简)'),
-            {
-              machineOut,
-              promptHint: fallbackPrompt,
-              resultToText: (r) => JSON.stringify(r ?? []),
-            },
-          );
-          return sortNavItems(
-            normalizeNavItems(
-              (names || []).map((n) => ({
-                name: n,
-                region: 'button',
-                clickable: true,
-              })),
-            ),
-          );
-        } catch {
-          return [];
-        }
-      }
-    }
-
-    async function queryHasNextLevel(
-      menuName: string,
-      childPath: string[],
-    ): Promise<boolean> {
-      const prompt =
-        `boolean, 已进入「${menuName}」对应页面后，是否还存在可点击进入的下一级子菜单或子页面` +
-        '（不包括仅切换底部/顶部主 Tab、不包括纯内容展示区域）';
-      try {
-        const r = await logModelCall(
-          'aiQuery',
-          '是否有下级',
-          () => withStepTimeout(handle!.aiQuery<boolean>(prompt), '是否有下级'),
-          { machineOut, promptHint: prompt },
-        );
-        return r === true;
-      } catch {
-        const subNav = filterNavItemsForScreen(
-          await queryNavItems(),
-          childPath,
-          childPath.length,
-        );
-        return subNav.length > 0;
-      }
-    }
-
-    async function exploreScreen(
+    async function recordScreen(
       path: string[],
       depth: number,
-      parentId?: string,
-    ): Promise<void> {
+      snapshot: ScreenSnapshot,
+    ): Promise<boolean> {
+      metrics.beginScreen();
+      try {
       if (options.shouldCancel?.()) {
         throw new Error('探索已取消');
       }
-      if (screensVisited >= maxScreens || depth > maxDepth) {
-        return;
+      if (screensVisitedRef.value >= maxScreens || depth > maxDepth) {
+        return false;
+      }
+      if (
+        fairShareState.budget &&
+        !fairShareState.budget.canRecordScreen(path)
+      ) {
+        const branch = path[0] || '分支';
+        emitStep('done', `「${branch}」已达公平界面预算，跳过`);
+        return false;
       }
 
-      if (!(await ensureInTargetApp(`深度 ${depth} 进入页面前`))) {
-        return;
-      }
-
-      const screenTitle = await queryScreenTitle();
+      const screenTitle = snapshot.screen_title;
       if (isOffAppScreenTitle(screenTitle)) {
         emitStep('error', '界面疑似站外', screenTitle);
         await ensureInTargetApp(`站外界面：${screenTitle}`);
-        return;
+        return false;
       }
-      if (scopeOffAppStreak >= 3) {
+      if (scopeOffAppStreakRef.value >= 3) {
         emitStep('error', '连续离站', '多次无法回到被测应用，停止本分支遍历');
-        return;
+        return false;
       }
+
       const fp = screenFingerprint(screenTitle, path);
       if (visitedScreens.has(fp)) {
-        return;
+        return false;
       }
       visitedScreens.add(fp);
-      screensVisited += 1;
+      screensVisitedRef.value += 1;
+      screensVisited = screensVisitedRef.value;
       screenSeq += 1;
       const screenId = `screen-${screenSeq}`;
       const screenRec: ScreenRecord = {
@@ -671,14 +496,63 @@ export async function runAppFeatureExplore(
 
       if (!inTargetAtPage) {
         await ensureInTargetApp(`离站界面 ${screenTitle}`);
+        return false;
+      }
+      fairShareState.budget?.onScreenRecorded(path);
+      return true;
+      } finally {
+        metrics.endScreen();
+      }
+    }
+
+    async function exploreScreen(
+      path: string[],
+      depth: number,
+      parentId?: string,
+    ): Promise<void> {
+      if (options.shouldCancel?.()) {
+        throw new Error('探索已取消');
+      }
+      if (screensVisitedRef.value >= maxScreens || depth > maxDepth) {
         return;
       }
 
-      const items = filterNavItemsForScreen(
-        await queryNavItems(),
-        path,
-        depth,
+      if (!(await ensureInTargetApp(`深度 ${depth} 进入页面前`))) {
+        return;
+      }
+
+      const snapshot = await queryScreenSnapshot(
+        handle!,
+        appName,
+        machineOut,
+        metrics,
       );
+      const recorded = await recordScreen(path, depth, snapshot);
+      if (!recorded) return;
+
+      const screenTitle = snapshot.screen_title;
+      const fp = screenFingerprint(screenTitle, path);
+      const items = filterNavItemsForScreen(snapshot.nav_items, path, depth);
+
+      if (
+        depth === 0 &&
+        fairSharePerRoot !== FAIR_SHARE_OFF &&
+        !fairShareState.budget
+      ) {
+        fairShareState.budget = createFairShareBudget(
+          fairSharePerRoot,
+          maxScreens,
+          items,
+          traverseMode,
+          bfsMaxDepth,
+        );
+        if (fairShareState.budget) {
+          emitStep(
+            'done',
+            `公平预算：每级入口约 ${fairShareState.budget.quota} 屏`,
+          );
+        }
+      }
 
       for (const item of items) {
         if (options.shouldCancel?.()) throw new Error('探索已取消');
@@ -686,17 +560,14 @@ export async function runAppFeatureExplore(
       }
 
       const clickable = items.filter((i) => i.clickable !== false);
-      const dfsOrder = [...clickable].sort((a, b) => {
-        const ra = REGION_RANK[(a.region || 'other').toLowerCase()] ?? 8;
-        const rb = REGION_RANK[(b.region || 'other').toLowerCase()] ?? 8;
-        if (ra !== rb) return ra - rb;
-        return a.name.localeCompare(b.name, 'zh');
-      });
+      const dfsOrder = [...clickable].sort(
+        (a, b) => regionRank(a) - regionRank(b) || a.name.localeCompare(b.name, 'zh'),
+      );
       const toVisit = dfsOrder.slice(0, maxTaps);
 
       for (const item of toVisit) {
         if (options.shouldCancel?.()) throw new Error('探索已取消');
-        if (screensVisited >= maxScreens || depth >= maxDepth) break;
+        if (screensVisitedRef.value >= maxScreens || depth >= maxDepth) break;
 
         const tKey = tapKey(path, item.name);
         if (tappedKeys.has(tKey)) continue;
@@ -711,6 +582,13 @@ export async function runAppFeatureExplore(
           parentId,
         );
         const childPath = [...path, item.name];
+        if (
+          fairShareState.budget &&
+          !fairShareState.budget.canRecordScreen(childPath)
+        ) {
+          emitStep('done', `「${item.name}」分支已达界面预算，跳过`);
+          continue;
+        }
         const tapTask = scopedTapTask(item.name, appName, targetBundle());
         emitStep('start', tapTask);
         try {
@@ -718,10 +596,13 @@ export async function runAppFeatureExplore(
             'aiAct',
             tapTask,
             () => withStepTimeout(handle!.aiAct(tapTask), tapTask),
-            { machineOut, promptHint: tapTask },
+            { machineOut, metrics, promptHint: tapTask },
           );
-          await sleep(1800);
+          metrics.onTap();
+          await waitAfterTap(handle!, appName, machineOut, { metrics });
           emitStep('done', tapTask);
+          tappedKeys.add(tapKey(path, item.name));
+          navigation.afterTap(childPath);
         } catch (err: unknown) {
           const msg = err instanceof Error ? err.message : String(err);
           emitStep('error', tapTask, msg);
@@ -734,21 +615,31 @@ export async function runAppFeatureExplore(
           continue;
         }
 
-        const afterTitle = await queryScreenTitle();
-        if (isOffAppScreenTitle(afterTitle)) {
-          emitStep('error', '点击后进入站外', afterTitle);
+        const afterSnap = await queryScreenSnapshot(
+          handle!,
+          appName,
+          machineOut,
+          metrics,
+        );
+        if (isOffAppScreenTitle(afterSnap.screen_title)) {
+          emitStep('error', '点击后进入站外', afterSnap.screen_title);
           await ensureInTargetApp(`点击「${item.name}」后站外`);
           await tryNavigateBack(`站外恢复·${item.name}`);
           continue;
         }
-        const afterFp = screenFingerprint(afterTitle, childPath);
-        if (afterFp === fp || afterFp === screenFingerprint(afterTitle, path)) {
+        const afterFp = screenFingerprint(afterSnap.screen_title, childPath);
+        if (
+          afterFp === fp ||
+          afterFp === screenFingerprint(afterSnap.screen_title, path)
+        ) {
           emitStep('done', `「${item.name}」无下级页面，跳过深入`);
           await tryNavigateBack(`「${item.name}」无下级`);
           continue;
         }
 
-        const hasChild = await queryHasNextLevel(item.name, childPath);
+        const hasChild =
+          afterSnap.has_sub_pages ||
+          inferHasSubPages(afterSnap.nav_items, childPath);
         if (!hasChild) {
           emitStep('done', `「${item.name}」无子菜单，停止下级遍历`);
           await tryNavigateBack(`「${item.name}」无子菜单`);
@@ -766,8 +657,55 @@ export async function runAppFeatureExplore(
       }
     }
 
-    await exploreScreen([], 0);
+    const traverseCtx: TraverseEngineCtx = {
+      appName,
+      traverseMode,
+      bfsMaxDepth,
+      maxScreens,
+      maxDepth,
+      maxTaps,
+      fairSharePerRoot,
+      metrics,
+      fairShareState,
+      handle: handle!,
+      machineOut,
+      targetBundle,
+      navigation,
+      shouldCancel: options.shouldCancel,
+      emit,
+      emitStep,
+      ensureInTargetApp,
+      tryNavigateBack,
+      scopeOffAppStreak: scopeOffAppStreakRef,
+      tappedKeys,
+      visitedScreens,
+      screensVisited: screensVisitedRef,
+      upsertFeature,
+      recordScreen,
+      emitQueue: (pending) => {
+        emit({
+          kind: 'explore_queue',
+          pending,
+          mode: traverseMode,
+        });
+      },
+    };
 
+    if (traverseMode === 'dfs') {
+      await runDfsTraverse(exploreScreen);
+    } else {
+      await runFrontierTraverse(traverseCtx);
+    }
+
+    screensVisited = screensVisitedRef.value;
+    emit(metrics.asEvent(traverseMode, screensVisited));
+
+    const modeLabel =
+      traverseMode === 'hybrid'
+        ? '混合遍历'
+        : traverseMode === 'bfs'
+          ? '广度优先'
+          : '深度优先';
     const attached = attachTreesToResult(appName, features, screens);
     const tree: ExploreTreeResult = {
       app_name: appName,
@@ -786,7 +724,7 @@ export async function runAppFeatureExplore(
 
     return {
       ok: true,
-      message: `探索完成，共发现 ${features.length} 项功能（访问 ${screensVisited} 个页面）`,
+      message: `${modeLabel}完成，共发现 ${features.length} 项功能（访问 ${screensVisited} 个页面）`,
       tree,
       reportFile,
     };

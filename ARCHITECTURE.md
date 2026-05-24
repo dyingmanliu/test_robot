@@ -10,7 +10,7 @@ Web 将租用的**数字机器人实例**按商城 **功能定位（`catalog_rob
 
 | 业务定位（示例） | 代码侧 Agent | 说明 |
 |------------------|--------------|------|
-| **测试分析机器人** | `agent_service/analysis_agent/` | 用例生成、自然语言 → structured 等；**不连接真机**；在 Web 后端进程内调 LLM（`CASE_GEN_*`） |
+| **测试分析机器人** | `agent_service/analysis_agent/` | **用例生成**：LLM → structured/YAML（`CASE_GEN_*`，**不连真机**）。**功能点分析**：真机界面遍历 → GIIC 功能树（`feature_explore/` → Midscene `explore`，`MIDSCENE_*`） |
 | **测试执行机器人（func_agent）** | `agent_service/func_agent/`（内含 `autoglm_phone_tech/` 与 `midscene_tech/` 技术后端） | **同一业务定位下的两条技术路线**：LLM 驱动 UI（智谱 AutoGLM-Phone）与视觉驱动 UI（Midscene.js）。由实例字段 **`test_agent_backend`**（`autoglm` \| `midscene`）与 **`device_platform`** 在 `executor.py` 中择路；均经 ADB/HDC 操作真机 |
 | **其他功能定位**（专项执行、质量评估等） | 未来各自 **独立 Agent 包 + 路由/服务** | 与 `case_generation`、`executor` 平行扩展；本架构图以虚线占位，不展开具体实现 |
 
@@ -18,7 +18,7 @@ Web 将租用的**数字机器人实例**按商城 **功能定位（`catalog_rob
 
 本仓库还包含：
 
-1. **`agent_service/analysis_agent/`（Python）** — **测试分析机器人 Agent**：OpenAI 兼容 API 产出 structured 用例草稿；与设备无关。Web 适配见 `app/services/case_generation.py`。详见 [`agent_service/analysis_agent/README.md`](./agent_service/analysis_agent/README.md)。
+1. **`agent_service/analysis_agent/`（Python）** — **测试分析机器人 Agent**：**用例生成**（`AnalysisAgent`，无真机，Web 适配 `case_generation.py`）；**功能点分析**（`FeatureExploreAgent`，Midscene explore 子进程，Web 适配 `feature_analysis_bridge.py`）。详见 [`agent_service/analysis_agent/README.md`](./agent_service/analysis_agent/README.md)。
 
 2. **`agent_service/func_agent/`（Python）** — **功能测试机器人统一业务域**：向 `executor` 暴露统一调度入口；内部编排两条后端路线（AutoGLM / Midscene）。
 
@@ -26,7 +26,7 @@ Web 将租用的**数字机器人实例**按商城 **功能定位（`catalog_rob
 
 4. **`web/`（Web 应用）**  
    **前端**：项目与用例 CRUD、自动生成草稿、触发执行、轮询步骤日志与结果。  
-   **后端**：认证与持久化；**测试分析**走 `case_generation` → `analysis_agent`；**测试执行**走 `executor` → AutoGLM 同进程或 Midscene 子进程。
+   **后端**：认证与持久化；**用例生成**走 `case_generation` → `analysis_agent`；**功能点分析**走 `feature_analysis_bridge` → `feature_explore` → Midscene explore；**测试执行**走 `executor` → AutoGLM 同进程或 Midscene 子进程。
 
 5. **`mai_ui_tech/`（Python）** — **GUI Grounding 技术路线**：本地 MAI-UI 推理与坐标解析；由 Web 服务 `mai_ui_service.py` 对接 `/api/mai-ui/*` 能力。
 
@@ -63,9 +63,13 @@ Web 将租用的**数字机器人实例**按商城 **功能定位（`catalog_rob
 - **跨页实时执行**：Pinia `activeTestRun` 轮询 `GET /api/test-cases/runs/{id}`；离开用例页后顶栏可跳转 `/runs/:runId/live`（`RunExecutionLiveView.vue` + `RunLivePanel.vue`）。`RobotInstanceOut.active_run_id` 与 `runtime_status=executing` 供「我的机器人」列表展示 **执行详情** 入口。
 - **跨页功能点分析**：`RobotInstanceOut.active_feature_analysis_run_id` / `active_feature_analysis_project_id` 与 `runtime_status=executing` 供「我的机器人」展示 **分析详情**，跳转 `/projects/:projectId/feature-analysis?runId=`；`ProjectFeatureAnalysisView` 按 `runId` 恢复轮询 `step_log` 与投屏。
 
-### 1.3 测试分析机器人 Agent（`agent_service/analysis_agent/`）与用例格式（structured / YAML）
+### 1.3 测试分析机器人 Agent：用例生成（structured / YAML）与功能点分析（explore）
 
-与 §1.1 **测试执行** 分离：不调用 `PhoneTestAgent` / `midscene_tech`；LLM 仅在 Web 后端进程内通过 OpenAI 兼容 API 生成 **structured** 字段。
+**用例生成**流程见下图；**功能点分析**时序见 §4.6。
+
+**用例生成**与 §1.1 **测试执行** 分离：生成路径不调用 `PhoneTestAgent`；LLM 在 Web 进程内通过 OpenAI 兼容 API 产出 **structured** 字段。
+
+**功能点遍历**（`analysis_agent/feature_explore/` → `FeatureExploreAgent`）走 Midscene `explore` 子进程，与用例生成、同实例其它占用互斥；详见 §4.6。
 
 | 项 | 说明 |
 |----|------|
@@ -117,48 +121,60 @@ sequenceDiagram
 
 **配置**：仓库根 `.env` 的 `CASE_GEN_*`。本地调试常用 DeepSeek（`CASE_GEN_BASE_URL=https://api.deepseek.com`、`CASE_GEN_MODEL=deepseek-v4-pro`）；未设 `CASE_GEN_API_KEY` 时回退 `BIGMODEL_API_KEY`。详见 §6 环境变量表。
 
-### 1.4 端到端：测试分析机器人 × 测试执行机器人
+### 1.4 端到端：用例生成 · 功能点分析 · 测试执行
 
-平台里至少涉及**两类业务定位的机器人实例**（均可在商城租用），在同一「项目空间」下配合完成「写用例 → 落库 → 真机执行 → 看结果」闭环；**测试执行**内部再选 AutoGLM 或 Midscene 技术路线。二者职责分离，勿在同一操作里选错实例类型。
+平台里至少涉及**两类业务定位的机器人实例**（均可在商城租用）。**测试分析**实例在同一项目下可承担 **用例生成**（无真机）与 **功能点分析**（须真机）两项能力，二者互斥占用；**测试执行**实例在真机上跑已落库用例，内部再选 AutoGLM 或 Midscene 技术路线。
 
-| 维度 | 测试分析机器人（用例生成） | 测试执行机器人（设备自动化） |
-|------|---------------------------|------------------------------|
-| 商城目录 / 典型 `catalog_robot_id` | **测试分析**（如 `test_analysis`） | **功能执行**等；实例上 `test_agent_backend`：`autoglm` 或 `midscene`（**两条技术路线**） |
-| 对应代码包 | `analysis_agent` | `autoglm_phone_tech` **或** `midscene_tech`（由 `executor` 选择） |
-| 是否连真机 | **否** | **是**；ADB/HDC |
-| 主要 Web 入口 | 测试用例页 → **创建用例 → 自动生成** | 测试用例页 → 选用例 → **执行测试**（机器人 / 平台 / 目标终端） |
-| 关键 API | `POST /api/test-cases/generate`（须传分析实例 `robot_instance_id`）、`POST /api/test-cases/convert-format`、`POST /api/test-cases` 保存 | `POST /api/test-cases/{id}/run`、`GET /api/test-cases/runs/{id}`、`POST …/cancel` |
-| 环境变量侧重 | `CASE_GEN_*` | `BIGMODEL_API_KEY` / `ZHIPU_API_KEY`、`MIDSCENE_*`、`ADB_DEVICE_ID` / `HDC_DEVICE_ID` 等 |
-| 产出物 | 草稿 → 持久化 `test_cases` | `test_runs` 日志、终态、可选 Midscene HTML 报告 |
+| 维度 | 测试分析 · 用例生成 | 测试分析 · 功能点分析 | 测试执行 · 设备自动化 |
+|------|---------------------|----------------------|------------------------|
+| 典型 `catalog_robot_id` | **测试分析**（`test_analysis`） | 同上（同一类实例） | **功能执行**等 |
+| 对应代码 | `analysis_agent` / `AnalysisAgent` | `analysis_agent/feature_explore` → `midscene_tech` explore | `func_agent` → `autoglm_phone_tech` 或 `midscene_tech`（`executor` 择路） |
+| 是否连真机 | **否** | **是**（ADB/HDC） | **是** |
+| 主要 Web 入口 | 测试用例页 → **自动生成** | 项目空间 → **功能点分析** | 测试用例页 → **执行测试** |
+| 关键 API | `POST /api/test-cases/generate`、`convert-format`、`POST /api/test-cases` | `POST /api/projects/{id}/feature-analysis/runs`、`…/confirm` | `POST /api/test-cases/{id}/run`、`GET …/runs/{id}` |
+| 环境变量 | `CASE_GEN_*` | `MIDSCENE_*`、`EXPLORE_TRAVERSE_MODE` 等 | `BIGMODEL_*` / `MIDSCENE_*`、设备 ID |
+| 产出物 | `test_cases` | `project_feature_trees`（确认版功能树） | `test_runs`、报告 |
 
 **推荐协作顺序（业务视角）**
 
-1. **准备项目**：在「项目空间」填写被测应用、测试目标等，便于生成上下文与 KB 检索（`CASE_GEN_USE_KB=true` 时参考同项目历史用例）。  
-2. **租用并启动测试分析实例**：商城租用「测试分析」→ 审批通过后启动实例；在用例页「自动生成」弹窗中选择该实例。  
-3. **生成并保存用例**：输入一句话需求 → `generate` 得到草稿 → 在弹窗中核对标题、步骤、执行说明；可在 structured / YAML 间用 `convert-format` 切换 → **保存**写入 `test_cases`。  
-4. **租用并启动测试执行实例**：租用「功能执行」类机器人，在「我的机器人」中为实例选择 **技术路线**（AutoGLM / Midscene）与 **默认设备平台**；YAML 用例须 **Midscene** 路线。  
-5. **执行与观测**：用例列表选中用例 → 选择执行实例与（可选）**本次平台 / 目标终端** → 发起 `run` → 前端轮询 / 多 Tab 工作台查看实时进度与投屏 → 结束后查看结果与报告下载。
+1. **准备项目**：在「项目空间」填写被测应用、测试目标等。  
+2. **租用并启动测试分析实例**：商城租用「测试分析」→ 审批通过后启动实例。  
+3. **（可选）功能点分析**：项目卡片进入「功能点分析」→ 选 App 与遍历参数 → 真机混合遍历 → 编辑功能树 → **确认保存**多版本（取消/失败时若有采集数据也可确认）。  
+4. **生成并保存用例**：用例页「自动生成」选同一分析实例 → `generate` 草稿 → 编辑 → **保存** `test_cases`（与步骤 3 **不可同时进行**，实例互斥）。  
+5. **租用并启动测试执行实例**：选择 **技术路线**（AutoGLM / Midscene）与默认平台；YAML 须 Midscene。  
+6. **执行与观测**：选用例 → 选执行实例与终端 → `run` → 轮询 / 投屏 → 报告。
 
 ```mermaid
-flowchart LR
-  subgraph gen["用例生成（不写库直到保存）"]
-    A1[测试分析机器人实例]
+flowchart TB
+  subgraph gen["用例生成（无真机）"]
+    A1[测试分析实例]
     A2[POST /test-cases/generate]
-    A3[analysis_agent + CASE_GEN_*]
+    A3[AnalysisAgent + CASE_GEN_*]
     A4[编辑 / convert-format]
-    A5[POST /test-cases 持久化]
+    A5[POST /test-cases]
     A1 --> A2 --> A3 --> A4 --> A5
   end
 
+  subgraph fa["功能点分析（真机 · Midscene explore）"]
+    F1[测试分析实例]
+    F2[POST /feature-analysis/runs]
+    F3[feature_analysis_bridge]
+    F4[midscene explore 子进程]
+    F5[编辑 / POST confirm]
+    F6[project_feature_trees]
+    F1 --> F2 --> F3 --> F4 --> F5 --> F6
+  end
+
   subgraph run["测试执行（真机）"]
-    B1[测试执行机器人实例]
+    B1[测试执行实例]
     B2[POST /test-cases/id/run]
-    B3[executor → autoglm_phone_tech 或 midscene_tech]
-    B4[test_runs 轮询 / 投屏 / 报告]
+    B3[executor → autoglm 或 midscene]
+    B4[test_runs]
     B1 --> B2 --> B3 --> B4
   end
 
-  A5 -->|test_cases 行| B2
+  A5 -->|test_cases| B2
+  F6 -.->|可选：参考功能树写用例| A2
 ```
 
 **实现提示**：生成接口校验实例为分析类（`catalog_robot_id` / 目录约定）；执行接口校验实例为执行类且与用例格式、引擎一致。详见 `case_generation.py`、`routers/test_cases.py`、`executor.py`。
@@ -196,7 +212,7 @@ flowchart LR
 ```
 autoglm-phone-test-agent/          # 仓库根目录
 ├── ARCHITECTURE.md                # 本文档
-├── agent_service/analysis_agent/                # 测试分析机器人 Agent（LLM · 无真机）
+├── agent_service/analysis_agent/                # 测试分析：用例生成 + feature_explore/ 功能点分析
 ├── agent_service/func_agent/                    # 功能测试机器人统一业务域（对外调度入口）
 │   ├── orchestrator.py
 │   ├── core.py
@@ -228,7 +244,7 @@ autoglm-phone-test-agent/          # 仓库根目录
     │   │   ├── api/client.js      # Axios，BASE_URL / 代理
     │   │   ├── stores/auth.js     # Token、登录态
     │   │   ├── router/index.js    # 路由与登录守卫
-    │   │   └── views/             # Login / Register / Cases
+    │   │   └── views/             # Cases / ProjectFeatureAnalysis / RunLive 等
     │   ├── vite.config.js         # dev 代理 /api → 8000
     │   └── package.json
     └── backend/
@@ -241,7 +257,8 @@ autoglm-phone-test-agent/          # 仓库根目录
         │   ├── auth_utils.py      # 密码、JWT
         │   ├── executor.py        # 测试执行：按 test_agent_backend × 平台路由两技术路线
         │   ├── services/
-        │   │   ├── case_generation.py   # Web 适配 → analysis_agent；可选转 YAML
+        │   │   ├── case_generation.py   # Web 适配 → AnalysisAgent；可选转 YAML
+        │   │   ├── feature_analysis_bridge.py  # Web 适配 → FeatureExploreAgent → explore
         │   │   ├── case_format_convert.py  # structured ↔ Midscene YAML
         │   │   ├── case_agent_text.py   # structured → 执行用自然语言
         │   │   ├── case_kb.py           # 用例 KB 扁平检索（RAG 参考）
@@ -252,6 +269,7 @@ autoglm-phone-test-agent/          # 仓库根目录
         │   └── routers/
         │       ├── auth.py
         │       ├── test_cases.py
+        │       ├── project_feature_analysis.py  # 项目功能点分析 runs / confirm
         │       ├── robot_instances.py
         │       ├── devices.py           # GET /devices/connected
         │       └── admin.py             # 租用审批 → 实例化 + 引擎/平台
@@ -261,53 +279,62 @@ autoglm-phone-test-agent/          # 仓库根目录
 
 ## 4. 运行时架构
 
-下图按 **§1.0** 的概念分层：**测试分析机器人 Agent**（`analysis_agent`）与 **测试执行机器人 Agent**（`autoglm_phone_tech` / `midscene_tech` 两条技术路线）均经 FastAPI 接入；**其他功能定位**的机器人以虚线占位，表示未来可平行扩展独立 Agent 与路由。与 §4.1–§4.4 的端口、HTTP 轮询、执行链路与 WebSocket 监控一致。开发环境下浏览器 HTTP 常经 Vite 将 `/api` 代理到 Uvicorn（见 4.1）。
+下图按 **§1.0** 的概念分层：**测试分析**含用例生成（无真机）与**功能点分析**（Midscene explore）；**测试执行**在 AutoGLM / Midscene 用例执行两条路线间二选一。与 §4.1–§4.6 的端口、HTTP 轮询与 WebSocket 一致。开发环境下浏览器 HTTP 常经 Vite 将 `/api` 代理到 Uvicorn（见 4.1）。
 
 ```mermaid
 flowchart TB
   subgraph client["客户端"]
-    Vue["Vue 3 前端"]
+    Vue["Vue 3 前端\nCasesView / FeatureAnalysisView"]
   end
 
   subgraph server["Web 后端"]
     FastAPI["FastAPI + 路由/服务"]
     Gen["case_generation.py"]
-    Exec["executor.py\n测试执行调度"]
+    FAB["feature_analysis_bridge.py"]
+    Exec["executor.py\n用例执行调度"]
     DB[("SQLite")]
   end
 
-  subgraph analysis["测试分析机器人 Agent"]
-    AA["analysis_agent\n同进程 · LLM · 无真机"]
+  subgraph analysis["测试分析机器人 Agent · analysis_agent"]
+    AA["AnalysisAgent\n用例生成 · 同进程"]
+    FE["FeatureExploreAgent\n功能点分析 · 编排"]
     LLMGen["OpenAI 兼容 API\nCASE_GEN_*"]
   end
 
-  subgraph execution["测试执行机器人 Agent（技术路线二选一）"]
-    PTA["autoglm_phone_tech\n路线一 · 同进程 · ADB/HDC"]
-    MS["midscene_tech\n路线二 · 子进程 · ADB/HDC"]
-    LLM1["智谱等"]
-    LLM2["Midscene 视觉模型"]
+  subgraph midscene["midscene_tech（子进程 · 共用运行时）"]
+    MSRun["CLI execution_mode\nnatural / yaml"]
+    MSExplore["CLI execution_mode\nexplore · hybrid/bfs/dfs"]
+    LLMVis["Midscene 视觉模型\nMIDSCENE_*"]
   end
 
-  subgraph future["其他功能定位机器人 Agent（扩展）"]
-    FX["专项执行 / 质量评估等\n独立包 + 独立路由"]
+  subgraph execution["测试执行机器人 · func_agent（路线二选一）"]
+    PTA["autoglm_phone_tech\n同进程 · ADB/HDC"]
+    LLM1["智谱等"]
+  end
+
+  subgraph future["其他功能定位（扩展）"]
+    FX["专项执行 / 质量评估等"]
   end
 
   Vue --> FastAPI
   FastAPI --> DB
-  FastAPI -->|"测试分析实例"| Gen --> AA --> LLMGen
-  FastAPI -->|"测试执行实例"| Exec
-  Exec -->|"test_agent_backend=autoglm"| PTA
-  Exec -->|"test_agent_backend=midscene"| MS
-  PTA --> LLM1
-  MS --> LLM2
+  FastAPI -->|"用例生成"| Gen --> AA --> LLMGen
+  FastAPI -->|"功能点分析"| FAB --> FE --> MSExplore
+  FastAPI -->|"用例执行"| Exec
+  Exec -->|"autoglm"| PTA --> LLM1
+  Exec -->|"midscene"| MSRun
+  MSExplore --> LLMVis
+  MSRun --> LLMVis
   PTA --> ADB["ADB"]
   PTA --> HDC["HDC"]
-  MS --> ADB
-  MS --> HDC
-  FastAPI -.->|"catalog 扩展"| FX
+  MSExplore --> ADB
+  MSExplore --> HDC
+  MSRun --> ADB
+  MSRun --> HDC
+  FastAPI -.-> FX
 ```
 
-说明：**测试执行**侧由实例字段 **`test_agent_backend`** × **`device_platform`** 在 `executor` 内选择 **`agent_service/func_agent`** 的具体后端（AutoGLM / Midscene，详见 §1.1）。**测试分析**不经 `executor`。CLI 入口统一为 `python -m agent_service.func_agent.cli`。
+说明：**测试执行**由 **`test_agent_backend`** × **`device_platform`** 在 `executor` 内择路（§1.1）。**功能点分析**不经 `executor`，固定走 `feature_analysis_bridge` → `explore`（§4.6）。**用例生成**不经 `midscene_tech`。同一 `midscene_tech` 包可被「用例执行」与「功能点分析」以不同 `execution_mode` 复用。
 
 ### 4.1 进程与端口（典型本地开发）
 
@@ -323,7 +350,8 @@ flowchart TB
 1. 浏览器 → `POST /api/auth/login`（或 register）→ 返回 JWT。  
 2. 前端 `localStorage` 存 token，后续请求 `Authorization: Bearer ...`。  
 3. 用例列表 → `GET /api/test-cases`。
-3b. **AI 生成草稿** → `POST /api/test-cases/generate`（可选 `case_format`）；`case_generation.generate_case_draft` 调用 `analysis_agent.AnalysisAgent`；若需 YAML 则 `case_format_convert.structured_to_yaml`；KB 在 Web 层检索后注入；**不写库**；前端预填编辑后 `POST /api/test-cases` 保存。编辑时切换格式 → `POST /api/test-cases/convert-format`。须使用**测试分析**类机器人实例；与步骤 4 的执行实例**不是同一角色**（见 §1.4）。
+3b. **AI 生成草稿** → `POST /api/test-cases/generate`；`case_generation` → `AnalysisAgent`；**不写库**直至 `POST /api/test-cases`。须**测试分析**实例；与功能点分析、用例执行**互斥**（见 §1.4）。  
+3c. **功能点分析** → `POST /api/projects/{id}/feature-analysis/runs`；`feature_analysis_bridge` → `FeatureExploreAgent` → Midscene `explore`；轮询 `GET …/runs/{id}`；结束后 `POST …/confirm` → `project_feature_trees`（成功/取消/失败且有功能点均可）。详见 §4.6。  
 4. 执行 → `POST /api/test-cases/{id}/run`：请求体含 `robot_instance_id`，可选 `device_platform`、`device_id`；创建 `TestRun` 后**异步**在线程池执行 `executor.execute_test_run`。  
 5. 执行前枚举设备 → `GET /api/devices/connected?platform=…`（用例页「目标终端」下拉）。  
 6. 前端轮询 → `GET /api/test-cases/runs/{run_id}` 获取 `status`、`step_log`、`output_message` 等。
@@ -366,13 +394,61 @@ flowchart TB
   - `defects`：缺陷（开放/已解决时间），供看板「未处理缺陷存量」趋势。  
   - `billing_preorders`：机器人商城「立即租用」生成的预订单（`pending_payment` 等），对接支付网关前由计费模块写入。  
   - `project_app_artifacts`：项目内上传的安装包路径；`test_case_sets` / `test_case_set_items`：用例集合；`functional_dispatch_tasks`：功能测试下发任务及 Kafka 投递状态快照。
-  - `app_explore_runs`：Midscene 功能清单 DFS 探索（`bundle_id`、`feature_json`、`excel_path`、`step_log`）。
+  - `app_explore_runs`：顶栏「功能清单探索」（全局，与项目无关）。
+  - `project_feature_analysis_runs`：项目内功能点分析任务（`traverse_mode`、`max_screens`、`max_depth`、`fair_share_per_root`、`feature_json`、`step_log` 等）。
+  - `project_feature_trees`：用户确认后的功能树多版本（`tree_json`、`version_label`、`confirmed_at`）。
 
-### 4.5 APP 功能清单探索（Midscene）
+### 4.5 APP 功能清单探索（Midscene，全局）
 
 1. 前端 `/app-explore` → `POST /api/app-explore/runs`（`bundle_id` 与 `hdc shell bm dump -a` 一致；`GET /installed-apps` 拉列表）。  
-2. `app_explore_service` 子进程调用 `midscene_tech`：`execution_mode: "explore"`（`explore.ts` DFS，路径去重，无下级则停止递归）。  
+2. `app_explore_service` 子进程调用 `midscene_tech`：`execution_mode: "explore"`（默认 `traverse_mode=hybrid`，见 §4.6）。  
 3. 结果写入 `feature_json` 并导出 Excel；机器人须 `test_agent_backend=midscene`，与同实例用例执行互斥。
+
+### 4.6 项目功能点分析（Midscene + 测试分析实例）
+
+与 §4.5 区分：**绑定项目空间**，走 `project_feature_analysis_runs` / `project_feature_trees`；仅 `catalog_robot_id=test_analysis` 实例；与同实例 **用例生成**、**其它分析任务** 互斥（`feature_analysis_guard` / `analysis_instance_guard`）。
+
+```mermaid
+sequenceDiagram
+  participant UI as ProjectFeatureAnalysisView
+  participant API as project_feature_analysis
+  participant Bridge as feature_analysis_bridge
+  participant FE as FeatureExploreAgent
+  participant MS as midscene explore子进程
+
+  UI->>API: POST /runs（traverse_mode, max_screens, …）
+  API->>Bridge: 异步 execute_feature_analysis_run
+  Bridge->>FE: ExploreDispatch
+  FE->>MS: stdin JSON execution_mode=explore
+  MS-->>Bridge: JSONL explore_page / explore_feature / explore_metrics
+  Bridge-->>API: 增量写 feature_json、step_log
+  UI->>API: GET /runs/{id} 轮询
+  UI->>API: POST /runs/{id}/confirm（可取消/失败后若有功能点）
+  API-->>UI: project_feature_trees 新版本
+```
+
+| 项 | 说明 |
+|----|------|
+| 编排 | `agent_service/analysis_agent/feature_explore/agent.py` |
+| Web 适配 | `web/backend/app/services/feature_analysis_bridge.py` |
+| 路由 | `web/backend/app/routers/project_feature_analysis.py` |
+| 遍历实现 | `midscene_tech/src/explore.ts`（`explore_common` / `explore_snapshot` / `explore_nav` / `explore_traverse`） |
+| 默认策略 | **`hybrid`**：先广度扫 Tab/主导航（`bfs_max_depth` 默认 1），再深入页内；可选 `bfs`、`dfs` |
+| 环境默认 | `EXPLORE_TRAVERSE_MODE=hybrid`（可被任务体 `traverse_mode` 覆盖） |
+
+**遍历参数（创建任务 / `ExploreDispatch`）**
+
+| 参数 | 含义 |
+|------|------|
+| `max_screens` | 最多记录多少个**不同界面**（新页面指纹计 1）；达上限停止探索 |
+| `max_depth` | 从应用主界面起，导航路径最多**向下几层**（如 根→Tab→子页→再进一层 = 深度 3） |
+| `bfs_max_depth` | hybrid/bfs 下，前几层优先扫 Tab/底栏/侧栏，再点页内按钮 |
+| `traverse_mode` | `hybrid`（默认）\| `bfs` \| `dfs` |
+| `fair_share_per_root` | `0` 关闭；`-1` 按 `max_screens ÷ 一级 Tab 数` 为每分支分配界面预算；正数为每分支固定上限 |
+
+**确认保存**：`POST …/runs/{run_id}/confirm` 在任务状态为 `success` / `cancelled` / `failed` 且 `feature_json` 含功能点时均可提交；异常中断时 bridge 会尽量 `finalize` 已采集数据。前端工作台可编辑后写入 `project_feature_trees`。
+
+**与顶栏「功能清单探索」**：后者无项目归属、表 `app_explore_runs`；项目内入口为项目卡片「功能点分析」。
 
 ## 6. 外部依赖与环境变量
 
@@ -392,6 +468,8 @@ flowchart TB
 | `HDC_DEVICE_ID` / `HDC_HOME` | 鸿蒙默认 target / hdc 路径；用例页可覆盖 |
 | `MIDSCENE_DEVICE_PLATFORM` | CLI 覆盖平台：`android` \| `harmonyos` |
 | `MIDSCENE_AGENT_BACKEND` | Web 子进程覆盖：`autoglm` \| `midscene` |
+| `EXPLORE_TRAVERSE_MODE` | 功能遍历默认策略：`hybrid` \| `bfs` \| `dfs` |
+| `MIDSCENE_EXPLORE_STEP_TIMEOUT_SEC` | 功能点遍历单步 `aiAct`/`aiQuery` 超时（秒），默认 120 |
 | `MIDSCENE_REPLANNING_CYCLE_LIMIT` | Midscene 单步 `aiAct` 内部重规划上限（默认 20；复杂任务建议 40–60） |
 | `MIDSCENE_APP_NAME_MAP` | 可选：APP 显示名 → 包名/Ability（功能探索推荐 Web 直接选 bundle_id） |
 | `JWT_SECRET` / `TCM_SQLITE_PATH` | Web 认证与库路径 |
@@ -420,4 +498,4 @@ flowchart TB
 
 ## 8. 一句话小结
 
-**Vue 3 + FastAPI + SQLite** 管理用例与租用机器人实例；**测试分析机器人 Agent**（`CASE_GEN_*` + `analysis_agent`）负责用例草稿生成；**测试执行机器人 Agent** 在真机上跑用例，当前由 **`executor` 在 AutoGLM 与 Midscene 两条技术路线间二选一**；商城还可扩展其他功能定位（各立 Agent + 路由）。同一项目内先落库用例再发起 `run`，执行前可选 **Android/鸿蒙** 与 **目标终端**；前端轮询步骤日志、Midscene 报告与按终端投屏。详见 §1.0、§1.4。
+**Vue 3 + FastAPI + SQLite** 管理用例与租用机器人实例。**测试分析**实例承担 **用例生成**（`CASE_GEN_*`）与 **功能点分析**（Midscene explore → GIIC 功能树确认保存）两项能力；**测试执行**实例在真机上跑用例，由 **`executor` 在 AutoGLM 与 Midscene 间二选一**。同一项目内可先功能点分析、再生成/落库用例、再 `run`；执行与分析前可选 **Android/鸿蒙** 与 **目标终端**。详见 §1.0、§1.4、§4.6。

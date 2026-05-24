@@ -24,6 +24,7 @@
 |------|--------|--------|------------------|
 | 1. 项目准备 | 维护被测应用、测试目标等上下文，便于生成与 KB 检索 | 项目空间 | `/api/projects` |
 | 2. 用例生成 | 一句话描述 → LLM 产出草稿 → 人工核对 → **保存入库** | **测试分析**机器人实例（商城「测试分析」目录；**不连手机**） | 测试用例页「创建用例 → **自动生成**」；`POST /api/test-cases/generate`（仅草稿）、`POST /api/test-cases`（持久化）；可选 `POST /api/test-cases/convert-format` |
+| 2b. 功能点分析 | 选已安装/上传 App → 真机界面遍历 → 产出 GIIC 功能树 → 编辑 → **确认保存多版本** | **测试分析**机器人实例（**须连手机**；与用例生成、功能点分析任务互斥） | 项目空间「功能点分析」；`/api/projects/{id}/feature-analysis`；详见 [`ARCHITECTURE.md`](./ARCHITECTURE.md) §4.6 |
 | 3. 执行准备 | 租用并启动 **测试执行** 实例，选择 **AutoGLM 或 Midscene** 技术路线并配置默认平台；YAML 用例须 Midscene 路线 | **功能执行**等商城目录（实例即测试执行机器人） | 「我的机器人」；`PATCH /api/robot-instances/...` |
 | 4. 真机执行 | 选用例 → 选测试执行实例与（可选）本次 Android/鸿蒙 + 目标终端 → 发起运行 → 看日志 / 投屏 / 报告 | 测试执行实例 + ADB/HDC | 测试用例页「执行测试」；`POST /api/test-cases/{id}/run`、`GET /api/test-cases/runs/{id}` |
 
@@ -129,7 +130,8 @@ CASE_GEN_TIMEOUT_SEC=120
 | **数据聚合服务（进程内）** | `app/services/project_dashboard.py` | 从执行记录、`project_reports`、`defects` 等表组装项目看板 JSON（后续可拆独立数据服务） |
 | **测试用例与执行** | `/api/test-cases` | 结构化用例与 Midscene YAML；**测试分析**：`POST /generate`（可选 `case_format`）、`convert-format`；**测试执行**：`POST /{id}/run`（`robot_instance_id`、`device_platform`、`device_id`）→ `executor` 异步 Agent；`test_runs` 记录本次平台与终端 |
 | **已连接设备** | `/api/devices/connected` | 按平台枚举本机 ADB/HDC 在线设备（供用例页「目标终端」） |
-| **APP 功能清单探索** | `/api/app-explore` | Midscene + HDC DFS 遍历导航菜单；`GET /installed-apps`（`hdc shell bm dump -a`）；`POST /runs` 需 `bundle_id`；完成后导出 Excel |
+| **APP 功能清单探索** | `/api/app-explore` | 顶栏全局探索（与项目无关）；Midscene 遍历；`GET /installed-apps`；`POST /runs` 需 `bundle_id`；完成后导出 Excel |
+| **项目功能点分析** | `/api/projects/{id}/feature-analysis` | 测试分析实例 + 真机；`POST …/runs`（`traverse_mode`、`max_screens`、`max_depth`、`fair_share_per_root` 等）；实时 `step_log` / 投屏；`POST …/runs/{id}/confirm` 保存确认树（**成功 / 已取消 / 失败且已有功能点**均可）；多版本 `project_feature_trees` |
 | **知识库检索（用例）** | `/api/knowledge/cases/search` | 关键词检索扁平文本（可对接 Agent/RAG）；支持 `project_id` 与租户隔离 |
 | **RBAC 管理** | `/api/admin` | 平台管理员：用户列表、角色分配、角色字典 |
 | **数据看板** | `/api/dashboard` | 按角色返回全平台或租户范围的统计（含项目数、用例数、执行数） |
@@ -157,6 +159,7 @@ CASE_GEN_TIMEOUT_SEC=120
 | **运行监控大屏** | `/monitor`：仅 `platform_admin` / `tse`；WebSocket 实时指标；本地 **localhost** 开发时默认 **直连 `127.0.0.1:8000` WS**（不经 Vite，避免与 HMR WebSocket 冲突）；详见 `web/frontend/.env.example`（`VITE_WS_DIRECT` / `VITE_WS_HOST`） |
 | **用户与角色** | 仅 `platform_admin`：分配用户 RBAC 角色 |
 | **功能清单探索** | `/app-explore` | 选择 APP ID（bundleName）、Midscene 机器人实例；实时步骤日志与功能树预览；下载 Excel |
+| **项目功能点分析** | `/projects/:projectId/feature-analysis` | 选测试分析实例与 App；配置遍历策略（默认 **混合**）、最大界面数/深度、Tab 公平分配；分析中功能树 + 投屏；取消或中断后可确认保存已采集树；「功能树记录」查看历史版本 |
 
 构建与开发依赖：[`web/frontend/package.json`](./web/frontend/package.json)。
 
@@ -166,7 +169,7 @@ CASE_GEN_TIMEOUT_SEC=120
 
 - **模板**：复制仓库根目录 [`.env.example`](./.env.example) 为 `.env`，并按注释填写。`agent_service/func_agent` CLI 与 Web 后端执行链路均会加载该文件。
 - **前端**：可选复制 [`web/frontend/.env.example`](./web/frontend/.env.example)；开发一般留空，由 Vite 将 `/api` 代理到本地后端。
-- **变量说明**：以 `.env.example` 为准。模型侧常用 `BIGMODEL_API_KEY`（智谱 / AutoGLM）、`MIDSCENE_MODEL_*` / `DASHSCOPE_API_KEY`（千问）、`CASE_GEN_*`（用例 **AI 生成**，可与执行模型分离，如 DeepSeek `deepseek-v4-pro`）；设备侧 `ADB_DEVICE_ID`、`HDC_DEVICE_ID` 为可选兜底，**多机时建议在测试用例页选择目标终端**。
+- **变量说明**：以 `.env.example` 为准。模型侧常用 `BIGMODEL_API_KEY`（智谱 / AutoGLM）、`MIDSCENE_MODEL_*` / `DASHSCOPE_API_KEY`（千问）、`CASE_GEN_*`（用例 **AI 生成**，可与执行模型分离，如 DeepSeek `deepseek-v4-pro`）；功能点遍历可选 `EXPLORE_TRAVERSE_MODE`（`hybrid` \| `bfs` \| `dfs`）、`MIDSCENE_EXPLORE_STEP_TIMEOUT_SEC`；设备侧 `ADB_DEVICE_ID`、`HDC_DEVICE_ID` 为可选兜底，**多机时建议在测试用例页或功能点分析页选择目标终端**。
 
 ---
 

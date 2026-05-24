@@ -1,11 +1,11 @@
 # 项目功能点分析 — 设计说明
 
-**状态**：已对齐（讨论确认）  
-**日期**：2026-05-21
+**状态**：已实现（含 2026-05 遍历增强）  
+**日期**：2026-05-21（初版）；2026-05-24（混合遍历、公平预算、中断可确认）
 
 ## 1. 目标
 
-在项目空间内提供 **功能点分析**：上传/安装 App 或选择已安装 App，由 **测试分析类数字机器人实例** 在真机上做界面深度遍历，产出 **功能菜单树**；支持编辑、确认、**多版本持久化**，并在后续页面中 **查看历史** 与导出。
+在项目空间内提供 **功能点分析**：上传/安装 App 或选择已安装 App，由 **测试分析类数字机器人实例** 在真机上做界面遍历，产出 **GIIC 功能菜单树**；支持编辑、确认、**多版本持久化**，并在后续页面中 **查看历史** 与导出。默认 **混合遍历**（先 Tab/主导航，再页内深入）；取消或异常中断后，若已采集功能点仍可确认保存。
 
 ## 2. 已确认决策
 
@@ -14,6 +14,8 @@
 | 机器人 | **仅** `catalog_robot_id=test_analysis`（选项 B）；用户不选功能执行实例 |
 | 平台 | **双平台**：Android（ADB）+ 鸿蒙（HDC） |
 | 遍历引擎 | 对内固定 **Midscene explore**（`MIDSCENE_*`）；与 `CASE_GEN_*` 用例生成分离 |
+| 遍历策略 | 默认 **`hybrid`**；可选 `bfs`、`dfs`；环境变量 `EXPLORE_TRAVERSE_MODE` |
+| 中断保存 | `success` / `cancelled` / `failed` 且功能点非空时可 `confirm` |
 | 用例执行 | 分析实例 **仍禁止** `test_runs` 用例执行（`robot_run_guard` 不变） |
 | 功能树版本 | **多版保留**，按时间排序；不覆盖历史确认版 |
 | 确认后下游 | 第一期：**持久化 + 列表/详情查看 + 导出**；生成用例/任务下发为后续 |
@@ -59,6 +61,11 @@
 | app_artifact_id | 可选 FK project_app_artifacts |
 | bundle_id | package / bundleName |
 | app_display_name | 展示名 |
+| max_screens | 最多访问界面数，默认 30 |
+| max_depth | 导航路径最大深度，默认 4 |
+| traverse_mode | hybrid \| bfs \| dfs，默认 hybrid |
+| bfs_max_depth | 混合/广度优先层数，默认 1 |
+| fair_share_per_root | 0 关；-1 按 Tab 均分屏数；正数为每分支上限 |
 | status | pending \| running \| success \| failed \| cancelled |
 | feature_json | 原始树 JSON（遍历结果） |
 | step_log | 行级 JSON 事件（同 explore） |
@@ -98,7 +105,7 @@
 | GET | `/trees` | 已确认功能树列表（多版） |
 | GET | `/trees/{tree_id}` | 树详情（查看） |
 | PUT | `/trees/{tree_id}` | 更新确认版（可选：再编辑） |
-| POST | `/runs/{run_id}/confirm` | 提交编辑后树 → 写入 project_feature_trees |
+| POST | `/runs/{run_id}/confirm` | 提交编辑后树 → 写入 project_feature_trees（**不限 success**；须已结束且有功能点） |
 
 权限：与项目空间读/写一致（`project_scope_query` / owner）。
 
@@ -145,12 +152,21 @@
 | Agent/编排 | `agent_service/feature_analysis/` 或 `web/backend/app/services/feature_analysis_service.py` |
 | 路由 | `web/backend/app/routers/project_feature_analysis.py` |
 | 模型 | `web/backend/app/models.py` + `database.ensure_schema()` |
-| 遍历 | `midscene_tech/src/explore.ts`（P1 双平台） |
+| 遍历 | `midscene_tech/src/explore.ts` + `explore_traverse.ts` 等（hybrid/bfs/dfs；Android + 鸿蒙） |
 | 前端 | `ProjectFeatureAnalysisView.vue`、`ProjectFeatureAnalysisHistoryView.vue`、`ProjectFeatureTreeDetailView.vue` |
 | 文档 | `ARCHITECTURE.md`、`README.md` 增补一节 |
 
-## 9. 非目标（本期）
+## 9. 已实现增强（2026-05-24）
 
-- 不要求 AutoGLM 做 DFS 遍历
+| 项 | 说明 |
+|----|------|
+| 混合遍历 | `traverse_mode=hybrid`：frontier 队列 + LCA 导航；合并界面快照 LLM 调用 |
+| 观测 | `explore_metrics` 事件写入 `step_log`（LLM 次数、返回次数、耗时） |
+| 公平预算 | `fair_share_per_root=-1` 时按一级 Tab 均分 `max_screens` |
+| 部分结果确认 | 取消/失败/异常后 `confirm`；bridge 异常时 finalize 已有 `feature_json` |
+
+## 10. 非目标（仍适用）
+
+- 不要求 AutoGLM 做界面遍历
 - 不改为测试执行实例驱动项目内功能点分析
-- 不自动覆盖旧版确认树
+- 不自动覆盖旧版确认树（多版本保留）

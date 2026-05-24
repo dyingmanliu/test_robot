@@ -16,6 +16,9 @@ class ExploreDispatch:
     bundle_id: str
     max_screens: int = 30
     max_depth: int = 4
+    traverse_mode: str = "hybrid"
+    bfs_max_depth: int = 1
+    fair_share_per_root: int = 0
     run_id: int | None = None
     robot_instance_id: int | None = None
 
@@ -32,6 +35,9 @@ class ExploreDispatch:
             "bundle_id": self.bundle_id,
             "max_screens": self.max_screens,
             "max_depth": self.max_depth,
+            "traverse_mode": self.traverse_mode,
+            "bfs_max_depth": self.bfs_max_depth,
+            "fair_share_per_root": self.fair_share_per_root,
         }
 
 

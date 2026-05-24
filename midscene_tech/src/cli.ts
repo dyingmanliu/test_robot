@@ -176,12 +176,19 @@ async function main(): Promise<number> {
     const maxScreens = webPayload?.max_screens ?? numOpt(values['max-screens'], 30);
     const maxDepth = webPayload?.max_depth ?? numOpt(values['max-depth'], 4);
 
+    const traverseMode = (webPayload?.traverse_mode as string | undefined)?.trim();
+    const bfsMaxDepth = webPayload?.bfs_max_depth;
+    const fairSharePerRoot = webPayload?.fair_share_per_root;
+
     const exploreOutcome = await runAppFeatureExplore({
       appName: appName || bundleId || 'APP',
       bundleId: bundleId || undefined,
       devicePlatform,
       maxScreens,
       maxDepth,
+      traverseMode: traverseMode as 'dfs' | 'bfs' | 'hybrid' | undefined,
+      bfsMaxDepth: bfsMaxDepth ?? undefined,
+      fairSharePerRoot: fairSharePerRoot ?? undefined,
       deviceId: resolvedDeviceId,
       hdcHome,
       machineOut,

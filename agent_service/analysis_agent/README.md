@@ -5,7 +5,7 @@
 | 能力 | 模块 | 设备 | 环境变量 |
 |------|------|------|----------|
 | 用例自动生成 | `agent.py` → `AnalysisAgent` | 否 | `CASE_GEN_*` |
-| 功能点 / 功能菜单树遍历 | `feature_explore/` → `FeatureExploreAgent` | 是（Midscene） | `MIDSCENE_*` |
+| 功能点 / 功能菜单树遍历 | `feature_explore/` → `FeatureExploreAgent` | 是（Midscene） | `MIDSCENE_*`；默认 **hybrid** 遍历（`traverse_mode` / `EXPLORE_TRAVERSE_MODE`） |
 
 用例生成与 `autoglm_phone_tech`（测试执行）分离；功能点遍历通过 **Midscene explore 子进程**（`midscene_tech/src/explore.ts`）操作真机，由 Web 适配层 `feature_analysis_bridge.py` 持久化任务与日志。
 
@@ -16,9 +16,11 @@
 ```
 agent_service/analysis_agent/
   agent.py              # AnalysisAgent — 用例生成
-  feature_explore/      # FeatureExploreAgent — 功能树 DFS 编排
+  feature_explore/      # FeatureExploreAgent — 功能树遍历（默认 hybrid）
+    README.md
     agent.py
     types.py
+    tree_build.py
   types.py              # ProjectContext / CaseDraft / CaseStep
   errors.py
   config/               # CASE_GEN_* 环境变量、系统提示
@@ -54,3 +56,4 @@ draft = agent.generate_case_draft(
 
 - 用例生成适配层：`web/backend/app/services/case_generation.py`；格式互见 `case_format_convert.py` 与 `POST /api/test-cases/convert-format`。
 - 功能点分析适配层：`web/backend/app/services/feature_analysis_bridge.py`；API 前缀 `/api/projects/{id}/feature-analysis`。
+- 功能点遍历参数与事件说明：[`feature_explore/README.md`](./feature_explore/README.md)。

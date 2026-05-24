@@ -2,6 +2,8 @@
  * Midscene 模型调用日志（stderr + 可选 JSONL model_usage 供 Web 后端解析）。
  */
 
+import type { ExploreMetrics } from './explore_metrics.js';
+
 export interface ModelUsagePayload {
   kind: 'model_usage';
   op: 'aiQuery' | 'aiAct';
@@ -46,11 +48,14 @@ export async function logModelCall<T>(
     promptHint?: string;
     /** 从结果提取 completion 文本以估算 token */
     resultToText?: (result: T) => string;
+    /** 功能遍历观测 */
+    metrics?: ExploreMetrics;
   } = {},
 ): Promise<T> {
   const t0 = Date.now();
   try {
     const result = await fn();
+    options.metrics?.onLlm(op);
     const duration_ms = Date.now() - t0;
     const completionText = options.resultToText
       ? options.resultToText(result)

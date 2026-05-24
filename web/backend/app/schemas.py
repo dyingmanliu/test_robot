@@ -742,6 +742,22 @@ class FeatureAnalysisRunCreate(BaseModel):
     platform_app_text: str = Field(default="", max_length=256)
     max_screens: int = Field(default=30, ge=5, le=80)
     max_depth: int = Field(default=4, ge=1, le=10)
+    traverse_mode: Literal["dfs", "bfs", "hybrid"] = Field(
+        default="hybrid",
+        description="遍历策略：混合（默认）/ 广度 / 深度",
+    )
+    bfs_max_depth: int = Field(
+        default=1,
+        ge=0,
+        le=5,
+        description="hybrid/bfs 下优先广度扫描的层级深度",
+    )
+    fair_share_per_root: int = Field(
+        default=0,
+        ge=-1,
+        le=80,
+        description="每级 Tab 分支界面预算；0=关闭，-1=按 max_screens/一级入口自动分配",
+    )
 
 
 class FeatureAnalysisRunOut(BaseModel):
@@ -757,6 +773,9 @@ class FeatureAnalysisRunOut(BaseModel):
     app_display_name: str
     max_screens: int
     max_depth: int
+    traverse_mode: str = "hybrid"
+    bfs_max_depth: int = 1
+    fair_share_per_root: int = 0
     status: str
     feature_count: int
     screens_visited: int

@@ -10,7 +10,8 @@
     "explore": "tsx src/cli.ts --explore",
     "demo": "tsx scripts/demo-settings.ts",
     "playground": "npx --yes @midscene/harmony-playground",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test src/explore_common.test.ts"
   },
   "engines": {
     "node": ">=18"
