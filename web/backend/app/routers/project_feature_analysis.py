@@ -159,23 +159,65 @@ def _sync_run_app_display_name(
         db.add(run)
 
 
-def _next_version_label(db: Session, project_id: int, current: str) -> str:
-    """编辑保存时递增版本号：v1 → v2；非 vN 格式则取项目内最大 v 序号 +1。"""
+def _max_v_label_number(labels: list[str | None]) -> int:
+    max_n = 0
+    for lbl in labels:
+        mm = re.match(r"^v(\d+)$", (lbl or "").strip(), re.IGNORECASE)
+        if mm:
+            max_n = max(max_n, int(mm.group(1)))
+    return max_n
+
+
+def _version_labels_for_same_app(
+    db: Session, project_id: int, run: ProjectFeatureAnalysisRun
+) -> list[str | None]:
+    """同一项目、同一应用（bundle_id 优先，否则 app_display_name）下已有确认树的版本标签。"""
+    bundle = (run.bundle_id or "").strip().lower()
+    app_name = (run.app_display_name or "").strip()
+    q = (
+        db.query(ProjectFeatureTree.version_label)
+        .join(
+            ProjectFeatureAnalysisRun,
+            ProjectFeatureTree.run_id == ProjectFeatureAnalysisRun.id,
+        )
+        .filter(ProjectFeatureTree.project_id == project_id)
+    )
+    if bundle:
+        q = q.filter(func.lower(ProjectFeatureAnalysisRun.bundle_id) == bundle)
+    elif app_name:
+        q = q.filter(ProjectFeatureAnalysisRun.app_display_name == app_name)
+    # else: 无 bundle / 显示名时按项目内全部树计序号
+    return [lbl for (lbl,) in q.all()]
+
+
+def _default_version_label_for_app(
+    db: Session, project_id: int, run: ProjectFeatureAnalysisRun
+) -> str:
+    """新确认保存的默认版本：该应用下已有 vN 的最大值 +1，无记录则为 v1。"""
+    labels = _version_labels_for_same_app(db, project_id, run)
+    return f"v{_max_v_label_number(labels) + 1}"
+
+
+def _next_version_label(
+    db: Session,
+    project_id: int,
+    current: str,
+    *,
+    run: ProjectFeatureAnalysisRun | None = None,
+) -> str:
+    """编辑保存时递增：v1 → v2；非 vN 格式则按同应用已有 v 序号 +1。"""
     cur = (current or "").strip()
     m = re.match(r"^v(\d+)$", cur, re.IGNORECASE)
     if m:
         return f"v{int(m.group(1)) + 1}"
+    if run is not None:
+        return _default_version_label_for_app(db, project_id, run)
     rows = (
         db.query(ProjectFeatureTree.version_label)
         .filter(ProjectFeatureTree.project_id == project_id)
         .all()
     )
-    max_n = 0
-    for (lbl,) in rows:
-        mm = re.match(r"^v(\d+)$", (lbl or "").strip(), re.IGNORECASE)
-        if mm:
-            max_n = max(max_n, int(mm.group(1)))
-    return f"v{max_n + 1}"
+    return f"v{_max_v_label_number([lbl for (lbl,) in rows]) + 1}"
 
 
 def _feature_tree_out(
@@ -576,13 +618,9 @@ def confirm_feature_tree(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="分析任务不存在")
     _assert_run_confirmable(run, body.tree_json)
 
-    n = (
-        db.query(func.count(ProjectFeatureTree.id))
-        .filter(ProjectFeatureTree.project_id == project_id)
-        .scalar()
-        or 0
+    label = (body.version_label or "").strip() or _default_version_label_for_app(
+        db, project_id, run
     )
-    label = (body.version_label or "").strip() or f"v{int(n) + 1}"
 
     from agent_service.analysis_agent.feature_explore.tree_build import sync_giic_tree_from_features
 
@@ -712,7 +750,9 @@ def update_feature_tree(
     normalized = sync_giic_tree_from_features(dict(body.tree_json))
     t.tree_json = json.dumps(normalized, ensure_ascii=False)
     if body.bump_version:
-        t.version_label = _next_version_label(db, project_id, t.version_label)[:64]
+        t.version_label = _next_version_label(
+            db, project_id, t.version_label, run=run
+        )[:64]
         t.confirmed_at = datetime.utcnow()
     elif body.version_label.strip():
         t.version_label = body.version_label.strip()[:64]
