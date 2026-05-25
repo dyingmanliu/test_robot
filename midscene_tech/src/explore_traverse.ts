@@ -6,6 +6,7 @@ import { scopedTapTask } from './app_scope.js';
 import { isOffAppScreenTitle } from './app_scope.js';
 import {
   filterNavItemsForScreen,
+  filterNavItemsForTap,
   frontierPriority,
   inferHasSubPages,
   pathKey,
@@ -169,7 +170,7 @@ function scheduleChildrenOnFrontier(
   parentId: string | undefined,
   ctx: TraverseEngineCtx,
 ): void {
-  const clickable = [...items]
+  const clickable = filterNavItemsForTap(items, parentPath, parentDepth)
     .filter((i) => i.clickable !== false)
     .sort((a, b) => regionRank(a) - regionRank(b));
 
@@ -199,7 +200,7 @@ export async function runFrontierTraverse(
   ctx.fairShareState.budget = createFairShareBudget(
     ctx.fairSharePerRoot,
     ctx.maxScreens,
-    rootItems,
+    filterNavItemsForTap(rootSnap.nav_items, [], 0),
     ctx.traverseMode,
     ctx.bfsMaxDepth,
   );

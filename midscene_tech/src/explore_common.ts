@@ -15,23 +15,34 @@ const NAV_REGIONS = new Set([
   'side',
   'left',
   'right',
+  'search_bar',
+  'search',
+  'search_box',
   'button',
   'tab',
   'list_item',
 ]);
+
+const SEARCH_REGIONS = new Set(['search_bar', 'search', 'search_box', 'search_input']);
+
+/** 搜索框功能点固定展示名（不用占位文案/热搜词） */
+export const SEARCH_FEATURE_LABEL = '搜索框';
 
 export const REGION_RANK: Record<string, number> = {
   bottom_tab: 0,
   bottom: 0,
   top_tab: 1,
   top: 1,
-  side: 2,
-  left: 3,
-  right: 3,
-  button: 4,
-  tab: 4,
-  list_item: 5,
-  other: 6,
+  search_bar: 2,
+  search: 2,
+  search_box: 2,
+  side: 3,
+  left: 4,
+  right: 4,
+  button: 5,
+  tab: 5,
+  list_item: 6,
+  other: 7,
 };
 
 const TAB_REGIONS = new Set(['bottom_tab', 'bottom', 'top_tab', 'top', 'side', 'tab']);
@@ -53,12 +64,37 @@ const AUTO_TAP_BLOCKLIST = new Set(
   ].map((s) => s.toLowerCase()),
 );
 
+export function isSearchItem(item: NavItem): boolean {
+  const r = (item.region || 'other').toLowerCase();
+  if (SEARCH_REGIONS.has(r)) return true;
+  const name = item.name.trim();
+  if (!name) return false;
+  if (name === SEARCH_FEATURE_LABEL) return true;
+  if (/搜索框|搜一搜|^搜索$|search\s*box/i.test(name)) return true;
+  return false;
+}
+
+/** 搜索框统一名称与 region，避免占位/热搜文案进入功能树 */
+export function canonicalizeSearchNavItem(item: NavItem): NavItem {
+  if (!isSearchItem(item)) return item;
+  return {
+    ...item,
+    name: SEARCH_FEATURE_LABEL,
+    region: 'search_bar',
+  };
+}
+
 function isNavigationItem(item: NavItem): boolean {
   const r = (item.region || 'other').toLowerCase();
   if (r === 'list' || r === 'content' || r === 'row') return false;
   if (NAV_REGIONS.has(r)) return true;
   if (r === 'other' && item.name.length <= 12) return true;
   return false;
+}
+
+/** 可记入功能树的功能入口（含搜索框，搜索框不参与自动点击遍历） */
+export function isFeatureItem(item: NavItem): boolean {
+  return isNavigationItem(item) || isSearchItem(item);
 }
 
 export function normalizeNavItems(raw: unknown): NavItem[] {
@@ -78,7 +114,7 @@ export function normalizeNavItems(raw: unknown): NavItem[] {
       const region = o.region != null ? String(o.region).trim() : 'other';
       const clickable =
         o.clickable === undefined ? true : Boolean(o.clickable);
-      out.push({ name, region, clickable });
+      out.push(canonicalizeSearchNavItem({ name, region, clickable }));
     }
   }
   const seen = new Set<string>();
@@ -86,7 +122,7 @@ export function normalizeNavItems(raw: unknown): NavItem[] {
     const k = n.name.toLowerCase();
     if (seen.has(k)) return false;
     seen.add(k);
-    return isNavigationItem(n);
+    return isFeatureItem(n);
   });
 }
 
@@ -136,7 +172,7 @@ export function filterNavItemsForScreen(
 ): NavItem[] {
   const inPath = new Set(path.map((p) => p.trim().toLowerCase()));
   return items.filter((item) => {
-    if (!isNavigationItem(item)) return false;
+    if (!isFeatureItem(item)) return false;
     const name = item.name.trim();
     if (!name) return false;
     if (isBlockedTapName(name)) return false;
@@ -149,6 +185,17 @@ export function filterNavItemsForScreen(
     }
     return true;
   });
+}
+
+/** 参与自动点击/队列的入口（排除搜索框，避免误入搜索页） */
+export function filterNavItemsForTap(
+  items: NavItem[],
+  path: string[],
+  depth: number,
+): NavItem[] {
+  return filterNavItemsForScreen(items, path, depth).filter(
+    (item) => !isSearchItem(item),
+  );
 }
 
 export function regionRank(item: NavItem): number {
@@ -174,6 +221,7 @@ export function shouldEnqueueTap(
   bfsMaxDepth: number,
 ): boolean {
   if (item.clickable === false) return false;
+  if (isSearchItem(item)) return false;
   const r = (item.region || 'other').toLowerCase();
 
   if (mode === 'bfs') return true;

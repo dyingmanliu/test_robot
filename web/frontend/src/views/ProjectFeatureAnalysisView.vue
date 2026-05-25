@@ -315,7 +315,7 @@
         :mirror-active="screenMirrorActive"
       />
       <details v-if="liveLogEntries.length" class="log-fold">
-        <summary class="muted small">探索步骤日志（{{ liveLogEntries.length }} 条）</summary>
+        <summary class="muted small">分析步骤日志（{{ liveLogEntries.length }} 条）</summary>
         <div ref="liveLogScrollRef" class="exec-log-scroll compact">
           <div class="fa-log-list">
             <div

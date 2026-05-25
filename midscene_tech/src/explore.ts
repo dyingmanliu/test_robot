@@ -20,7 +20,9 @@ import {
   DEFAULT_MAX_SCREENS,
   DEFAULT_MAX_TAPS,
   DEFAULT_BFS_MAX_DEPTH,
+  canonicalizeSearchNavItem,
   filterNavItemsForScreen,
+  filterNavItemsForTap,
   inferHasSubPages,
   parseTraverseMode,
   regionRank,
@@ -134,7 +136,8 @@ export async function runAppFeatureExplore(
     status: FeatureEntry['status'],
     parentId?: string,
   ): FeatureEntry => {
-    const key = fullPathKey(path, item.name);
+    const nav = canonicalizeSearchNavItem(item);
+    const key = fullPathKey(path, nav.name);
     const existing = featureByKey.get(key);
     if (existing) {
       if (status === 'visited') {
@@ -146,10 +149,10 @@ export async function runAppFeatureExplore(
     featureSeq += 1;
     const entry: FeatureEntry = {
       id: String(featureSeq),
-      name: item.name,
-      path: [...path, item.name],
+      name: nav.name,
+      path: [...path, nav.name],
       depth: path.length + 1,
-      region: item.region,
+      region: nav.region,
       screen_title: screenTitle,
       status,
       parent_id: parentId,
@@ -542,7 +545,7 @@ export async function runAppFeatureExplore(
         fairShareState.budget = createFairShareBudget(
           fairSharePerRoot,
           maxScreens,
-          items,
+          filterNavItemsForTap(snapshot.nav_items, path, depth),
           traverseMode,
           bfsMaxDepth,
         );
@@ -559,7 +562,9 @@ export async function runAppFeatureExplore(
         upsertFeature(item, path, depth, screenTitle, 'listed', parentId);
       }
 
-      const clickable = items.filter((i) => i.clickable !== false);
+      const clickable = filterNavItemsForTap(snapshot.nav_items, path, depth).filter(
+        (i) => i.clickable !== false,
+      );
       const dfsOrder = [...clickable].sort(
         (a, b) => regionRank(a) - regionRank(b) || a.name.localeCompare(b.name, 'zh'),
       );

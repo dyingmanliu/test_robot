@@ -20,10 +20,11 @@ function buildSnapshotPrompt(appName: string): string {
     `{screen_title: string, nav_items: {name: string, region: string, clickable: boolean}[], has_sub_pages: boolean}, ` +
     `仅在「${appName}」应用当前界面扫描（GIIC）：` +
     'screen_title 为简短中文页面标题（不超过20字）；' +
-    'nav_items 列出顶部/底部 Tab、侧栏、工具栏与页面内可点按钮；' +
+    'nav_items 列出顶部/底部 Tab、侧栏、工具栏、页面内可点按钮，以及顶部/标题栏的搜索框（含占位文案）；' +
     'has_sub_pages 表示除主 Tab 切换外是否还有可进入的子页面/子菜单；' +
     '若不在该应用内返回 nav_items=[]、has_sub_pages=false。' +
-    '不要编造；region 取 top_tab|bottom_tab|side|button|tab|list_item|other；' +
+    '不要编造；region 取 top_tab|bottom_tab|side|search_bar|button|tab|list_item|other；' +
+    '搜索框 name 固定为「搜索框」（禁止用框内占位文案/热搜词），region 必须为 search_bar；' +
     '不要包含关闭/取消/跳过或纯展示正文。'
   );
 }
@@ -89,7 +90,7 @@ async function queryScreenSnapshotFallback(
 
   const navPrompt =
     `{name: string, region: string, clickable: boolean}[], 仅在「${appName}」列出功能入口；` +
-    'region 取 top_tab|bottom_tab|side|button|tab|list_item|other';
+    '含顶部搜索框（region=search_bar）；region 取 top_tab|bottom_tab|side|search_bar|button|tab|list_item|other';
   let nav_items: NavItem[] = [];
   try {
     const raw = await logModelCall(

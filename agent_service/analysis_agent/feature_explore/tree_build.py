@@ -4,6 +4,18 @@ from __future__ import annotations
 
 from typing import Any
 
+SEARCH_FEATURE_LABEL = "搜索框"
+SEARCH_REGIONS = frozenset({"search_bar", "search", "search_box", "search_input"})
+
+
+def _is_search_feature(feat: dict[str, Any]) -> bool:
+    region = str(feat.get("region") or "other").lower()
+    if region in SEARCH_REGIONS:
+        return True
+    name = str(feat.get("name") or "").strip()
+    return name == SEARCH_FEATURE_LABEL or "搜索框" in name or name in ("搜索", "搜一搜")
+
+
 REGION_TO_FUNCTION_TYPE = {
     "top_tab": "顶部Tab",
     "bottom_tab": "底部Tab",
@@ -13,6 +25,9 @@ REGION_TO_FUNCTION_TYPE = {
     "button": "按钮",
     "tab": "Tab",
     "list_item": "列表项",
+    "search_bar": "搜索框",
+    "search": "搜索框",
+    "search_box": "搜索框",
     "other": "其他控件",
 }
 
@@ -57,9 +72,21 @@ def _enrich_feature(raw: dict[str, Any]) -> dict[str, Any]:
             f"所在界面：{screen or '—'}；控件类型：{ft}；"
             f"{'已深度访问' if feat.get('status') == 'visited' else '本页已识别'}"
         )
-    loc = str(feat.get("location") or "").strip()
-    if not loc:
-        feat["location"] = f"{' > '.join(path)} @ {screen}" if screen else " > ".join(path)
+    if _is_search_feature(feat):
+        feat["name"] = SEARCH_FEATURE_LABEL
+        feat["region"] = "search_bar"
+        if path:
+            path[-1] = SEARCH_FEATURE_LABEL
+            feat["path"] = path
+        else:
+            feat["path"] = [SEARCH_FEATURE_LABEL]
+        feat["location"] = SEARCH_FEATURE_LABEL
+    else:
+        loc = str(feat.get("location") or "").strip()
+        if not loc:
+            feat["location"] = (
+                f"{' > '.join(path)} @ {screen}" if screen else " > ".join(path)
+            )
     return feat
 
 

@@ -2,6 +2,7 @@
  * 将 DFS 扁平功能点列表组装为 GIIC 功能完备度分析用的层级功能树。
  */
 
+import { SEARCH_FEATURE_LABEL, isSearchItem } from './explore_common.js';
 import type { FeatureEntry, FunctionTreeNode, ScreenRecord } from './explore_types.js';
 
 const REGION_TO_FUNCTION_TYPE: Record<string, string> = {
@@ -12,6 +13,9 @@ const REGION_TO_FUNCTION_TYPE: Record<string, string> = {
   side: '侧栏',
   left: '左侧入口',
   right: '右侧入口',
+  search_bar: '搜索框',
+  search: '搜索框',
+  search_box: '搜索框',
   button: '按钮',
   tab: 'Tab',
   list_item: '列表项',
@@ -33,7 +37,16 @@ export function buildFeatureDescription(feat: FeatureEntry): string {
   return parts.join('；');
 }
 
+function isSearchFeature(feat: FeatureEntry): boolean {
+  return isSearchItem({
+    name: feat.name,
+    region: feat.region,
+    clickable: true,
+  });
+}
+
 export function buildLocationInfo(feat: FeatureEntry): string {
+  if (isSearchFeature(feat)) return SEARCH_FEATURE_LABEL;
   const path = (feat.path || []).join(' > ');
   const screen = feat.screen_title || '';
   if (path && screen) return `${path} @ ${screen}`;
@@ -42,11 +55,23 @@ export function buildLocationInfo(feat: FeatureEntry): string {
 
 /** 为单条功能点补充 GIIC 对齐字段 */
 export function enrichFeatureGiicFields(feat: FeatureEntry): FeatureEntry {
+  let normalized = feat;
+  if (isSearchFeature(feat)) {
+    const path = [...(feat.path || [])];
+    if (path.length) path[path.length - 1] = SEARCH_FEATURE_LABEL;
+    else path.push(SEARCH_FEATURE_LABEL);
+    normalized = {
+      ...feat,
+      name: SEARCH_FEATURE_LABEL,
+      region: 'search_bar',
+      path,
+    };
+  }
   return {
-    ...feat,
-    function_type: regionToFunctionType(feat.region),
-    description: buildFeatureDescription(feat),
-    location: buildLocationInfo(feat),
+    ...normalized,
+    function_type: regionToFunctionType(normalized.region),
+    description: buildFeatureDescription(normalized),
+    location: buildLocationInfo(normalized),
   };
 }
 

@@ -8,6 +8,10 @@ import { describe, it } from 'node:test';
 
 import {
   longestCommonPrefix,
+  SEARCH_FEATURE_LABEL,
+  canonicalizeSearchNavItem,
+  isSearchItem,
+  normalizeNavItems,
   shouldEnqueueTap,
   frontierPriority,
 } from './explore_common.js';
@@ -17,6 +21,36 @@ describe('longestCommonPrefix', () => {
     assert.equal(longestCommonPrefix(['首页', '设置'], ['首页', '我的']), 1);
     assert.equal(longestCommonPrefix([], ['a']), 0);
     assert.equal(longestCommonPrefix(['a', 'b'], ['a', 'b']), 2);
+  });
+});
+
+describe('isSearchItem', () => {
+  it('detects search_bar region', () => {
+    assert.equal(
+      isSearchItem({ name: '搜索框', region: 'search_bar' }),
+      true,
+    );
+  });
+});
+
+describe('normalizeNavItems keeps search bar', () => {
+  it('retains search_bar in feature list', () => {
+    const items = normalizeNavItems([
+      { name: '搜索框', region: 'search_bar', clickable: true },
+      { name: '首页', region: 'bottom_tab', clickable: true },
+    ]);
+    assert.equal(items.length, 2);
+    assert.ok(items.some((i) => i.region === 'search_bar'));
+  });
+
+  it('canonicalizes placeholder text to 搜索框', () => {
+    const item = canonicalizeSearchNavItem({
+      name: '爆矿247人下井仅记录124人 | 矿难',
+      region: 'search_bar',
+      clickable: true,
+    });
+    assert.equal(item.name, SEARCH_FEATURE_LABEL);
+    assert.equal(item.region, 'search_bar');
   });
 });
 
@@ -36,6 +70,13 @@ describe('shouldEnqueueTap hybrid', () => {
     assert.equal(
       shouldEnqueueTap('hybrid', 1, { name: '设置', region: 'button' }, 1),
       true,
+    );
+  });
+
+  it('does not enqueue search bar', () => {
+    assert.equal(
+      shouldEnqueueTap('hybrid', 0, { name: '搜索框', region: 'search_bar' }, 1),
+      false,
     );
   });
 });
