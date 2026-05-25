@@ -1,31 +1,78 @@
 from __future__ import annotations
 
+import logging
 import os
-from pathlib import Path
 
-from sqlalchemy import create_engine, inspect, text
+from sqlalchemy import create_engine, event, inspect, text
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-# Resolve repo root (parent of web/)
-_REPO_ROOT = Path(__file__).resolve().parents[3]
-_DB_PATH = os.getenv("TCM_SQLITE_PATH", str(_REPO_ROOT / "web" / "backend" / "data" / "tcm.db"))
-os.makedirs(os.path.dirname(_DB_PATH), exist_ok=True)
+_log = logging.getLogger(__name__)
 
-engine = create_engine(
-    f"sqlite:///{_DB_PATH}",
-    connect_args={"check_same_thread": False},
-)
+
+def _resolve_database_url() -> str:
+    url = (os.getenv("DATABASE_URL") or os.getenv("TCM_DATABASE_URL") or "").strip()
+    if not url:
+        raise RuntimeError(
+            "请设置 DATABASE_URL 或 TCM_DATABASE_URL，例如 "
+            "mysql+pymysql://tcm:tcm@127.0.0.1:3306/tcm?charset=utf8mb4"
+        )
+    return url
+
+
+def _int_env(name: str, default: int) -> int:
+    raw = os.getenv(name, "").strip()
+    if not raw:
+        return default
+    try:
+        return int(raw)
+    except ValueError:
+        _log.warning("环境变量 %s=%r 无效，使用默认值 %s", name, raw, default)
+        return default
+
+
+def _build_engine() -> Engine:
+    url = _resolve_database_url()
+    kwargs: dict = {
+        "echo": os.getenv("LOG_SQL", "").strip().lower() in ("1", "true", "yes"),
+        "pool_pre_ping": True,
+        "pool_recycle": 3600,
+        "pool_size": _int_env("TCM_DB_POOL_SIZE", 10),
+        "max_overflow": _int_env("TCM_DB_MAX_OVERFLOW", 20),
+    }
+    eng = create_engine(url, **kwargs)
+
+    @event.listens_for(eng, "connect")
+    def _set_mysql_session(dbapi_connection, _connection_record) -> None:
+        cursor = dbapi_connection.cursor()
+        try:
+            cursor.execute("SET time_zone = '+00:00'")
+        finally:
+            cursor.close()
+
+    safe_url = url.split("@")[-1] if "@" in url else url
+    _log.info("数据库连接：%s", safe_url)
+    return eng
+
+
+engine = _build_engine()
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 
-def ensure_schema() -> None:
-    """Adds columns introduced after first deploy (SQLite has no IF NOT EXISTS for columns)."""
+def check_database_connection() -> None:
+    with engine.connect() as conn:
+        conn.execute(text("SELECT 1"))
+
+
+def ensure_schema(eng: Engine | None = None) -> None:
+    """Adds columns introduced after first deploy (legacy DBs may lack newer columns)."""
+    db_engine = eng or engine
     try:
-        inspector = inspect(engine)
+        inspector = inspect(db_engine)
         if inspector.has_table("users"):
             cols = {c["name"] for c in inspector.get_columns("users")}
-            with engine.begin() as conn:
+            with db_engine.begin() as conn:
                 if "phone" not in cols:
                     conn.execute(text("ALTER TABLE users ADD COLUMN phone VARCHAR(20)"))
                 if "email" not in cols:
@@ -38,13 +85,13 @@ def ensure_schema() -> None:
                     conn.execute(text("ALTER TABLE users ADD COLUMN company VARCHAR(128)"))
                 if "role" not in cols:
                     conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(32) DEFAULT 'enterprise'"))
-            cols_after = {c["name"] for c in inspect(engine).get_columns("users")}
+            cols_after = {c["name"] for c in inspect(db_engine).get_columns("users")}
             if "role" in cols_after:
-                with engine.begin() as conn:
+                with db_engine.begin() as conn:
                     conn.execute(text("UPDATE users SET role = 'enterprise' WHERE role IS NULL OR TRIM(role) = ''"))
         if inspector.has_table("test_cases"):
             tc_cols = {c["name"] for c in inspector.get_columns("test_cases")}
-            with engine.begin() as conn:
+            with db_engine.begin() as conn:
                 if "project_id" not in tc_cols:
                     conn.execute(text("ALTER TABLE test_cases ADD COLUMN project_id INTEGER"))
                 if "preconditions" not in tc_cols:
@@ -63,7 +110,7 @@ def ensure_schema() -> None:
                     conn.execute(text("ALTER TABLE test_cases ADD COLUMN case_yaml TEXT DEFAULT ''"))
         if inspector.has_table("test_case_revisions"):
             rev_cols = {c["name"] for c in inspector.get_columns("test_case_revisions")}
-            with engine.begin() as conn:
+            with db_engine.begin() as conn:
                 if "case_format" not in rev_cols:
                     conn.execute(
                         text(
@@ -75,37 +122,37 @@ def ensure_schema() -> None:
         if inspector.has_table("test_runs"):
             cols = {c["name"] for c in inspector.get_columns("test_runs")}
             if "step_log" not in cols:
-                with engine.begin() as conn:
+                with db_engine.begin() as conn:
                     conn.execute(text("ALTER TABLE test_runs ADD COLUMN step_log TEXT"))
             if "robot_instance_id" not in cols:
-                with engine.begin() as conn:
+                with db_engine.begin() as conn:
                     conn.execute(text("ALTER TABLE test_runs ADD COLUMN robot_instance_id INTEGER"))
             if "report_path" not in cols:
-                with engine.begin() as conn:
+                with db_engine.begin() as conn:
                     conn.execute(text("ALTER TABLE test_runs ADD COLUMN report_path TEXT"))
             cols = {c["name"] for c in inspector.get_columns("test_runs")}
             if "device_platform" not in cols:
-                with engine.begin() as conn:
+                with db_engine.begin() as conn:
                     conn.execute(
                         text("ALTER TABLE test_runs ADD COLUMN device_platform VARCHAR(32)")
                     )
             cols = {c["name"] for c in inspector.get_columns("test_runs")}
             if "device_id" not in cols:
-                with engine.begin() as conn:
+                with db_engine.begin() as conn:
                     conn.execute(text("ALTER TABLE test_runs ADD COLUMN device_id VARCHAR(256)"))
         if inspector.has_table("users"):
             ucols = {c["name"] for c in inspector.get_columns("users")}
-            with engine.begin() as conn:
+            with db_engine.begin() as conn:
                 if "company_id" not in ucols:
                     conn.execute(text("ALTER TABLE users ADD COLUMN company_id INTEGER"))
         if inspector.has_table("robot_rental_orders"):
             rcols = {c["name"] for c in inspector.get_columns("robot_rental_orders")}
-            with engine.begin() as conn:
+            with db_engine.begin() as conn:
                 if "company_id" not in rcols:
                     conn.execute(text("ALTER TABLE robot_rental_orders ADD COLUMN company_id INTEGER"))
         if inspector.has_table("robot_instances"):
             ricols = {c["name"] for c in inspector.get_columns("robot_instances")}
-            with engine.begin() as conn:
+            with db_engine.begin() as conn:
                 if "company_id" not in ricols:
                     conn.execute(text("ALTER TABLE robot_instances ADD COLUMN company_id INTEGER"))
                 if "test_agent_backend" not in ricols:
@@ -139,31 +186,32 @@ def ensure_schema() -> None:
                             "WHERE device_platform IS NULL OR TRIM(device_platform) = ''"
                         )
                     )
-                if inspector.has_table("project_feature_analysis_runs"):
-                    fa_cols = {c["name"] for c in inspector.get_columns("project_feature_analysis_runs")}
-                    if "traverse_mode" not in fa_cols:
-                        conn.execute(
-                            text(
-                                "ALTER TABLE project_feature_analysis_runs "
-                                "ADD COLUMN traverse_mode VARCHAR(16) DEFAULT 'hybrid'"
-                            )
+        if inspector.has_table("project_feature_analysis_runs"):
+            fa_cols = {c["name"] for c in inspector.get_columns("project_feature_analysis_runs")}
+            with db_engine.begin() as conn:
+                if "traverse_mode" not in fa_cols:
+                    conn.execute(
+                        text(
+                            "ALTER TABLE project_feature_analysis_runs "
+                            "ADD COLUMN traverse_mode VARCHAR(16) DEFAULT 'hybrid'"
                         )
-                    if "bfs_max_depth" not in fa_cols:
-                        conn.execute(
-                            text(
-                                "ALTER TABLE project_feature_analysis_runs "
-                                "ADD COLUMN bfs_max_depth INTEGER DEFAULT 1"
-                            )
+                    )
+                if "bfs_max_depth" not in fa_cols:
+                    conn.execute(
+                        text(
+                            "ALTER TABLE project_feature_analysis_runs "
+                            "ADD COLUMN bfs_max_depth INTEGER DEFAULT 1"
                         )
-                    if "fair_share_per_root" not in fa_cols:
-                        conn.execute(
-                            text(
-                                "ALTER TABLE project_feature_analysis_runs "
-                                "ADD COLUMN fair_share_per_root INTEGER DEFAULT 0"
-                            )
+                    )
+                if "fair_share_per_root" not in fa_cols:
+                    conn.execute(
+                        text(
+                            "ALTER TABLE project_feature_analysis_runs "
+                            "ADD COLUMN fair_share_per_root INTEGER DEFAULT 0"
                         )
+                    )
     except Exception:
-        pass
+        _log.exception("ensure_schema 执行失败")
 
 
 def ensure_company_bootstrap() -> None:
@@ -215,18 +263,16 @@ def ensure_company_bootstrap() -> None:
         finally:
             db.close()
     except Exception:
-        pass
+        _log.exception("ensure_company_bootstrap 执行失败")
 
 
 def ensure_builtin_platform_admin() -> None:
-    """若库中尚无任何 platform_admin，则按环境变量创建或提拔内置管理员（便于首次安装）。
+    """若库中尚无任何 platform_admin，则按环境变量创建或提拔内置管理员（便于首次安装。
 
     生产环境请尽快修改默认密码，或设置 TCM_DISABLE_BUILTIN_ADMIN=1 并在通过注册 +
     TCM_BOOTSTRAP_ADMIN_* 获得管理员后保持禁用。
     """
     try:
-        import logging
-        import os
         import uuid
 
         if os.getenv("TCM_DISABLE_BUILTIN_ADMIN", "").strip().lower() in ("1", "true", "yes"):
@@ -248,7 +294,7 @@ def ensure_builtin_platform_admin() -> None:
             email = (os.getenv("TCM_BUILTIN_ADMIN_EMAIL") or "admin@localhost").strip().lower()
             password = (os.getenv("TCM_BUILTIN_ADMIN_PASSWORD") or "ChangeMe123!").strip()
             if len(password) < 6:
-                logging.getLogger(__name__).warning("TCM_BUILTIN_ADMIN_PASSWORD 短于 6 位，跳过内置管理员创建")
+                _log.warning("TCM_BUILTIN_ADMIN_PASSWORD 短于 6 位，跳过内置管理员创建")
                 return
 
             existing = db.query(User).filter(User.email == email).first()
@@ -289,7 +335,7 @@ def ensure_builtin_platform_admin() -> None:
                 )
             )
             db.commit()
-            logging.getLogger(__name__).info(
+            _log.info(
                 "已创建内置平台管理员：邮箱=%s 用户名=%s（登录账号可填邮箱；请尽快修改默认密码）",
                 email,
                 username,
@@ -297,14 +343,12 @@ def ensure_builtin_platform_admin() -> None:
         finally:
             db.close()
     except Exception:
-        pass
+        _log.exception("ensure_builtin_platform_admin 执行失败")
 
 
 def bootstrap_rbac() -> None:
     """将指定邮箱/手机号用户提升为平台管理员（环境变量，便于首次运维）。"""
     try:
-        import os
-
         from app.models import User
         from app.rbac import ROLE_PLATFORM_ADMIN
 
@@ -327,7 +371,7 @@ def bootstrap_rbac() -> None:
         finally:
             db.close()
     except Exception:
-        pass
+        _log.exception("bootstrap_rbac 执行失败")
 
 
 def ensure_projects_bootstrap() -> None:
@@ -359,7 +403,7 @@ def ensure_projects_bootstrap() -> None:
         finally:
             db.close()
     except Exception:
-        pass
+        _log.exception("ensure_projects_bootstrap 执行失败")
 
 
 def ensure_personal_spaces() -> None:
@@ -380,7 +424,7 @@ def ensure_personal_spaces() -> None:
         finally:
             db.close()
     except Exception:
-        pass
+        _log.exception("ensure_personal_spaces 执行失败")
 
 
 def get_db():

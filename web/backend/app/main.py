@@ -22,6 +22,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.database import (
     Base,
     bootstrap_rbac,
+    check_database_connection,
     engine,
     ensure_builtin_platform_admin,
     ensure_company_bootstrap,
@@ -164,4 +165,5 @@ def on_startup() -> None:
 
 @app.get("/api/health")
 def health() -> dict[str, str]:
-    return {"status": "ok"}
+    check_database_connection()
+    return {"status": "ok", "database": "mysql"}

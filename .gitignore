@@ -15,5 +15,4 @@ build/
 node_modules/
 midscene_run/
 midscene_tech/midscene_run/
-web/backend/data/tcm.db
 web/backend/data/explore_exports/

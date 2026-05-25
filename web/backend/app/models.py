@@ -4,9 +4,13 @@ from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy.dialects.mysql import LONGTEXT
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+
+# MySQL TEXT 上限约 64KB；step_log / feature_json 等可能更大，MySQL 侧用 LONGTEXT
+LongText = Text().with_variant(LONGTEXT, "mysql")
 
 
 class Company(Base):
@@ -16,7 +20,7 @@ class Company(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String(128), unique=True, index=True)
-    share_projects_cases_internally: Mapped[bool] = mapped_column(default=False)
+    share_projects_cases_internally: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     users: Mapped[list["User"]] = relationship(back_populates="company_rel")
@@ -63,7 +67,7 @@ class Project(Base):
     owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     name: Mapped[str] = mapped_column(String(256))
     tested_app_name: Mapped[str] = mapped_column(String(256))
-    test_objective: Mapped[str] = mapped_column(Text, default="")
+    test_objective: Mapped[str] = mapped_column(LongText, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -80,7 +84,7 @@ class ProjectReport(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     project_id: Mapped[int] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), index=True)
-    summary: Mapped[str] = mapped_column(Text)
+    summary: Mapped[str] = mapped_column(LongText)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     project: Mapped["Project"] = relationship(back_populates="reports")
@@ -108,12 +112,12 @@ class TestCase(Base):
     owner_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     project_id: Mapped[Optional[int]] = mapped_column(ForeignKey("projects.id", ondelete="SET NULL"), index=True, nullable=True)
     title: Mapped[str] = mapped_column(String(256))
-    task_text: Mapped[str] = mapped_column(Text)
-    preconditions: Mapped[str] = mapped_column(Text, default="")
-    steps_json: Mapped[str] = mapped_column(Text, default="[]")
+    task_text: Mapped[str] = mapped_column(LongText)
+    preconditions: Mapped[str] = mapped_column(LongText, default="")
+    steps_json: Mapped[str] = mapped_column(LongText, default="[]")
     #: structured=表单步骤；yaml=Midscene YAML（仅 Midscene 机器人执行）
     case_format: Mapped[str] = mapped_column(String(16), default="structured", index=True)
-    case_yaml: Mapped[str] = mapped_column(Text, default="")
+    case_yaml: Mapped[str] = mapped_column(LongText, default="")
     priority: Mapped[str] = mapped_column(String(16), default="P2")
     revision_no: Mapped[int] = mapped_column(Integer, default=1)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
@@ -136,11 +140,11 @@ class TestCaseRevision(Base):
     case_id: Mapped[int] = mapped_column(ForeignKey("test_cases.id", ondelete="CASCADE"), index=True)
     revision_no: Mapped[int] = mapped_column(Integer, index=True)
     title: Mapped[str] = mapped_column(String(256))
-    task_text: Mapped[str] = mapped_column(Text)
-    preconditions: Mapped[str] = mapped_column(Text, default="")
-    steps_json: Mapped[str] = mapped_column(Text, default="[]")
+    task_text: Mapped[str] = mapped_column(LongText)
+    preconditions: Mapped[str] = mapped_column(LongText, default="")
+    steps_json: Mapped[str] = mapped_column(LongText, default="[]")
     case_format: Mapped[str] = mapped_column(String(16), default="structured")
-    case_yaml: Mapped[str] = mapped_column(Text, default="")
+    case_yaml: Mapped[str] = mapped_column(LongText, default="")
     priority: Mapped[str] = mapped_column(String(16), default="P2")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
@@ -151,7 +155,7 @@ class CaseKbDocument(Base):
     __tablename__ = "case_kb_documents"
 
     case_id: Mapped[int] = mapped_column(ForeignKey("test_cases.id", ondelete="CASCADE"), primary_key=True)
-    search_text: Mapped[str] = mapped_column(Text, default="")
+    search_text: Mapped[str] = mapped_column(LongText, default="")
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
@@ -178,7 +182,7 @@ class TestCaseSet(Base):
     project_id: Mapped[int] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), index=True)
     owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     name: Mapped[str] = mapped_column(String(256))
-    description: Mapped[str] = mapped_column(Text, default="")
+    description: Mapped[str] = mapped_column(LongText, default="")
     ai_assisted: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
@@ -206,8 +210,8 @@ class FunctionalDispatchTask(Base):
     status: Mapped[str] = mapped_column(String(32), default="queued", index=True)
     kafka_topic: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
     kafka_offset: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
-    broker_error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    payload_snapshot: Mapped[str] = mapped_column(Text, default="{}")
+    broker_error: Mapped[Optional[str]] = mapped_column(LongText, nullable=True)
+    payload_snapshot: Mapped[str] = mapped_column(LongText, default="{}")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
@@ -244,7 +248,7 @@ class RobotRentalOrder(Base):
     status: Mapped[str] = mapped_column(String(32), default="pending_approval", index=True)
     reviewed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     reviewer_user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
-    reject_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    reject_reason: Mapped[Optional[str]] = mapped_column(LongText, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     company_id: Mapped[Optional[int]] = mapped_column(ForeignKey("companies.id"), nullable=True, index=True)
 
@@ -262,7 +266,7 @@ class RobotInstance(Base):
     catalog_robot_id: Mapped[str] = mapped_column(String(64), index=True)
     instance_code: Mapped[str] = mapped_column(String(32), unique=True, index=True)
     display_name: Mapped[str] = mapped_column(String(128), default="")
-    display_bio: Mapped[str] = mapped_column(Text, default="")
+    display_bio: Mapped[str] = mapped_column(LongText, default="")
     status: Mapped[str] = mapped_column(String(32), default="active", index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     company_id: Mapped[Optional[int]] = mapped_column(ForeignKey("companies.id"), nullable=True, index=True)
@@ -299,11 +303,11 @@ class TestRun(Base):
     #: 本次执行绑定的具体设备（ADB serial / HDC target）
     device_id: Mapped[Optional[str]] = mapped_column(String(256), nullable=True, index=True)
     status: Mapped[str] = mapped_column(String(32), default="pending")
-    step_log: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    output_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    error_trace: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    step_log: Mapped[Optional[str]] = mapped_column(LongText, nullable=True)
+    output_message: Mapped[Optional[str]] = mapped_column(LongText, nullable=True)
+    error_trace: Mapped[Optional[str]] = mapped_column(LongText, nullable=True)
     #: Midscene HTML 报告在本机的绝对路径（仅服务端用于下载）
-    report_path: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    report_path: Mapped[Optional[str]] = mapped_column(LongText, nullable=True)
     started_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
@@ -331,12 +335,12 @@ class AppExploreRun(Base):
     max_screens: Mapped[int] = mapped_column(Integer, default=30)
     max_depth: Mapped[int] = mapped_column(Integer, default=4)
     status: Mapped[str] = mapped_column(String(32), default="pending", index=True)
-    feature_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    excel_path: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    step_log: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    output_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    error_trace: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    report_path: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    feature_json: Mapped[Optional[str]] = mapped_column(LongText, nullable=True)
+    excel_path: Mapped[Optional[str]] = mapped_column(LongText, nullable=True)
+    step_log: Mapped[Optional[str]] = mapped_column(LongText, nullable=True)
+    output_message: Mapped[Optional[str]] = mapped_column(LongText, nullable=True)
+    error_trace: Mapped[Optional[str]] = mapped_column(LongText, nullable=True)
+    report_path: Mapped[Optional[str]] = mapped_column(LongText, nullable=True)
     feature_count: Mapped[int] = mapped_column(Integer, default=0)
     screens_visited: Mapped[int] = mapped_column(Integer, default=0)
     started_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
@@ -373,12 +377,12 @@ class ProjectFeatureAnalysisRun(Base):
     bfs_max_depth: Mapped[int] = mapped_column(Integer, default=1)
     fair_share_per_root: Mapped[int] = mapped_column(Integer, default=0)
     status: Mapped[str] = mapped_column(String(32), default="pending", index=True)
-    feature_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    excel_path: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    step_log: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    output_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    error_trace: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    report_path: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    feature_json: Mapped[Optional[str]] = mapped_column(LongText, nullable=True)
+    excel_path: Mapped[Optional[str]] = mapped_column(LongText, nullable=True)
+    step_log: Mapped[Optional[str]] = mapped_column(LongText, nullable=True)
+    output_message: Mapped[Optional[str]] = mapped_column(LongText, nullable=True)
+    error_trace: Mapped[Optional[str]] = mapped_column(LongText, nullable=True)
+    report_path: Mapped[Optional[str]] = mapped_column(LongText, nullable=True)
     feature_count: Mapped[int] = mapped_column(Integer, default=0)
     screens_visited: Mapped[int] = mapped_column(Integer, default=0)
     started_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
@@ -400,7 +404,7 @@ class ProjectFeatureTree(Base):
         index=True,
     )
     owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
-    tree_json: Mapped[str] = mapped_column(Text, default="{}")
+    tree_json: Mapped[str] = mapped_column(LongText, default="{}")
     version_label: Mapped[str] = mapped_column(String(64), default="")
     confirmed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

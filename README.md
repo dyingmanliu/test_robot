@@ -139,7 +139,7 @@ CASE_GEN_TIMEOUT_SEC=120
 | **运行监控（WebSocket）** | `/api/ws/monitor/robots` | 查询参数 `token`（JWT）；仅 `platform_admin` / `tse`；约每 2s JSON 推送在线/空闲/执行中（执行中与 `test_runs.running` 对齐，空闲等为 Agent 管理占位，可替换为管控服务数据）；逻辑见 `app/services/robot_monitor.py` |
 | **平台能力占位** | `/api/platform` | 设备、计费配置、内部机器人目录、企业租用/用量等（对接后续微服务） |
 | **机器人实例** | `/api/robot-instances` | 已租用实例列表；PATCH 展示名、引擎、`device_platform`（默认平台）；`GET …/device-screen` 支持 `device_platform`、`device_id` 投屏 |
-| **基础设施** | `app/database.py`、`executor.py` | SQLite、启动迁移；AutoGLM 同进程（ADB/HDC），Midscene 子进程；写回 `step_log` / Midscene HTML 报告 |
+| **基础设施** | `app/database.py`、`executor.py` | MySQL 8（`DATABASE_URL`）、启动迁移；AutoGLM 同进程（ADB/HDC），Midscene 子进程；写回 `step_log` / Midscene HTML 报告 |
 
 **RBAC 角色（预定义）**：`platform_admin`（平台管理员）、`tse`（内部测试工程师）、`enterprise`（外部企业用户）。详见 `app/rbac.py`。
 
@@ -170,6 +170,7 @@ CASE_GEN_TIMEOUT_SEC=120
 - **模板**：复制仓库根目录 [`.env.example`](./.env.example) 为 `.env`，并按注释填写。`agent_service/func_agent` CLI 与 Web 后端执行链路均会加载该文件。
 - **前端**：可选复制 [`web/frontend/.env.example`](./web/frontend/.env.example)；开发一般留空，由 Vite 将 `/api` 代理到本地后端。
 - **变量说明**：以 `.env.example` 为准。模型侧常用 `BIGMODEL_API_KEY`（智谱 / AutoGLM）、`MIDSCENE_MODEL_*` / `DASHSCOPE_API_KEY`（千问）、`CASE_GEN_*`（用例 **AI 生成**，可与执行模型分离，如 DeepSeek `deepseek-v4-pro`）；功能点遍历可选 `EXPLORE_TRAVERSE_MODE`（`hybrid` \| `bfs` \| `dfs`）、`MIDSCENE_EXPLORE_STEP_TIMEOUT_SEC`；设备侧 `ADB_DEVICE_ID`、`HDC_DEVICE_ID` 为可选兜底，**多机时建议在测试用例页或功能点分析页选择目标终端**。
+- **数据库**：Web 后端通过 **`DATABASE_URL`**（或 **`TCM_DATABASE_URL`**）连接 MySQL 8；本地见下方「数据库（MySQL）」小节。
 
 ---
 
@@ -178,9 +179,27 @@ CASE_GEN_TIMEOUT_SEC=120
 ### 前置条件
 
 - Python 3.9+、Node.js ≥ 18（前端 + `midscene_tech`）
+- **Web 数据库**：Docker Desktop（或本机 MySQL 8）；见下方数据库小节
 - **Android 真机**：ADB、`BIGMODEL_API_KEY`（AutoGLM）或 Midscene 模型 Key
 - **鸿蒙真机**：HDC（DevEco toolchains）、Midscene 模型 Key；AutoGLM+鸿蒙组合另需智谱 Key
 - 根目录 `.env` 配置见 [`.env.example`](./.env.example)；使用 **AI 生成用例** 时需配置 `CASE_GEN_API_KEY`（或回退智谱 Key）
+
+### 0. 数据库（MySQL 8）
+
+仓库根目录 [`docker-compose.yml`](./docker-compose.yml) 提供本地 MySQL 8（utf8mb4、InnoDB）：
+
+```bash
+# 仓库根目录
+docker compose up -d mysql
+```
+
+在 [`.env`](./.env) 中配置（与 compose 默认账号一致）：
+
+```bash
+DATABASE_URL=mysql+pymysql://tcm:tcm@127.0.0.1:3306/tcm?charset=utf8mb4
+```
+
+大文本字段（`step_log`、`feature_json` 等）在 ORM 中映射为 MySQL `LONGTEXT`。
 
 ### 1. Web 后端（FastAPI）
 
@@ -197,7 +216,7 @@ uvicorn app.main:app --host 127.0.0.1 --port 8000 --log-level info
 - `app/logging_config.py` 将 Python 侧「应用类」日志默认设为 **INFO**（可用环境变量 **`LOG_LEVEL`** 覆盖）；启动参数 **`--log-level info`** 用于 Uvicorn 自身的访问/错误输出。
 - 未激活 venv 时也可：`web/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --log-level info`（需在 `web/backend` 下执行或配置 `PYTHONPATH`）。
 - **长时间跑任务**时不建议使用 `uvicorn --reload`，以免代码保存重启进程打断后台执行。
-- 健康检查：`GET http://127.0.0.1:8000/api/health`
+- 健康检查：`GET http://127.0.0.1:8000/api/health` → `{"status":"ok","database":"mysql"}`（含数据库连通探测）
 
 ### 2. Web 前端（Vite）
 

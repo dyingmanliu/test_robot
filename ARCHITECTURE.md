@@ -193,7 +193,7 @@ flowchart TB
 | ORM | SQLAlchemy 2.x | Python |
 | 校验 / Schema | Pydantic v2 | Python |
 | 认证 | JWT（`python-jose`）+ 密码哈希（`bcrypt`） | Python |
-| 数据库 | SQLite（文件库） | — |
+| 数据库 | MySQL 8（`DATABASE_URL`） | PyMySQL |
 | Agent / LLM | `openai` 官方 SDK（兼容 OpenAI 风格 Base URL） | Python |
 | 图像 | Pillow（`PIL`，Agent 侧截图等） | Python |
 | 设备 | ADB（Android）、HDC（鸿蒙） | — |
@@ -237,6 +237,7 @@ autoglm-phone-test-agent/          # 仓库根目录
 │       ├── serve_grounding_mlx.sh
 │       └── run_cli.sh
 ├── requirements.txt
+├── docker-compose.yml             # 本地 MySQL 8（docker compose up -d mysql）
 └── web/
     ├── frontend/                  # Vue + Vite
     │   ├── src/
@@ -249,8 +250,8 @@ autoglm-phone-test-agent/          # 仓库根目录
     └── backend/
         ├── app/
         │   ├── main.py            # FastAPI 入口、CORS、挂载路由
-        │   ├── database.py        # SQLite 路径、engine、ensure_schema
-        │   ├── models.py          # User / TestCase / TestRun
+        │   ├── database.py        # DATABASE_URL、MySQL engine、ensure_schema
+        │   ├── models.py          # SQLAlchemy ORM；MySQL 大字段用 LongText（LONGTEXT）
         │   ├── schemas.py         # Pydantic 出入参
         │   ├── deps.py            # get_current_user（JWT）
         │   ├── auth_utils.py      # 密码、JWT
@@ -272,8 +273,8 @@ autoglm-phone-test-agent/          # 仓库根目录
         │       ├── robot_instances.py
         │       ├── devices.py           # GET /devices/connected
         │       └── admin.py             # 租用审批 → 实例化 + 引擎/平台
-        ├── requirements.txt       # Web 后端依赖
-        └── data/tcm.db            # 默认 SQLite（可通过环境变量改路径）
+        ├── requirements.txt       # Web 后端依赖（含 pymysql）
+        └── data/                  # 上传包、导出文件等（非数据库）
 ```
 
 ## 4. 运行时架构
@@ -291,7 +292,7 @@ flowchart TB
     Gen["case_generation.py"]
     FAB["feature_analysis_bridge.py"]
     Exec["executor.py\n用例执行调度"]
-    DB[("SQLite")]
+    DB[("MySQL_8")]
   end
 
   subgraph analysis["测试分析机器人 Agent · analysis_agent"]
@@ -376,10 +377,11 @@ flowchart TB
 
 ## 5. 数据存储
 
-- **SQLite**  
-  - 默认路径见 `web/backend/app/database.py`：相对仓库根解析为 `web/backend/data/tcm.db`。  
-  - 环境变量 **`TCM_SQLITE_PATH`** 可覆盖文件路径。  
-  - `check_same_thread=False`：允许后台线程与主线程共用连接池（后台执行 Agent）。  
+- **数据库（MySQL 8）**  
+  - 环境变量 **`DATABASE_URL`** 或 **`TCM_DATABASE_URL`**，例如 `mysql+pymysql://user:pass@host:3306/tcm?charset=utf8mb4`。驱动 **PyMySQL**（见 `web/backend/requirements.txt`）。连接池：`TCM_DB_POOL_SIZE`（默认 10）、`TCM_DB_MAX_OVERFLOW`（默认 20）。本地实例：仓库根 **`docker-compose.yml`** → `docker compose up -d mysql`（默认库/用户/密码均为 `tcm`）。  
+  - **大字段**：`models.py` 中 `LongText = Text().with_variant(LONGTEXT, "mysql")`，用于 `step_log`、`feature_json`、`case_yaml` 等。  
+  - **启动与健康**：`main.py` 启动时 `create_all` + `ensure_schema()`；`GET /api/health` 执行 `SELECT 1` 并返回 `database: mysql`。  
+  - 连接使用 `pool_pre_ping`、`pool_recycle` 与 session `time_zone=+00:00`。
 
 - **表（逻辑）**  
   - `users`：账号与密码哈希、RBAC `role` 等。  
@@ -471,7 +473,8 @@ sequenceDiagram
 | `MIDSCENE_EXPLORE_STEP_TIMEOUT_SEC` | 功能点遍历单步 `aiAct`/`aiQuery` 超时（秒），默认 120 |
 | `MIDSCENE_REPLANNING_CYCLE_LIMIT` | Midscene 单步 `aiAct` 内部重规划上限（默认 20；复杂任务建议 40–60） |
 | `MIDSCENE_APP_NAME_MAP` | 可选：APP 显示名 → 包名/Ability（功能探索推荐 Web 直接选 bundle_id） |
-| `JWT_SECRET` / `TCM_SQLITE_PATH` | Web 认证与库路径 |
+| `JWT_SECRET` / `DATABASE_URL` / `TCM_DATABASE_URL` | Web 认证与 MySQL 连接 |
+| `TCM_DB_POOL_SIZE` / `TCM_DB_MAX_OVERFLOW` | MySQL 连接池（可选） |
 
 设备要求：
 
@@ -490,11 +493,11 @@ sequenceDiagram
 4. **改测试执行 · Midscene 路线**：`midscene_tech/`；`npm run typecheck`；影响 `test_agent_backend=midscene`；改完后重启 Uvicorn。长时间任务不建议 `uvicorn --reload`。  
 5. **改测试执行路由**：`executor.py`、`services/device_platform.py`；实例字段见 `models.RobotInstance`。  
 6. **改测试分析**：`agent_service/analysis_agent/`、`services/case_generation.py`；环境变量 `CASE_GEN_*`。  
-7. **数据库**：无 Alembic；列迁移在 `database.ensure_schema()`（如 `robot_instances.device_platform`）。  
+7. **数据库**：MySQL 8；`DATABASE_URL` 必填；无 Alembic，列迁移在 `database.ensure_schema()`。  
 8. **排查执行失败**：确认实例 **技术路线（autoglm/midscene）**、用例页 **平台+终端** 与用例格式（YAML→仅 Midscene 路线）；`adb devices` / `hdc list targets` 与所选 `device_id` 一致；看 `test_runs.device_platform`、`device_id`、`error_trace`、`step_log`；Midscene 报告见 `report_path`。  
 9. **排查 AI 生成失败**：确认 `CASE_GEN_API_KEY`（或回退智谱 Key）与 `CASE_GEN_BASE_URL`/`CASE_GEN_MODEL` 匹配；改 `.env` 后重启 Uvicorn；Swagger `POST /api/test-cases/generate` 可直调；非法 JSON 时服务会自动重试一次修复。  
 10. **排查格式转换**：`convert-format` 返回 400 时检查 YAML 是否含 `tasks:` 且语法合法；YAML→structured 对非约定脚本可能不完整，可改回 structured 或手改 YAML。
 
 ## 8. 一句话小结
 
-**Vue 3 + FastAPI + SQLite** 管理用例与租用机器人实例。**测试分析**实例承担 **用例生成**（`CASE_GEN_*`）与 **功能点分析**（Midscene explore → GIIC 功能树确认保存）两项能力；**测试执行**实例在真机上跑用例，由 **`executor` 在 AutoGLM 与 Midscene 间二选一**。同一项目内可先功能点分析、再生成/落库用例、再 `run`；执行与分析前可选 **Android/鸿蒙** 与 **目标终端**。详见 §1.0、§1.4、§4.6。
+**Vue 3 + FastAPI + MySQL 8** 管理用例与租用机器人实例。**测试分析**实例承担 **用例生成**（`CASE_GEN_*`）与 **功能点分析**（Midscene explore → GIIC 功能树确认保存）两项能力；**测试执行**实例在真机上跑用例，由 **`executor` 在 AutoGLM 与 Midscene 间二选一**。同一项目内可先功能点分析、再生成/落库用例、再 `run`；执行与分析前可选 **Android/鸿蒙** 与 **目标终端**。详见 §1.0、§1.4、§4.6。

@@ -13,6 +13,12 @@ Mobile device test automation platform with a Web UI (Vue + FastAPI). **Digital 
 cd web/backend
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
+
+# MySQL (recommended): from repo root
+docker compose up -d mysql
+# Set in repo root .env:
+# DATABASE_URL=mysql+pymysql://tcm:tcm@127.0.0.1:3306/tcm?charset=utf8mb4
+
 uvicorn app.main:app --host 127.0.0.1 --port 8000 --log-level info
 ```
 - Swagger docs at http://127.0.0.1:8000/docs
@@ -76,11 +82,12 @@ midscene_tech/               # Test execution · Midscene route (visual-driven a
   src/cli.ts                  #   CLI + --web-dispatch mode
   src/agent.ts                #   MidsceneTestAgent
   src/yaml_runner.ts          #   YAML test case runner
+docker-compose.yml            # Local MySQL 8 (docker compose up -d mysql)
 web/
   backend/app/
     main.py                   # FastAPI app, loads .env from repo root
-    models.py                 # SQLAlchemy ORM models
-    database.py               # SQLite setup, ensure_schema() migrations
+    models.py                 # SQLAlchemy ORM (LongText → LONGTEXT on MySQL)
+    database.py               # DATABASE_URL, MySQL engine, ensure_schema() migrations
     executor.py               # test execution orchestrator
     rbac.py                   # role definitions (platform_admin, tse, enterprise)
     routers/                  # API route modules
@@ -98,7 +105,7 @@ web/
 
 ### Key Architectural Details
 
-- **Database**: SQLite via SQLAlchemy 2.x. No Alembic — schema changes use `database.ensure_schema()` with `ALTER TABLE ... ADD COLUMN` and inspector checks.
+- **Database**: **MySQL 8** via required `DATABASE_URL` / `TCM_DATABASE_URL` (PyMySQL). Local: `docker compose up -d mysql` at repo root. Large text columns use `LongText` (MySQL `LONGTEXT`). No Alembic — schema changes use `database.ensure_schema()` with `ALTER TABLE ... ADD COLUMN`. Health: `GET /api/health` returns `database: mysql`.
 - **Auth**: JWT (python-jose) + bcrypt. Three roles: `platform_admin`, `tse`, `enterprise`.
 - **Multi-tenancy**: Projects/test cases scoped by `owner_id`. Company-level sharing via `Company.share_projects_cases_internally`.
 - **Environment**: Single `.env` at repo root loaded by both CLI agents and the backend. Copy `.env.example` and fill in required keys.

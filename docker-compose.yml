@@ -1,0 +1,26 @@
+# 本地开发用 MySQL 8（生产请使用独立实例或云数据库）
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: tcm
+      MYSQL_USER: tcm
+      MYSQL_PASSWORD: tcm
+    ports:
+      - "3306:3306"
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-storage-engine=InnoDB
+      - --max_allowed_packet=67108864
+    volumes:
+      - tcm_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  tcm_mysql_data:
