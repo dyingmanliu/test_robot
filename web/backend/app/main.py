@@ -8,9 +8,10 @@ from pathlib import Path
 from dotenv import load_dotenv
 from starlette.requests import Request
 
-# 与 Agent CLI / executor 共用仓库根目录 .env（JWT、数据库路径、大模型 Key 等）
-_REPO_ROOT = Path(__file__).resolve().parents[3]
-load_dotenv(_REPO_ROOT / ".env")
+# 本地 .env 加载
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+_LOCAL_ENV = Path(__file__).resolve().parents[1] / ".env"  # web/backend/.env
+load_dotenv(_LOCAL_ENV)
 
 from app.logging_config import configure_logging
 

@@ -87,7 +87,7 @@ def capture_harmony_screen(
     device_id: str | None = None,
     hdc_home: str | None = None,
 ) -> DeviceScreenFrame:
-    load_dotenv(_REPO_ROOT / ".env")
+    load_dotenv(Path(__file__).resolve().parents[2] / ".env")
     dev = device_id or os.getenv("HDC_DEVICE_ID") or None
     home = hdc_home or os.getenv("HDC_HOME") or None
     remote = f"/data/local/tmp/tcm_screen_{uuid.uuid4().hex[:12]}.jpeg"
@@ -112,7 +112,7 @@ def capture_harmony_screen(
 
 
 def capture_android_screen(*, device_id: str | None = None) -> DeviceScreenFrame:
-    load_dotenv(_REPO_ROOT / ".env")
+    load_dotenv(Path(__file__).resolve().parents[2] / ".env")
     os.chdir(_REPO_ROOT)
     from autoglm_phone_tech.device.adb_bridge import AdbBridge
 

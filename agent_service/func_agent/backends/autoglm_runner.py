@@ -27,13 +27,13 @@ def run_autoglm_task(
     should_cancel: Callable[[], bool] | None = None,
 ):
     """Runs AutoGLM functional agent in-process (blocking)."""
-    load_dotenv(_REPO_ROOT / ".env")
+    load_dotenv(Path(__file__).resolve().parents[2] / ".env")
     os.chdir(_REPO_ROOT)
 
     from agent_service.func_agent.backends.autoglm.agent import AgentConfig, PhoneTestAgent
+    from agent_service.common.device_resolve import resolve_execution_device_id
     from autoglm_phone_tech.device.platform import DevicePlatform
     from autoglm_phone_tech.model.client import ModelConfig
-    from app.services.device_platform import resolve_execution_device_id
 
     api_key = os.getenv("BIGMODEL_API_KEY") or os.getenv("ZHIPU_API_KEY")
     if not api_key:

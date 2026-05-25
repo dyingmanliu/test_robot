@@ -622,9 +622,9 @@ def confirm_feature_tree(
         db, project_id, run
     )
 
-    from agent_service.analysis_agent.feature_explore.tree_build import sync_giic_tree_from_features
+    from app.services.agent_service_client import sync_giic_tree
 
-    normalized = sync_giic_tree_from_features(dict(body.tree_json))
+    normalized = sync_giic_tree(dict(body.tree_json))
     _sync_run_app_display_name(db, run, normalized)
     tree = ProjectFeatureTree(
         project_id=project_id,
@@ -745,9 +745,9 @@ def update_feature_tree(
     )
     if t is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="功能树不存在")
-    from agent_service.analysis_agent.feature_explore.tree_build import sync_giic_tree_from_features
+    from app.services.agent_service_client import sync_giic_tree
 
-    normalized = sync_giic_tree_from_features(dict(body.tree_json))
+    normalized = sync_giic_tree(dict(body.tree_json))
     t.tree_json = json.dumps(normalized, ensure_ascii=False)
     if body.bump_version:
         t.version_label = _next_version_label(

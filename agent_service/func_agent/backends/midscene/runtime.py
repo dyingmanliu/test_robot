@@ -119,7 +119,7 @@ def run_midscene_task(
     should_cancel: Callable[[], bool] | None = None,
     log_model_usage: Callable[[dict[str, Any]], None] | None = None,
 ) -> tuple[bool, str, str | None]:
-    load_dotenv(_REPO_ROOT / ".env")
+    load_dotenv(Path(__file__).resolve().parents[2] / ".env")
     mid_root = _REPO_ROOT / "midscene_tech"
     cli_rel = Path("src/cli.ts")
     if not (mid_root / cli_rel).is_file():

@@ -43,7 +43,7 @@ class FeatureExploreAgent:
         should_cancel: CancelCheck | None = None,
         log_model_usage: MachineLineCallback | None = None,
     ) -> ExploreRunResult:
-        load_dotenv(self._repo_root / ".env")
+        load_dotenv(Path(__file__).resolve().parents[2] / ".env")
         tree_holder: dict[str, Any] = {"tree": None}
         feature_json_holder: dict[str, Any] = {"features": []}
 

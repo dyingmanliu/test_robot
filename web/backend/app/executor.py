@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import json
-import os
-import sys
 import threading
 import traceback
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable
@@ -14,15 +13,20 @@ import logging
 from dotenv import load_dotenv
 from sqlalchemy.orm import Session
 
-from agent_service.func_agent.core import FuncAgentDispatch
-from agent_service.func_agent.orchestrator import run_func_agent_dispatch
 from app.services.llm_usage_log import log_midscene_machine_line
 
 log = logging.getLogger("app.executor")
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
-if str(_REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(_REPO_ROOT))
+
+
+@dataclass
+class StepResult:
+    success: bool
+    finished: bool
+    action: dict[str, Any] | None
+    thinking: str
+    message: str | None = None
 
 # run_id -> Event；在发起执行前注册，便于用户在 worker 启动前点击终止
 _run_cancel_events: dict[int, threading.Event] = {}
@@ -45,7 +49,6 @@ def signal_cancel(run_id: int) -> bool:
 
 
 def execute_test_run(db: Session, run_id: int) -> None:
-    from agent_service.func_agent.backends.autoglm.agent import StepResult
     from app.models import RobotInstance, TestCase, TestRun
 
     cancel_ev = _run_cancel_events.setdefault(run_id, threading.Event())
@@ -159,43 +162,7 @@ def execute_test_run(db: Session, run_id: int) -> None:
         inst_code,
     )
 
-    load_dotenv(_REPO_ROOT / ".env")
-
-    if backend == "autoglm" and not (os.getenv("BIGMODEL_API_KEY") or os.getenv("ZHIPU_API_KEY")):
-        run.status = "failed"
-        run.output_message = (
-            f"机器人 {inst_code} 使用 AutoGLM 引擎，需在 .env 配置 BIGMODEL_API_KEY 或 ZHIPU_API_KEY。"
-        )
-        run.error_trace = None
-        run.finished_at = datetime.utcnow()
-        db.commit()
-        if lock_held and instance_lock is not None:
-            instance_lock.release()
-        _run_cancel_events.pop(run_id, None)
-        return
-
-    if use_midscene and backend == "midscene":
-        base = (os.getenv("MIDSCENE_MODEL_BASE_URL") or "").lower()
-        is_dashscope = "dashscope" in base
-        api_key = (os.getenv("MIDSCENE_MODEL_API_KEY") or "").strip() or (
-            (os.getenv("DASHSCOPE_API_KEY") or "").strip() if is_dashscope else ""
-        ) or (
-            (os.getenv("BIGMODEL_API_KEY") or os.getenv("ZHIPU_API_KEY") or "").strip()
-            if not is_dashscope
-            else ""
-        )
-        if not api_key:
-            run.status = "failed"
-            run.output_message = (
-                "Midscene 引擎缺少模型 API Key：请在 .env 配置 MIDSCENE_MODEL_API_KEY 或 DASHSCOPE_API_KEY。"
-            )
-            run.error_trace = None
-            run.finished_at = datetime.utcnow()
-            db.commit()
-            if lock_held and instance_lock is not None:
-                instance_lock.release()
-            _run_cancel_events.pop(run_id, None)
-            return
+    load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
     run.status = "running"
     run.started_at = datetime.utcnow()
@@ -369,19 +336,65 @@ def execute_test_run(db: Session, run_id: int) -> None:
             return
 
         if use_midscene and web_dispatch is not None:
+            from app.services.agent_service_client import (
+                submit_func_agent_dispatch,
+                stream_func_agent_events,
+                cancel_task as cancel_agent_task,
+            )
             from app.services.run_report import normalize_report_path
 
-            ok, msg, report_file = run_func_agent_dispatch(
-                FuncAgentDispatch(
-                    backend=backend,
-                    device_platform=platform,
-                    device_id=device_id,
-                    payload=web_dispatch,
-                ),
-                on_midscene_line=midscene_obj_to_step,
-                should_cancel=should_cancel,
-                log_midscene_usage=lambda obj: log_midscene_machine_line(obj, run_id=run_id),
-            )
+            dispatch_dict = {
+                "backend": backend,
+                "device_platform": platform,
+                "device_id": device_id,
+                "payload": web_dispatch,
+            }
+            task_id: str | None = None
+            ok = False
+            msg = ""
+            report_file = None
+            try:
+                task_id = submit_func_agent_dispatch(dispatch_dict)
+                for event_name, event_data in stream_func_agent_events(task_id):
+                    if should_cancel() and task_id:
+                        try:
+                            cancel_agent_task("func-agent", task_id)
+                        except Exception:
+                            pass
+                        break
+                    if event_name == "line":
+                        midscene_obj_to_step(event_data)
+                    elif event_name == "usage":
+                        log_midscene_machine_line(event_data, run_id=run_id)
+                    elif event_name == "step":
+                        sn = event_data.get("step_no", 0)
+                        result_data = event_data.get("result", {})
+                        append_step_log(
+                            sn,
+                            StepResult(
+                                success=result_data.get("success", True),
+                                finished=result_data.get("finished", False),
+                                action=result_data.get("action"),
+                                thinking=result_data.get("thinking", ""),
+                                message=result_data.get("message"),
+                            ),
+                        )
+                    elif event_name == "done":
+                        ok = event_data.get("ok", False)
+                        msg = event_data.get("message", "")
+                        report_file = event_data.get("report_file")
+                    elif event_name == "error":
+                        raise RuntimeError(event_data.get("detail", "unknown error"))
+                    elif event_name == "cancelled":
+                        ok = False
+                        msg = "exec cancelled"
+            except Exception:
+                if should_cancel() and task_id:
+                    try:
+                        cancel_agent_task("func-agent", task_id)
+                    except Exception:
+                        pass
+                raise
             row = db.query(TestRun).filter(TestRun.id == run_id).first()
             if row:
                 row.report_path = normalize_report_path(report_file)
@@ -396,27 +409,69 @@ def execute_test_run(db: Session, run_id: int) -> None:
                     row.output_message = msg
                     row.error_trace = None
         elif web_dispatch is None:
-            outcome = run_func_agent_dispatch(
-                FuncAgentDispatch(
-                    backend=backend,
-                    device_platform=platform,
-                    device_id=device_id,
-                    payload={"agent_task": agent_task},
-                ),
-                on_autoglm_step=on_autoglm_step,
-                should_cancel=should_cancel,
+            from app.services.agent_service_client import (
+                submit_func_agent_dispatch,
+                stream_func_agent_events,
+                cancel_task as cancel_agent_task,
             )
+
+            dispatch_dict = {
+                "backend": backend,
+                "device_platform": platform,
+                "device_id": device_id,
+                "payload": {"agent_task": agent_task},
+            }
+            task_id = None
+            autoglm_ok = False
+            autoglm_msg = ""
+            try:
+                task_id = submit_func_agent_dispatch(dispatch_dict)
+                for event_name, event_data in stream_func_agent_events(task_id):
+                    if should_cancel() and task_id:
+                        try:
+                            cancel_agent_task("func-agent", task_id)
+                        except Exception:
+                            pass
+                        break
+                    if event_name == "step":
+                        sn = event_data.get("step_no", 0)
+                        result_data = event_data.get("result", {})
+                        on_autoglm_step(
+                            sn,
+                            StepResult(
+                                success=result_data.get("success", True),
+                                finished=result_data.get("finished", False),
+                                action=result_data.get("action"),
+                                thinking=result_data.get("thinking", ""),
+                                message=result_data.get("message"),
+                            ),
+                        )
+                    elif event_name == "done":
+                        autoglm_ok = event_data.get("ok", False)
+                        autoglm_msg = event_data.get("message", "")
+                    elif event_name == "error":
+                        raise RuntimeError(event_data.get("detail", "unknown error"))
+                    elif event_name == "cancelled":
+                        autoglm_ok = False
+                        autoglm_msg = "exec cancelled"
+            except Exception:
+                if should_cancel() and task_id:
+                    try:
+                        cancel_agent_task("func-agent", task_id)
+                    except Exception:
+                        pass
+                raise
             row = db.query(TestRun).filter(TestRun.id == run_id).first()
             if row:
                 if cancel_ev.is_set():
                     row.status = "cancelled"
-                    row.output_message = outcome.message or "用户已终止执行"
-                elif outcome.ok:
+                    row.output_message = autoglm_msg or "用户已终止执行"
+                elif autoglm_ok:
                     row.status = "success"
-                    row.output_message = outcome.message
+                    row.output_message = autoglm_msg
                 else:
                     row.status = "failed"
-                    row.output_message = outcome.message
+                    row.output_message = autoglm_msg
                     row.error_trace = None
     except Exception:
         log.exception("执行异常 run_id=%s case_id=%s", run_id, case.id)

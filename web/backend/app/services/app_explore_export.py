@@ -3,14 +3,9 @@
 from __future__ import annotations
 
 import io
-import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any
-
-_REPO_ROOT = Path(__file__).resolve().parents[4]
-if str(_REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(_REPO_ROOT))
 
 from openpyxl import Workbook
 from openpyxl.styles import Font
@@ -215,11 +210,9 @@ def _resolve_function_tree_root(tree: dict[str, Any]) -> dict[str, Any] | None:
     features = tree.get("features") or []
     if not isinstance(features, list):
         features = []
-    from agent_service.analysis_agent.feature_explore.tree_build import (
-        build_function_tree_by_path,
-    )
+    from app.services.agent_service_client import build_function_tree
 
-    return build_function_tree_by_path(app_name, features)
+    return build_function_tree(app_name, features)
 
 
 def build_feature_tree_detail_workbook(tree: dict[str, Any]) -> Workbook:

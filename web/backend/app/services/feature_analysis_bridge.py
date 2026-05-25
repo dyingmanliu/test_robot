@@ -1,10 +1,9 @@
-"""Web 适配层：ORM + DB 持久化 → FeatureExploreAgent（对齐 case_generation → AnalysisAgent）。"""
+"""Web 适配层：ORM + DB 持久化 → agent_service HTTP 探索接口。"""
 
 from __future__ import annotations
 
 import json
 import os
-import sys
 import traceback
 from datetime import datetime
 from pathlib import Path
@@ -14,16 +13,65 @@ from dotenv import load_dotenv
 from sqlalchemy.orm import Session
 
 _REPO_ROOT = Path(__file__).resolve().parents[4]
-if str(_REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(_REPO_ROOT))
 _EXPORT_DIR = _REPO_ROOT / "web" / "backend" / "data" / "feature_analysis_exports"
 
-from agent_service.analysis_agent.feature_explore import ExploreDispatch, FeatureExploreAgent
+from app.services.agent_service_client import (
+    AgentServiceError,
+    submit_explore_run,
+    stream_explore_events,
+    cancel_task as cancel_agent_task,
+    sync_giic_tree,
+)
 from app.models import ProjectFeatureAnalysisRun, RobotInstance
 from app.services.app_explore_export import write_explore_excel
 from app.services.device_platform import resolve_execution_device_id, resolve_execution_platform
 from app.services.feature_analysis_service import get_feature_cancel_event
 from app.services.llm_usage_log import log_midscene_machine_line
+
+
+def _merge_feature_from_line(existing_json: str | None, obj: dict[str, Any]) -> tuple[str, int]:
+    """从 explore_feature 事件增量更新 feature_json 字符串。"""
+    try:
+        existing = json.loads(existing_json or "{}")
+    except json.JSONDecodeError:
+        existing = {"features": []}
+    feats = existing.get("features")
+    if not isinstance(feats, list):
+        feats = []
+    feat = obj.get("feature")
+    if isinstance(feat, dict):
+        feats.append(feat)
+        existing["features"] = feats
+    return json.dumps(existing, ensure_ascii=False), len(feats)
+
+
+def _finalize_tree(
+    *,
+    tree: dict[str, Any] | None,
+    feature_json: str | None,
+    app_name: str,
+    bundle_id: str,
+    started_at: datetime | None,
+    screens_visited: int,
+) -> dict[str, Any]:
+    if tree is None and feature_json:
+        try:
+            tree = json.loads(feature_json)
+        except json.JSONDecodeError:
+            tree = None
+    if tree is None:
+        tree = {
+            "app_name": app_name,
+            "bundle_id": bundle_id,
+            "started_at": started_at.isoformat() if started_at else "",
+            "finished_at": datetime.utcnow().isoformat(),
+            "features": [],
+            "screens_visited": screens_visited or 0,
+        }
+    tree.setdefault("app_name", app_name)
+    tree.setdefault("bundle_id", bundle_id)
+    tree["finished_at"] = datetime.utcnow().isoformat()
+    return tree
 
 
 def _persist_finalized_tree(
@@ -33,9 +81,7 @@ def _persist_finalized_tree(
     app_name: str,
     bundle_id: str,
 ) -> dict[str, Any]:
-    from agent_service.analysis_agent.feature_explore.tree_build import ensure_giic_tree
-
-    finalized = FeatureExploreAgent.finalize_tree(
+    finalized = _finalize_tree(
         tree=tree,
         feature_json=row.feature_json,
         app_name=app_name,
@@ -43,7 +89,7 @@ def _persist_finalized_tree(
         started_at=row.started_at or row.created_at,
         screens_visited=row.screens_visited or 0,
     )
-    finalized = ensure_giic_tree(finalized)
+    finalized = sync_giic_tree(finalized)
     row.feature_json = json.dumps(finalized, ensure_ascii=False)
     row.feature_count = len(finalized.get("features") or [])
     row.screens_visited = int(finalized.get("screens_visited") or row.screens_visited or 0)
@@ -73,7 +119,7 @@ def _try_write_explore_excel(
 
 
 def execute_feature_analysis_run(db: Session, run_id: int) -> None:
-    load_dotenv(_REPO_ROOT / ".env")
+    load_dotenv(Path(__file__).resolve().parents[2] / ".env")
     cancel_ev = get_feature_cancel_event(run_id)
 
     run = db.query(ProjectFeatureAnalysisRun).filter(ProjectFeatureAnalysisRun.id == run_id).first()
@@ -118,7 +164,6 @@ def execute_feature_analysis_run(db: Session, run_id: int) -> None:
     db.commit()
 
     tree_holder: dict[str, Any] = {"tree": None}
-    agent = FeatureExploreAgent(repo_root=_REPO_ROOT)
 
     def append_log(obj: dict[str, Any]) -> None:
         row = db.query(ProjectFeatureAnalysisRun).filter(ProjectFeatureAnalysisRun.id == run_id).first()
@@ -142,7 +187,7 @@ def execute_feature_analysis_run(db: Session, run_id: int) -> None:
         if obj.get("kind") == "explore_feature":
             row = db.query(ProjectFeatureAnalysisRun).filter(ProjectFeatureAnalysisRun.id == run_id).first()
             if row:
-                row.feature_json, row.feature_count = FeatureExploreAgent.merge_feature_from_line(
+                row.feature_json, row.feature_count = _merge_feature_from_line(
                     row.feature_json, obj
                 )
                 db.commit()
@@ -150,27 +195,49 @@ def execute_feature_analysis_run(db: Session, run_id: int) -> None:
     bundle_id = (run.bundle_id or "").strip()
     app_name = (run.app_display_name or bundle_id).strip()
 
-    dispatch = ExploreDispatch(
-        device_platform=platform,
-        device_id=device_id or "",
-        app_name=app_name,
-        bundle_id=bundle_id,
-        max_screens=run.max_screens,
-        max_depth=run.max_depth,
-        traverse_mode=(run.traverse_mode or "hybrid").strip() or "hybrid",
-        bfs_max_depth=int(run.bfs_max_depth or 1),
-        fair_share_per_root=int(run.fair_share_per_root or 0),
-        run_id=run_id,
-        robot_instance_id=run.robot_instance_id,
-    )
+    explore_params = {
+        "device_platform": platform,
+        "device_id": device_id or "",
+        "app_name": app_name,
+        "bundle_id": bundle_id,
+        "max_screens": run.max_screens,
+        "max_depth": run.max_depth,
+        "traverse_mode": (run.traverse_mode or "hybrid").strip() or "hybrid",
+        "bfs_max_depth": int(run.bfs_max_depth or 1),
+        "fair_share_per_root": int(run.fair_share_per_root or 0),
+        "run_id": run_id,
+        "robot_instance_id": run.robot_instance_id,
+    }
 
+    task_id: str | None = None
+    ok = False
+    msg = ""
+    report_file = None
     try:
-        result = agent.run(
-            dispatch,
-            on_machine_line=on_machine_line,
-            should_cancel=cancel_ev.is_set,
-            log_model_usage=lambda obj: log_midscene_machine_line(obj, run_id=run_id),
-        )
+        task_id = submit_explore_run(explore_params)
+        for event_name, event_data in stream_explore_events(task_id):
+            if cancel_ev.is_set() and task_id:
+                try:
+                    cancel_agent_task("explore", task_id)
+                except Exception:
+                    pass
+                break
+            if event_name == "line":
+                on_machine_line(event_data)
+            elif event_name == "usage":
+                log_midscene_machine_line(event_data, run_id=run_id)
+            elif event_name == "done":
+                ok = event_data.get("ok", False)
+                msg = event_data.get("message", "")
+                tree_from_done = event_data.get("tree")
+                if tree_from_done is not None:
+                    tree_holder["tree"] = tree_from_done
+                report_file = event_data.get("report_file")
+            elif event_name == "error":
+                raise AgentServiceError(event_data.get("detail", "unknown error"))
+            elif event_name == "cancelled":
+                ok = False
+                msg = "exec cancelled"
     except Exception:
         row = db.query(ProjectFeatureAnalysisRun).filter(ProjectFeatureAnalysisRun.id == run_id).first()
         if row:
@@ -210,9 +277,7 @@ def execute_feature_analysis_run(db: Session, run_id: int) -> None:
         _clear_slot(run_id)
         return
 
-    ok = result.ok
-    msg = result.message
-    tree = result.tree or tree_holder.get("tree")
+    tree = tree_holder.get("tree")
 
     if cancel_ev.is_set():
         row.status = "cancelled"
@@ -228,8 +293,8 @@ def execute_feature_analysis_run(db: Session, run_id: int) -> None:
         row, tree=tree, app_name=app_name, bundle_id=bundle_id
     )
 
-    if result.report_file:
-        row.report_path = result.report_file
+    if report_file:
+        row.report_path = report_file
 
     try:
         excel_abs = _try_write_explore_excel(

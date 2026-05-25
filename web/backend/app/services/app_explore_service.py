@@ -1,11 +1,9 @@
-"""APP 功能遍历任务：子进程 Midscene explore + Excel 导出。"""
+"""APP 功能遍历任务：通过 HTTP 调用 agent_service Midscene explore + Excel 导出。"""
 
 from __future__ import annotations
 
 import json
 import os
-import sys
-import threading
 import traceback
 from datetime import datetime
 from pathlib import Path
@@ -15,11 +13,14 @@ from dotenv import load_dotenv
 from sqlalchemy.orm import Session
 
 _REPO_ROOT = Path(__file__).resolve().parents[4]
-if str(_REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(_REPO_ROOT))
 _EXPORT_DIR = _REPO_ROOT / "web" / "backend" / "data" / "explore_exports"
 
-from agent_service.func_agent.backends.midscene.runtime import run_midscene_task
+from app.services.agent_service_client import (
+    AgentServiceError,
+    submit_midscene_task,
+    stream_midscene_events,
+    cancel_task as cancel_agent_task,
+)
 from app.services.llm_usage_log import log_midscene_machine_line
 from app.models import AppExploreRun, RobotInstance
 from app.services.app_explore_export import write_explore_excel
@@ -67,7 +68,7 @@ def explore_busy_message(busy: AppExploreRun) -> str:
 
 
 def execute_app_explore_run(db: Session, run_id: int) -> None:
-    load_dotenv(_REPO_ROOT / ".env")
+    load_dotenv(Path(__file__).resolve().parents[2] / ".env")
     cancel_ev = _explore_cancel_events.setdefault(run_id, threading.Event())
 
     run = db.query(AppExploreRun).filter(AppExploreRun.id == run_id).first()
@@ -165,13 +166,32 @@ def execute_app_explore_run(db: Session, run_id: int) -> None:
         "max_depth": run.max_depth,
     }
 
+    task_id: str | None = None
+    ok = False
+    msg = ""
+    report_file = None
     try:
-        ok, msg, report_file = run_midscene_task(
-            dispatch,
-            on_machine_line=on_machine_line,
-            should_cancel=cancel_ev.is_set,
-            log_model_usage=lambda obj: log_midscene_machine_line(obj, run_id=run_id),
-        )
+        task_id = submit_midscene_task(dispatch)
+        for event_name, event_data in stream_midscene_events(task_id):
+            if cancel_ev.is_set() and task_id:
+                try:
+                    cancel_agent_task("midscene", task_id)
+                except Exception:
+                    pass
+                break
+            if event_name == "line":
+                on_machine_line(event_data)
+            elif event_name == "usage":
+                log_midscene_machine_line(event_data, run_id=run_id)
+            elif event_name == "done":
+                ok = event_data.get("ok", False)
+                msg = event_data.get("message", "")
+                report_file = event_data.get("report_file")
+            elif event_name == "error":
+                raise AgentServiceError(event_data.get("detail", "unknown error"))
+            elif event_name == "cancelled":
+                ok = False
+                msg = "exec cancelled"
     except Exception:
         row = db.query(AppExploreRun).filter(AppExploreRun.id == run_id).first()
         if row:

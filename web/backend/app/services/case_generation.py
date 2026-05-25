@@ -1,10 +1,8 @@
-"""Web 适配层：组装 ORM / KB 上下文，调用 analysis_agent（同进程，对齐 executor → autoglm_phone_tech）。"""
+"""Web 适配层：组装 ORM / KB 上下文，通过 HTTP 调用 analysis_agent 服务。"""
 
 from __future__ import annotations
 
 import logging
-import sys
-from pathlib import Path
 
 log = logging.getLogger("app.case_generation")
 from typing import Optional
@@ -25,12 +23,12 @@ from app.services.company_scope import (
     enterprise_colleague_user_ids,
 )
 
-_REPO_ROOT = Path(__file__).resolve().parents[4]
-if str(_REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(_REPO_ROOT))
+from app.services.agent_service_client import AgentServiceError, generate_case_draft as _agent_generate, get_case_gen_config
 
-from agent_service.analysis_agent import AnalysisAgent, AnalysisAgentError, CaseDraft, ProjectContext
-from agent_service.analysis_agent.config import kb_enabled, kb_limit
+
+class AnalysisAgentError(Exception):
+    """用户可见的错误。"""
+
 
 # 兼容旧引用
 CaseGeneratorError = AnalysisAgentError
@@ -50,6 +48,7 @@ def _fetch_kb_examples(
     project: Project,
     user: User,
     prompt: str,
+    limit: int = 3,
 ) -> tuple[list[str], list[int]]:
     scope = _kb_owner_scope(db, user)
     rows = search_cases_kb(
@@ -57,7 +56,7 @@ def _fetch_kb_examples(
         q=prompt[:200],
         project_id=project.id,
         owner_scope_ids=scope,
-        limit=kb_limit(),
+        limit=limit,
     )
     snippets: list[str] = []
     case_ids: list[int] = []
@@ -70,34 +69,34 @@ def _fetch_kb_examples(
     return snippets, case_ids
 
 
-def _project_context(project: Project) -> ProjectContext:
-    return ProjectContext(
-        name=project.name,
-        tested_app_name=project.tested_app_name or "",
-        test_objective=(project.test_objective or "").strip(),
-    )
+def _project_context(project: Project) -> dict[str, str]:
+    return {
+        "name": project.name,
+        "tested_app_name": project.tested_app_name or "",
+        "test_objective": (project.test_objective or "").strip(),
+    }
 
 
-def _draft_to_schema_steps(draft: CaseDraft) -> list[CaseStepJson]:
+def _draft_to_schema_steps(draft: dict) -> list[CaseStepJson]:
     return [
-        CaseStepJson(order=s.order, description=s.description, expected=s.expected)
-        for s in draft.steps
+        CaseStepJson(order=s.get("order", 1), description=s.get("description", ""), expected=s.get("expected", ""))
+        for s in draft.get("steps", [])
     ]
 
 
 class GeneratedCaseDraft:
     """路由层使用的草稿结构（与原先 case_generator 字段对齐）。"""
 
-    def __init__(self, draft: CaseDraft) -> None:
-        self.title = draft.title
-        self.preconditions = draft.preconditions
+    def __init__(self, draft: dict) -> None:
+        self.title = draft.get("title", "")
+        self.preconditions = draft.get("preconditions", "")
         self.steps = _draft_to_schema_steps(draft)
-        self.task_text = draft.task_text
-        self.priority = draft.priority
-        self.case_format = getattr(draft, "case_format", None) or "structured"
+        self.task_text = draft.get("task_text", "")
+        self.priority = draft.get("priority", "P2")
+        self.case_format = draft.get("case_format") or "structured"
         self.case_yaml = ""
-        self.model = draft.model
-        self.similar_case_ids = draft.similar_case_ids
+        self.model = draft.get("model", "")
+        self.similar_case_ids = draft.get("similar_case_ids")
 
 
 def generate_case_draft(
@@ -114,11 +113,16 @@ def generate_case_draft(
     ok, msg = instance_available_for_generation(db, robot_instance)
     if not ok:
         raise AnalysisAgentError(msg)
+
+    config = get_case_gen_config()
+    _kb_enabled = config.get("kb_enabled", True)
+    _kb_limit = config.get("kb_limit", 3)
+
     kb_snippets: list[str] = []
     similar_ids: list[int] = []
-    if kb_enabled():
+    if _kb_enabled:
         kb_snippets, similar_ids = _fetch_kb_examples(
-            db, project=project, user=user, prompt=prompt
+            db, project=project, user=user, prompt=prompt, limit=_kb_limit,
         )
         log.info(
             "用例生成 KB 检索 project_id=%s hits=%s",
@@ -135,8 +139,7 @@ def generate_case_draft(
     )
     try:
         with analysis_generation_lock(robot_instance.id):
-            agent = AnalysisAgent()
-            draft = agent.generate_case_draft(
+            draft_dict = _agent_generate(
                 project=_project_context(project),
                 prompt=prompt,
                 kb_snippets=kb_snippets,
@@ -147,15 +150,18 @@ def generate_case_draft(
                 "该测试分析机器人正在生成用例，请等待当前任务完成后再试"
             ) from e
         raise
-    draft.similar_case_ids = similar_ids or None
+    except AgentServiceError as e:
+        raise AnalysisAgentError(str(e)) from e
+
+    draft_dict["similar_case_ids"] = similar_ids or None
     log.info(
         "用例生成完成 project_id=%s title=%r steps=%s model=%s",
         project.id,
-        draft.title,
-        len(draft.steps),
-        draft.model,
+        draft_dict.get("title"),
+        len(draft_dict.get("steps", [])),
+        draft_dict.get("model"),
     )
-    out = GeneratedCaseDraft(draft)
+    out = GeneratedCaseDraft(draft_dict)
     if (case_format or "structured").strip().lower() == "yaml":
         from app.services.case_format_convert import structured_to_yaml
 
