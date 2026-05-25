@@ -105,7 +105,7 @@ web/
 
 ### Key Architectural Details
 
-- **Database**: **MySQL 8** via required `DATABASE_URL` / `TCM_DATABASE_URL` (PyMySQL). Local: `docker compose up -d mysql` at repo root. Large text columns use `LongText` (MySQL `LONGTEXT`). No Alembic — schema changes use `database.ensure_schema()` with `ALTER TABLE ... ADD COLUMN`. Health: `GET /api/health` returns `database: mysql`.
+- **Database**: **MySQL 8** via required `DATABASE_URL` / `TCM_DATABASE_URL` (PyMySQL). Local: `docker compose up -d mysql` at repo root. External CLI: `mysql -h 127.0.0.1 -P 3306 -u tcm -ptcm tcm` (must use TCP host; bare `mysql -u root` fails with socket error). Large text columns use `LongText` (MySQL `LONGTEXT`). No Alembic — schema changes use `database.ensure_schema()`. Health: `GET /api/health` returns `database: mysql`.
 - **Auth**: JWT (python-jose) + bcrypt. Three roles: `platform_admin`, `tse`, `enterprise`.
 - **Multi-tenancy**: Projects/test cases scoped by `owner_id`. Company-level sharing via `Company.share_projects_cases_internally`.
 - **Environment**: Single `.env` at repo root loaded by both CLI agents and the backend. Copy `.env.example` and fill in required keys.

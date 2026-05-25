@@ -201,6 +201,31 @@ DATABASE_URL=mysql+pymysql://tcm:tcm@127.0.0.1:3306/tcm?charset=utf8mb4
 
 大文本字段（`step_log`、`feature_json` 等）在 ORM 中映射为 MySQL `LONGTEXT`。
 
+**外部终端 / 客户端连接**（MySQL 跑在 Docker 内，须走 **TCP**，不能省略 `-h`）：
+
+| 项 | 值 |
+|----|-----|
+| 主机 | `127.0.0.1` |
+| 端口 | `3306` |
+| 库名 | `tcm` |
+| 应用账号 | `tcm` / `tcm` |
+| root（仅管理） | `root` / `root` |
+
+```bash
+# 本机已安装 mysql 客户端时（推荐应用账号）
+mysql -h 127.0.0.1 -P 3306 -u tcm -ptcm tcm
+
+# 或 root
+mysql -h 127.0.0.1 -P 3306 -u root -proot tcm
+
+# 未装客户端：进容器执行
+docker compose exec mysql mysql -u tcm -ptcm tcm
+```
+
+若执行 `mysql -u root -proot` 报 `Can't connect through socket '/tmp/mysql.sock'`，是因为客户端在找**本机安装的 MySQL**，而实际服务在 Docker 映射的 `127.0.0.1:3306`。Navicat、DBeaver、TablePlus 等 GUI 同样填 **Host=127.0.0.1、Port=3306**。
+
+查看容器状态：`docker compose ps`；数据卷持久化见 `docker-compose.yml` 中 `tcm_mysql_data`。
+
 ### 1. Web 后端（FastAPI）
 
 ```bash

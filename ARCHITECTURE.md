@@ -381,7 +381,8 @@ flowchart TB
   - 环境变量 **`DATABASE_URL`** 或 **`TCM_DATABASE_URL`**，例如 `mysql+pymysql://user:pass@host:3306/tcm?charset=utf8mb4`。驱动 **PyMySQL**（见 `web/backend/requirements.txt`）。连接池：`TCM_DB_POOL_SIZE`（默认 10）、`TCM_DB_MAX_OVERFLOW`（默认 20）。本地实例：仓库根 **`docker-compose.yml`** → `docker compose up -d mysql`（默认库/用户/密码均为 `tcm`）。  
   - **大字段**：`models.py` 中 `LongText = Text().with_variant(LONGTEXT, "mysql")`，用于 `step_log`、`feature_json`、`case_yaml` 等。  
   - **启动与健康**：`main.py` 启动时 `create_all` + `ensure_schema()`；`GET /api/health` 执行 `SELECT 1` 并返回 `database: mysql`。  
-  - 连接使用 `pool_pre_ping`、`pool_recycle` 与 session `time_zone=+00:00`。
+  - 连接使用 `pool_pre_ping`、`pool_recycle` 与 session `time_zone=+00:00`。  
+  - **外部连接（CLI / GUI）**：本地 MySQL 在 Docker 中，映射 **`127.0.0.1:3306`**。须指定 `-h 127.0.0.1`，勿用默认 socket（否则会报 `/tmp/mysql.sock`）。应用账号 `tcm`/`tcm`，库 `tcm`；root 为 `root`/`root`（见 `docker-compose.yml`）。示例：`mysql -h 127.0.0.1 -P 3306 -u tcm -ptcm tcm`；或 `docker compose exec mysql mysql -u tcm -ptcm tcm`。
 
 - **表（逻辑）**  
   - `users`：账号与密码哈希、RBAC `role` 等。  
