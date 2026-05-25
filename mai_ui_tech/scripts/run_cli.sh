@@ -2,6 +2,8 @@
 # 从任意目录调用 mai_ui_tech CLI（自动使用 mai_ui_tech/.venv）
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+REPO_ROOT="$(cd "${ROOT}/.." && pwd)"
+export PYTHONPATH="${REPO_ROOT}:${PYTHONPATH:-}"
 PY="${ROOT}/.venv/bin/python"
 if [[ ! -x "${PY}" ]]; then
   echo "未找到 ${ROOT}/.venv，请先: cd ${ROOT} && bash scripts/setup_mlx_mac.sh" >&2

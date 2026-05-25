@@ -19,18 +19,18 @@
 ## 目录结构
 
 ```
-mai_ui_tech/
+mai_ui_tech/                 # Python 包与工程根（包名 mai_ui_tech，导入需将仓库根目录加入 PYTHONPATH）
 ├── README.md
 ├── requirements.txt
 ├── .env.example
-├── mai_ui_tech/
-│   ├── config.py
-│   ├── grounding.py      # MaiUiGroundingAgent
-│   ├── cli.py
-│   └── health.py
+├── config.py
+├── grounding.py             # MaiUiGroundingAgent
+├── grounding_server.py
+├── cli.py
+├── health.py
 └── scripts/
     ├── pull_ollama_model.sh
-    └── serve_vllm_mlx.sh
+    └── serve_grounding_mlx.sh
 ```
 
 ## 部署方式（Mac Apple Silicon）

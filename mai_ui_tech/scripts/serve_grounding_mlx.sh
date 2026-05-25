@@ -2,6 +2,8 @@
 # 启动 MAI-UI mlx_vlm Grounding HTTP 服务（默认 8101，模型常驻内存）
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+REPO_ROOT="$(cd "${ROOT}/.." && pwd)"
+export PYTHONPATH="${REPO_ROOT}:${PYTHONPATH:-}"
 cd "$ROOT"
 export MAI_UI_BACKEND=mlx_vlm
 if [[ -f "$ROOT/.env" ]]; then set -a; source "$ROOT/.env"; set +a; fi

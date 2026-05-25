@@ -18,9 +18,8 @@ from app.services.llm_usage_log import estimate_tokens, log_llm_usage
 logger = logging.getLogger("app.llm")
 
 _REPO_ROOT = Path(__file__).resolve().parents[4]
-_MAI_UI_PKG_ROOT = _REPO_ROOT / "mai_ui_tech"
-if str(_MAI_UI_PKG_ROOT) not in sys.path:
-    sys.path.insert(0, str(_MAI_UI_PKG_ROOT))
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
 
 
 def _grounding_worker_status(

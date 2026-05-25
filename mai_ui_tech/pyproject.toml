@@ -18,6 +18,8 @@ dependencies = [
 [project.scripts]
 mai-ui = "mai_ui_tech.cli:main"
 
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["mai_ui_tech*"]
+[tool.setuptools]
+package-dir = { "mai_ui_tech" = "." }
+
+[tool.setuptools.packages]
+packages = ["mai_ui_tech"]

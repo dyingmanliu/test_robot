@@ -231,9 +231,8 @@ autoglm-phone-test-agent/          # 仓库根目录
 │       ├── device_runtime.ts      # Android / 鸿蒙设备层
 │       ├── platform.ts            # 平台与引擎类型
 │       └── cli.ts                 # CLI；--web-dispatch 供 Web 子进程
-├── mai_ui_tech/                  # GUI Grounding 技术路线（MAI-UI）
-│   ├── mai_ui_tech/cli.py
-│   ├── mai_ui_tech/grounding.py
+├── mai_ui_tech/                  # GUI Grounding 技术路线（MAI-UI Python 包）
+│   ├── cli.py / grounding.py / config.py
 │   └── scripts/
 │       ├── serve_grounding_mlx.sh
 │       └── run_cli.sh
