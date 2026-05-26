@@ -55,6 +55,7 @@ def build_agent_task_text(
 
     if not blocks:
         return tt or "（空用例）"
+    blocks.append("【输入提示】如需在虚拟数字键盘（PIN码、密码、金额等）上输入，请逐个点击键盘上的数字按键，而不要尝试一次性输入全部文本。")
     return "\n\n".join(blocks)
 
 
@@ -112,6 +113,7 @@ def build_midscene_tech_steps(
     steps = parse_steps_json(steps_json)
     lines: list[str] = []
     pre = _sanitize_midscene_instruction(preconditions)
+    _input_kw = ("输入", "填写", "键入", "密码", "PIN", "金额", "支付", "账号")
     for i, s in enumerate(steps):
         if not isinstance(s, dict):
             continue
@@ -124,6 +126,8 @@ def build_midscene_tech_steps(
             part = chunk
             if exp and j == len(sub_chunks) - 1:
                 part += f"。预期：{exp}"
+            if any(k in desc for k in _input_kw):
+                part += "。注意：如果弹出虚拟数字键盘，请逐个点击键盘上的数字/符号按键来输入，不要使用一次性输入全部文本的方式。"
             if not lines and pre:
                 part = f"【前置条件】{pre}\n{part}"
             lines.append(part)
