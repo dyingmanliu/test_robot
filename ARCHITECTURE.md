@@ -220,6 +220,15 @@ autoglm-phone-test-agent/          # 仓库根目录
 │       ├── autoglm_runner.py
 │       ├── autoglm/agent.py
 │       └── midscene/runtime.py
+├── agent_service/service/                       # agent_service Web 服务（独立进程，端口 8100）
+│   ├── app.py                                   #   FastAPI app、lifespan、路由挂载
+│   ├── __main__.py                              #   python -m agent_service.service
+│   ├── task_manager.py                          #   内存任务注册表（SSE 推流 + 取消）
+│   ├── schemas.py / sse.py / config.py          #   模型、SSE 工具、服务配置
+│   └── routers/                                 #   health / analysis / func_agent / explore / midscene / tree
+├── agent_service/common/
+│   └── device_resolve.py                        #   设备 ID 解析（消除对 web backend 的循环依赖）
+├── agent_service/requirements.txt               # agent_service 依赖
 ├── autoglm_phone_tech/           # agent_service/func_agent 后端实现 · AutoGLM（Android/ADB + 鸿蒙/HDC）
 │   ├── device/device_factory.py
 │   ├── device/adb_bridge.py
@@ -279,7 +288,7 @@ autoglm-phone-test-agent/          # 仓库根目录
 
 ## 4. 运行时架构
 
-下图按 **§1.0** 的概念分层：**测试分析**含用例生成（无真机）与**功能点分析**（Midscene explore）；**测试执行**在 AutoGLM / Midscene 用例执行两条路线间二选一。与 §4.1–§4.6 的端口、HTTP 轮询与 WebSocket 一致。开发环境下浏览器 HTTP 常经 Vite 将 `/api` 代理到 Uvicorn（见 4.1）。
+下图按 **§1.0** 的概念分层：**测试分析**含用例生成（无真机）与**功能点分析**（Midscene explore）；**测试执行**在 AutoGLM / Midscene 用例执行两条路线间二选一。**agent_service 为独立 Web 服务**（端口 8100），web 后端通过 HTTP 调用（`agent_service_client.py`），长任务以 SSE 推流。与 §4.1–§4.6 的端口、HTTP 轮询与 WebSocket 一致。开发环境下浏览器 HTTP 常经 Vite 将 `/api` 代理到 Uvicorn（见 4.1）。
 
 ```mermaid
 flowchart TB
@@ -287,29 +296,24 @@ flowchart TB
     Vue["Vue 3 前端\nCasesView / FeatureAnalysisView"]
   end
 
-  subgraph server["Web 后端"]
+  subgraph server["Web 后端（端口 8000）"]
     FastAPI["FastAPI + 路由/服务"]
+    Client["agent_service_client.py\nHTTP 客户端"]
     Gen["case_generation.py"]
     FAB["feature_analysis_bridge.py"]
     Exec["executor.py\n用例执行调度"]
     DB[("MySQL_8")]
   end
 
-  subgraph analysis["测试分析机器人 Agent · analysis_agent"]
+  subgraph agent["Agent Service（端口 8100 · 独立进程）"]
+    ASApp["FastAPI + routers\nSSE 推流 / 任务管理"]
     AA["AnalysisAgent\n用例生成 · 同进程"]
     FE["FeatureExploreAgent\n功能点分析 · 编排"]
-    LLMGen["OpenAI 兼容 API\nCASE_GEN_*"]
-  end
-
-  subgraph midscene["midscene_tech（子进程 · 共用运行时）"]
-    MSRun["CLI execution_mode\nnatural / yaml"]
-    MSExplore["CLI execution_mode\nexplore · hybrid/bfs/dfs"]
-    LLMVis["Midscene 视觉模型\nMIDSCENE_*"]
-  end
-
-  subgraph execution["测试执行机器人 · func_agent（路线二选一）"]
     PTA["autoglm_phone_tech\n同进程 · ADB/HDC"]
+    MSProc["midscene_tech 子进程"]
+    LLMGen["OpenAI 兼容 API\nCASE_GEN_*"]
     LLM1["智谱等"]
+    LLMVis["Midscene 视觉模型\nMIDSCENE_*"]
   end
 
   subgraph future["其他功能定位（扩展）"]
@@ -318,19 +322,19 @@ flowchart TB
 
   Vue --> FastAPI
   FastAPI --> DB
-  FastAPI -->|"用例生成"| Gen --> AA --> LLMGen
-  FastAPI -->|"功能点分析"| FAB --> FE --> MSExplore
-  FastAPI -->|"用例执行"| Exec
-  Exec -->|"autoglm"| PTA --> LLM1
-  Exec -->|"midscene"| MSRun
-  MSExplore --> LLMVis
-  MSRun --> LLMVis
+  FastAPI -->|"用例生成"| Gen -->|"HTTP POST"| Client
+  FastAPI -->|"功能点分析"| FAB -->|"HTTP SSE"| Client
+  FastAPI -->|"用例执行"| Exec -->|"HTTP SSE"| Client
+  Client -->|"HTTP"| ASApp
+  ASApp -->|"generate_case_draft"| AA --> LLMGen
+  ASApp -->|"explore run"| FE --> MSProc
+  ASApp -->|"func-agent dispatch"| PTA --> LLM1
+  ASApp -->|"func-agent dispatch"| MSProc
+  MSProc --> LLMVis
   PTA --> ADB["ADB"]
   PTA --> HDC["HDC"]
-  MSExplore --> ADB
-  MSExplore --> HDC
-  MSRun --> ADB
-  MSRun --> HDC
+  MSProc --> ADB
+  MSProc --> HDC
   FastAPI -.-> FX
 ```
 
@@ -341,17 +345,20 @@ flowchart TB
 | 组件 | 默认端口 | 说明 |
 |------|-----------|------|
 | Vite 开发服务器 | 5173 | 浏览器访问前端 |
-| Uvicorn（FastAPI） | 8000 | 浏览器通常不直连；`/api` 由 Vite **proxy** 到 8000 |
+| Uvicorn（FastAPI） | 8000 | Web 后端；浏览器通常不直连，`/api` 由 Vite **proxy** 到 8000 |
+| Agent Service（FastAPI） | 8100 | agent_service Web 服务；web 后端通过 HTTP 调用，SSE 推流长任务 |
 
 前端 Axios 使用 `VITE_API_BASE`（可为空）。开发时常为空，请求走同源 `/api`，由 Vite 转发到后端。
+
+agent_service 由 web 后端通过 `app/services/agent_service_client.py`（HTTP 客户端）调用，不再使用 Python `import`。长任务（测试执行、功能探索）先 POST 提交获取 `task_id`，再 GET SSE stream 接收事件，DELETE 取消。
 
 ### 4.2 请求链路（登录后）
 
 1. 浏览器 → `POST /api/auth/login`（或 register）→ 返回 JWT。  
 2. 前端 `localStorage` 存 token，后续请求 `Authorization: Bearer ...`。  
 3. 用例列表 → `GET /api/test-cases`。
-3b. **AI 生成草稿** → `POST /api/test-cases/generate`；`case_generation` → `AnalysisAgent`；**不写库**直至 `POST /api/test-cases`。须**测试分析**实例；与功能点分析、用例执行**互斥**（见 §1.4）。  
-3c. **功能点分析** → `POST /api/projects/{id}/feature-analysis/runs`；`feature_analysis_bridge` → `FeatureExploreAgent` → Midscene `explore`；轮询 `GET …/runs/{id}`；结束后 `POST …/confirm` → `project_feature_trees`（成功/取消/失败且有功能点均可）。详见 §4.6。  
+3b. **AI 生成草稿** → `POST /api/test-cases/generate`；`case_generation` → HTTP `POST /api/agent/analysis/generate-case-draft` → agent_service `AnalysisAgent`；**不写库**直至 `POST /api/test-cases`。须**测试分析**实例；与功能点分析、用例执行**互斥**（见 §1.4）。  
+3c. **功能点分析** → `POST /api/projects/{id}/feature-analysis/runs`；`feature_analysis_bridge` → HTTP submit → agent_service `FeatureExploreAgent` SSE stream → Midscene `explore`；轮询 `GET …/runs/{id}`；结束后 `POST …/confirm` → `project_feature_trees`（成功/取消/失败且有功能点均可）。详见 §4.6。  
 4. 执行 → `POST /api/test-cases/{id}/run`：请求体含 `robot_instance_id`，可选 `device_platform`、`device_id`；创建 `TestRun` 后**异步**在线程池执行 `executor.execute_test_run`。  
 5. 执行前枚举设备 → `GET /api/devices/connected?platform=…`（用例页「目标终端」下拉）。  
 6. 前端轮询 → `GET /api/test-cases/runs/{run_id}` 获取 `status`、`step_log`、`output_message` 等。
@@ -362,11 +369,11 @@ flowchart TB
 2. 后端合并实例默认与本次参数：`resolve_execution_platform()`、`resolve_execution_device_id()`，写入 `test_runs.device_platform`、`test_runs.device_id`。  
 3. 读取实例 `test_agent_backend`（**测试执行**技术路线）；**YAML 用例**仅允许 **`midscene`** 路线，否则直接失败。  
 4. 路由分支（`executor.py`）：  
-   - **统一入口**：`run_func_agent_dispatch(FuncAgentDispatch(...))`。  
-   - **`autoglm` 后端**：进入 `agent_service.func_agent.backends.autoglm_runner`，同进程调用 `agent_service.func_agent.backends.autoglm.agent.PhoneTestAgent`；设备层 `create_device()` → `AdbBridge` / `HdcBridge`。  
-   - **`midscene` 后端**：进入 `agent_service.func_agent.backends.midscene.runtime`，子进程执行 `midscene_tech` CLI；`stdin` JSON 含 `device_platform`、`device_id`、`execution_mode` 等；子进程环境同步设置 `ADB_DEVICE_ID` / `HDC_DEVICE_ID`。  
-5. Midscene stdout 每行 JSON（`kind: meta|step|done`）→ `step_log`；成功可写 `report_path`。  
-6. 取消：`threading.Event` + `POST …/runs/{id}/cancel`。  
+   - 构建 dispatch dict → `submit_func_agent_dispatch()` HTTP 提交到 agent_service → 获取 `task_id`。  
+   - 循环读取 `stream_func_agent_events(task_id)` SSE 流：`step` / `line` / `usage` / `done` / `cancelled` 事件 → 写入 `step_log`。  
+   - agent_service 内部按 `backend` 路由到 `autoglm_runner`（同进程）或 `midscene.runtime`（子进程）。  
+5. Midscene 事件：`kind: meta|step|done` → `step_log`；成功可写 `report_path`。  
+6. 取消：`threading.Event` + `cancel_task("func-agent", task_id)` HTTP DELETE 到 agent_service + `POST …/runs/{id}/cancel`。  
 7. 投屏：`GET …/device-screen?device_platform=&device_id=`，与用例页当前选择一致（`device_screen.py`）。
 
 ### 4.4 WebSocket 运行监控（大屏）
@@ -415,14 +422,15 @@ sequenceDiagram
   participant UI as ProjectFeatureAnalysisView
   participant API as project_feature_analysis
   participant Bridge as feature_analysis_bridge
-  participant FE as FeatureExploreAgent
-  participant MS as midscene explore子进程
+  participant Client as agent_service_client
+  participant AS as Agent Service（FE + Midscene）
 
   UI->>API: POST /runs（traverse_mode, max_screens, …）
   API->>Bridge: 异步 execute_feature_analysis_run
-  Bridge->>FE: ExploreDispatch
-  FE->>MS: stdin JSON execution_mode=explore
-  MS-->>Bridge: JSONL explore_page / explore_feature / explore_metrics
+  Bridge->>Client: submit_explore_run → task_id
+  Bridge->>Client: stream_explore_events(task_id) SSE
+  Client->>AS: HTTP SSE stream
+  AS-->>Bridge: explore_page / explore_feature / done 事件
   Bridge-->>API: 增量写 feature_json、step_log
   UI->>API: GET /runs/{id} 轮询
   UI->>API: POST /runs/{id}/confirm（可取消/失败后若有功能点）
@@ -454,28 +462,47 @@ sequenceDiagram
 
 ## 6. 外部依赖与环境变量
 
+配置已按服务拆分，不再使用仓库根目录 `.env`：
+
+| 配置文件 | 服务 | 加载方式 |
+|----------|------|----------|
+| `web/backend/.env` | Web 后端 | `main.py` → `load_dotenv` |
+| `agent_service/.env` | Agent Service | `service/app.py` → `load_dotenv` |
+| `.env.example` | 参考文档 | 按服务分区的完整变量说明 |
+
+### Web 后端（`web/backend/.env`）
+
 | 变量（示例） | 用途 |
 |----------------|------|
-| `CASE_GEN_API_KEY` | 测试分析 Agent API Key；未设则回退 `BIGMODEL_API_KEY` / `ZHIPU_API_KEY` |
-| `CASE_GEN_BASE_URL` | 用例生成网关（如 `https://api.deepseek.com` 或智谱 `OPENAI_BASE_URL`） |
-| `CASE_GEN_MODEL` | 用例生成模型（如 `deepseek-v4-pro`、`glm-4-flash`） |
-| `CASE_GEN_TIMEOUT_SEC` | 生成超时（秒），默认 60 |
-| `CASE_GEN_USE_KB` / `CASE_GEN_KB_LIMIT` | 是否启用同项目用例 RAG 及条数上限 |
-| `BIGMODEL_API_KEY` / `ZHIPU_API_KEY` | AutoGLM（Android / 鸿蒙均使用） |
+| `DATABASE_URL` / `TCM_DATABASE_URL` | MySQL 8 连接字符串 |
+| `TCM_DB_POOL_SIZE` / `TCM_DB_MAX_OVERFLOW` | MySQL 连接池（可选） |
+| `JWT_SECRET` / `JWT_EXPIRE_MINUTES` | JWT 签名密钥与过期时间 |
+| `LOG_LEVEL` / `LOG_FORMAT` / `LOG_SQL` | 日志配置 |
+| `TCM_BUILTIN_ADMIN_*` / `TCM_BOOTSTRAP_ADMIN_*` | 内置平台管理员引导 |
+| `AGENT_SERVICE_URL` | agent_service 地址（默认 `http://127.0.0.1:8100`） |
+| `ADB_DEVICE_ID` / `HDC_DEVICE_ID` / `HDC_HOME` | 设备发现与投屏 |
+| `DEVICE_SCREEN_MAX_WIDTH` | 投屏缩略图最大宽度 |
+| `KAFKA_*` | 功能测试下发（可选） |
+| `TCM_APP_UPLOAD_DIR` / `TCM_APP_UPLOAD_MAX_MB` | App 安装包上传 |
+
+### Agent Service（`agent_service/.env`）
+
+| 变量（示例） | 用途 |
+|----------------|------|
+| `AGENT_SERVICE_HOST` / `AGENT_SERVICE_PORT` | 监听地址（默认 `0.0.0.0:8100`） |
+| `BIGMODEL_API_KEY` / `ZHIPU_API_KEY` | 智谱 API Key（AutoGLM + 用例生成兜底） |
 | `OPENAI_BASE_URL` | 智谱网关等 |
 | `PHONE_AGENT_MODEL` / `PHONE_AGENT_MAX_STEPS` | AutoGLM 模型与步数上限 |
-| `PHONE_AGENT_DEVICE_TYPE` | CLI 默认设备类型：`adb` \| `hdc`（同 Open-AutoGLM） |
-| `ADB_DEVICE_ID` | Android 默认 serial；用例页「目标终端」可覆盖 |
-| `MIDSCENE_MODEL_*` / `DASHSCOPE_API_KEY` | Midscene 视觉模型（千问等） |
-| `HDC_DEVICE_ID` / `HDC_HOME` | 鸿蒙默认 target / hdc 路径；用例页可覆盖 |
-| `MIDSCENE_DEVICE_PLATFORM` | CLI 覆盖平台：`android` \| `harmonyos` |
-| `MIDSCENE_AGENT_BACKEND` | Web 子进程覆盖：`autoglm` \| `midscene` |
-| `EXPLORE_TRAVERSE_MODE` | 功能遍历默认策略：`hybrid` \| `bfs` \| `dfs` |
-| `MIDSCENE_EXPLORE_STEP_TIMEOUT_SEC` | 功能点遍历单步 `aiAct`/`aiQuery` 超时（秒），默认 120 |
-| `MIDSCENE_REPLANNING_CYCLE_LIMIT` | Midscene 单步 `aiAct` 内部重规划上限（默认 20；复杂任务建议 40–60） |
-| `MIDSCENE_APP_NAME_MAP` | 可选：APP 显示名 → 包名/Ability（功能探索推荐 Web 直接选 bundle_id） |
-| `JWT_SECRET` / `DATABASE_URL` / `TCM_DATABASE_URL` | Web 认证与 MySQL 连接 |
-| `TCM_DB_POOL_SIZE` / `TCM_DB_MAX_OVERFLOW` | MySQL 连接池（可选） |
+| `CASE_GEN_API_KEY` | 用例生成 API Key；未设则回退 `BIGMODEL_API_KEY` |
+| `CASE_GEN_BASE_URL` | 用例生成网关（如 `https://api.deepseek.com`） |
+| `CASE_GEN_MODEL` / `CASE_GEN_TIMEOUT_SEC` | 用例生成模型与超时 |
+| `CASE_GEN_USE_KB` / `CASE_GEN_KB_LIMIT` | 同项目用例 RAG |
+| `MIDSCENE_MODEL_BASE_URL` / `MIDSCENE_MODEL_API_KEY` | Midscene 视觉模型 |
+| `MIDSCENE_MODEL_NAME` / `MIDSCENE_MODEL_FAMILY` | Midscene 模型名与系列 |
+| `MIDSCENE_REPLANNING_CYCLE_LIMIT` | 单步 aiAct 重规划上限 |
+| `MIDSCENE_EXPLORE_STEP_TIMEOUT_SEC` | 功能遍历单步超时 |
+| `EXPLORE_TRAVERSE_MODE` | 功能遍历默认策略 |
+| `ADB_DEVICE_ID` / `HDC_DEVICE_ID` / `HDC_HOME` | 设备连接（执行用） |
 
 设备要求：
 
@@ -493,7 +520,7 @@ sequenceDiagram
 3. **改测试执行 · AutoGLM 路线**：`autoglm_phone_tech/`（`device_factory`、`hdc_bridge` 等）；影响所有 `test_agent_backend=autoglm` 的执行。  
 4. **改测试执行 · Midscene 路线**：`midscene_tech/`；`npm run typecheck`；影响 `test_agent_backend=midscene`；改完后重启 Uvicorn。长时间任务不建议 `uvicorn --reload`。  
 5. **改测试执行路由**：`executor.py`、`services/device_platform.py`；实例字段见 `models.RobotInstance`。  
-6. **改测试分析**：`agent_service/analysis_agent/`、`services/case_generation.py`；环境变量 `CASE_GEN_*`。  
+6. **改测试分析**：`agent_service/analysis_agent/`、`agent_service/service/routers/analysis.py`；环境变量在 `agent_service/.env`（`CASE_GEN_*`）。需重启 agent_service。  
 7. **数据库**：MySQL 8；`DATABASE_URL` 必填；无 Alembic，列迁移在 `database.ensure_schema()`。  
 8. **排查执行失败**：确认实例 **技术路线（autoglm/midscene）**、用例页 **平台+终端** 与用例格式（YAML→仅 Midscene 路线）；`adb devices` / `hdc list targets` 与所选 `device_id` 一致；看 `test_runs.device_platform`、`device_id`、`error_trace`、`step_log`；Midscene 报告见 `report_path`。  
 9. **排查 AI 生成失败**：确认 `CASE_GEN_API_KEY`（或回退智谱 Key）与 `CASE_GEN_BASE_URL`/`CASE_GEN_MODEL` 匹配；改 `.env` 后重启 Uvicorn；Swagger `POST /api/test-cases/generate` 可直调；非法 JSON 时服务会自动重试一次修复。  

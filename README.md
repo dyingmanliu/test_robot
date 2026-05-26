@@ -77,22 +77,22 @@
 | 目标终端 | `POST …/run` 的 `device_id` | ADB serial 或 HDC target |
 | 刷新 | `GET /api/devices/connected?platform=` | 扫描 `adb devices` / `hdc list targets` |
 
-未选终端时回退到 `.env` 的 `ADB_DEVICE_ID` / `HDC_DEVICE_ID`（若已配置）。
+未选终端时回退到 `agent_service/.env` 的 `ADB_DEVICE_ID` / `HDC_DEVICE_ID`（若已配置）。
 
-### 1e. 测试分析机器人 Agent（`agent_service/analysis_agent/`，Web 同进程调用）
+### 1e. 测试分析机器人 Agent（`agent_service/analysis_agent/`，HTTP 服务调用）
 
 - **职责**：根据项目上下文与用户一句话，调用大模型生成 **structured** 用例草稿（`title` / `preconditions` / `steps` / `task_text` / `priority`）。LLM 始终产出结构化字段；若前端选择 YAML，由 `case_format_convert.py` 转为 Midscene `tasks:` 脚本。
 - **包**：[`agent_service/analysis_agent/`](./agent_service/analysis_agent/)（对齐 [`autoglm_phone_tech/`](./autoglm_phone_tech/) 模式：`AnalysisAgent` + `model/client` + `config`）。
-- **Web 适配**：`web/backend/app/services/case_generation.py` 组装 ORM / KB，调用 `AnalysisAgent.generate_case_draft()`；可选 `case_format=yaml` 时在生成后做格式转换。
+- **Web 适配**：`web/backend/app/services/case_generation.py` 组装 ORM / KB，通过 HTTP 调用 agent_service 的 `POST /api/agent/analysis/generate-case-draft`；可选 `case_format=yaml` 时在生成后做格式转换。
 - **格式互转**：`web/backend/app/services/case_format_convert.py` — structured ↔ Midscene YAML（规则转换，编辑弹窗切换格式时调用）。
 - **入口**：测试用例页 **「创建用例」→「自动生成」**（须选择已租用的 **测试分析** 机器人实例；可选生成格式）→ 预览编辑（可再切换格式）→ `POST /api/test-cases` 保存。
 - **与测试执行配合**：保存后的用例与手动编写的用例相同，在列表中选中后用 **测试执行** 类机器人发起 `POST /api/test-cases/{id}/run`；生成与执行使用**不同**的 `robot_instance_id`。完整步骤见上文 **「端到端工作流」** 与架构文档 §1.0、§1.4。
 - **API**（均不写库）：
   - `POST /api/test-cases/generate` — 请求体 `project_id`、`robot_instance_id`（`catalog_robot_id=test_analysis`）、`prompt`、可选 `case_format`（`structured` | `yaml`，默认 `structured`）
   - `POST /api/test-cases/convert-format` — 编辑时 structured ↔ yaml 互转
-- **与执行 Agent 分离**：不连手机；真机执行由 **测试执行机器人**在 `executor.py` 中按 **AutoGLM / Midscene** 技术路线路由。YAML 用例须 **Midscene** 路线执行。
+- **与执行 Agent 分离**：不连手机；真机执行由 **测试执行机器人** 通过 HTTP 提交到 agent_service，在 `executor.py` 中按 **AutoGLM / Midscene** 技术路线路由。YAML 用例须 **Midscene** 路线执行。
 
-**环境变量（仓库根 `.env`）**
+**环境变量（`agent_service/.env`）**
 
 | 变量 | 说明 |
 |------|------|
@@ -106,13 +106,14 @@
 **本地调试示例（DeepSeek）** — 与 AutoGLM/Midscene 执行 Key 独立，见 [`.env.example`](./.env.example)：
 
 ```bash
+# agent_service/.env
 CASE_GEN_API_KEY=sk-...                    # https://platform.deepseek.com/api_keys
 CASE_GEN_BASE_URL=https://api.deepseek.com
 CASE_GEN_MODEL=deepseek-v4-pro
 CASE_GEN_TIMEOUT_SEC=120
 ```
 
-修改 `.env` 后需**重启 Uvicorn** 生效。
+修改 `agent_service/.env` 后需**重启 agent_service** 生效。
 
 ### 1f. MAI-UI 技术路线（`mai_ui_tech/`）
 
@@ -139,7 +140,7 @@ CASE_GEN_TIMEOUT_SEC=120
 | **运行监控（WebSocket）** | `/api/ws/monitor/robots` | 查询参数 `token`（JWT）；仅 `platform_admin` / `tse`；约每 2s JSON 推送在线/空闲/执行中（执行中与 `test_runs.running` 对齐，空闲等为 Agent 管理占位，可替换为管控服务数据）；逻辑见 `app/services/robot_monitor.py` |
 | **平台能力占位** | `/api/platform` | 设备、计费配置、内部机器人目录、企业租用/用量等（对接后续微服务） |
 | **机器人实例** | `/api/robot-instances` | 已租用实例列表；PATCH 展示名、引擎、`device_platform`（默认平台）；`GET …/device-screen` 支持 `device_platform`、`device_id` 投屏 |
-| **基础设施** | `app/database.py`、`executor.py` | MySQL 8（`DATABASE_URL`）、启动迁移；AutoGLM 同进程（ADB/HDC），Midscene 子进程；写回 `step_log` / Midscene HTML 报告 |
+| **基础设施** | `app/database.py`、`executor.py` | MySQL 8（`DATABASE_URL`）、启动迁移；通过 HTTP 调用 agent_service（`agent_service_client.py`）执行 AutoGLM / Midscene 路线，SSE 接收步骤日志与结果 |
 
 **RBAC 角色（预定义）**：`platform_admin`（平台管理员）、`tse`（内部测试工程师）、`enterprise`（外部企业用户）。详见 `app/rbac.py`。
 
@@ -167,9 +168,15 @@ CASE_GEN_TIMEOUT_SEC=120
 
 ## 环境变量
 
-- **模板**：复制仓库根目录 [`.env.example`](./.env.example) 为 `.env`，并按注释填写。`agent_service/func_agent` CLI 与 Web 后端执行链路均会加载该文件。
+环境变量已按服务拆分，不再使用仓库根目录 `.env`：
+
+| 配置文件 | 服务 | 包含内容 |
+|----------|------|---------|
+| `web/backend/.env` | Web 后端 | 数据库、JWT、日志、管理员、AGENT_SERVICE_URL |
+| `agent_service/.env` | Agent Service | LLM Key、模型配置、CASE_GEN_*、MIDSCENE_*、设备连接 |
+
+- **参考文档**：[`.env.example`](./.env.example) 按服务分区列出所有变量。
 - **前端**：可选复制 [`web/frontend/.env.example`](./web/frontend/.env.example)；开发一般留空，由 Vite 将 `/api` 代理到本地后端。
-- **变量说明**：以 `.env.example` 为准。模型侧常用 `BIGMODEL_API_KEY`（智谱 / AutoGLM）、`MIDSCENE_MODEL_*` / `DASHSCOPE_API_KEY`（千问）、`CASE_GEN_*`（用例 **AI 生成**，可与执行模型分离，如 DeepSeek `deepseek-v4-pro`）；功能点遍历可选 `EXPLORE_TRAVERSE_MODE`（`hybrid` \| `bfs` \| `dfs`）、`MIDSCENE_EXPLORE_STEP_TIMEOUT_SEC`；设备侧 `ADB_DEVICE_ID`、`HDC_DEVICE_ID` 为可选兜底，**多机时建议在测试用例页或功能点分析页选择目标终端**。
 - **数据库**：Web 后端通过 **`DATABASE_URL`**（或 **`TCM_DATABASE_URL`**）连接 MySQL 8；本地见下方「数据库（MySQL）」小节。
 
 ---
@@ -182,7 +189,7 @@ CASE_GEN_TIMEOUT_SEC=120
 - **Web 数据库**：Docker Desktop（或本机 MySQL 8）；见下方数据库小节
 - **Android 真机**：ADB、`BIGMODEL_API_KEY`（AutoGLM）或 Midscene 模型 Key
 - **鸿蒙真机**：HDC（DevEco toolchains）、Midscene 模型 Key；AutoGLM+鸿蒙组合另需智谱 Key
-- 根目录 `.env` 配置见 [`.env.example`](./.env.example)；使用 **AI 生成用例** 时需配置 `CASE_GEN_API_KEY`（或回退智谱 Key）
+- 根目录已移除 `.env`；请分别在 `web/backend/` 和 `agent_service/` 下配置各自的 `.env`，参考 [`.env.example`](./.env.example)。
 
 ### 0. 数据库（MySQL 8）
 
@@ -193,7 +200,7 @@ CASE_GEN_TIMEOUT_SEC=120
 docker compose up -d mysql
 ```
 
-在 [`.env`](./.env) 中配置（与 compose 默认账号一致）：
+在 `web/backend/.env` 中配置（与 compose 默认账号一致）：
 
 ```bash
 DATABASE_URL=mysql+pymysql://tcm:tcm@127.0.0.1:3306/tcm?charset=utf8mb4
@@ -234,14 +241,30 @@ python -m venv .venv          # 若尚未创建虚拟环境
 source .venv/bin/activate     # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
-# 在仓库根目录已存在 .env 的前提下：
-uvicorn app.main:app --host 127.0.0.1 --port 8000 --log-level info
+# 在 web/backend/.env 已配置的前提下：
+PYTHONPATH=. uvicorn app.main:app --host 127.0.0.1 --port 8000 --log-level info
 ```
 
 - `app/logging_config.py` 将 Python 侧「应用类」日志默认设为 **INFO**（可用环境变量 **`LOG_LEVEL`** 覆盖）；启动参数 **`--log-level info`** 用于 Uvicorn 自身的访问/错误输出。
 - 未激活 venv 时也可：`web/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --log-level info`（需在 `web/backend` 下执行或配置 `PYTHONPATH`）。
-- **长时间跑任务**时不建议使用 `uvicorn --reload`，以免代码保存重启进程打断后台执行。
 - 健康检查：`GET http://127.0.0.1:8000/api/health` → `{"status":"ok","database":"mysql"}`（含数据库连通探测）
+
+### 1b. Agent Service（FastAPI · 独立进程）
+
+```bash
+cd agent_service
+python -m venv .venv          # 若尚未创建虚拟环境
+source .venv/bin/activate
+pip install -r requirements.txt
+
+# 在 agent_service/.env 已配置的前提下：
+python -m agent_service.service
+# 或：uvicorn agent_service.service.app:app --host 0.0.0.0 --port 8100
+```
+
+- 健康检查：`GET http://127.0.0.1:8100/api/agent/health` → `{"status":"ok"}`
+- Swagger 文档：`http://127.0.0.1:8100/docs`
+- 须在 web backend 启动前运行，或后端会显示 agent_service 不可达提示
 
 ### 2. Web 前端（Vite）
 
@@ -287,6 +310,7 @@ npm run task -- "打开设置并进入关于本机"                        # 鸿
 |------|-----------|------|
 | 前端（Vite） | 5173 | 浏览器访问 |
 | 后端（Uvicorn） | 8000 | 前端 dev 通过代理访问 `/api/*` |
+| Agent Service | 8100 | agent_service Web 服务；web 后端通过 HTTP 调用 |
 
 ---
 
