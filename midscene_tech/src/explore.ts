@@ -24,6 +24,7 @@ import {
   filterNavItemsForScreen,
   filterNavItemsForTap,
   inferHasSubPages,
+  listingPathForItem,
   parseTraverseMode,
   regionRank,
   screenFingerprint,
@@ -34,6 +35,7 @@ import {
   queryScreenSnapshot,
   waitAfterTap,
   type ScreenSnapshot,
+  type SnapshotQueryOptions,
 } from './explore_snapshot.js';
 import {
   runDfsTraverse,
@@ -64,6 +66,24 @@ import {
 } from './explore_fair_share.js';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+function parseScrollRevealMenus(value?: boolean): boolean {
+  if (value !== undefined) return value;
+  const env = (process.env.EXPLORE_SCROLL_REVEAL_MENUS || '').trim().toLowerCase();
+  if (env === '0' || env === 'false' || env === 'no') return false;
+  return true;
+}
+
+function parseScrollMaxPasses(value?: number): number {
+  if (value !== undefined && value > 0) {
+    return Math.min(Math.floor(value), 6);
+  }
+  const env = Number(process.env.EXPLORE_SCROLL_MAX_PASSES);
+  if (Number.isFinite(env) && env > 0) {
+    return Math.min(Math.floor(env), 6);
+  }
+  return 5;
+}
 
 function fullPathKey(path: string[], name: string): string {
   const parts = [...path, name].map((s) => s.trim()).filter(Boolean);
@@ -101,6 +121,8 @@ export async function runAppFeatureExplore(
   const traverseMode: TraverseMode = parseTraverseMode(options.traverseMode);
   const bfsMaxDepth = options.bfsMaxDepth ?? DEFAULT_BFS_MAX_DEPTH;
   const fairSharePerRoot = options.fairSharePerRoot ?? FAIR_SHARE_OFF;
+  const scrollRevealMenus = parseScrollRevealMenus(options.scrollRevealMenus);
+  const scrollMaxPasses = parseScrollMaxPasses(options.scrollMaxPasses);
   const metrics = new ExploreMetrics();
   const fairShareState: { budget: FairShareBudget | null } = { budget: null };
   let resolvedBundleId = '';
@@ -126,6 +148,12 @@ export async function runAppFeatureExplore(
   ) => {
     stepSeq += 1;
     emit({ kind: 'step', step: stepSeq, phase, task, error });
+  };
+
+  const snapshotQueryOpts: SnapshotQueryOptions = {
+    scrollRevealMenus,
+    scrollMaxPasses,
+    emitStep,
   };
 
   const upsertFeature = (
@@ -539,6 +567,7 @@ export async function runAppFeatureExplore(
         appName,
         machineOut,
         metrics,
+        snapshotQueryOpts,
       );
       const recorded = await recordScreen(path, depth, snapshot);
       if (!recorded) return;
@@ -569,7 +598,15 @@ export async function runAppFeatureExplore(
 
       for (const item of items) {
         if (options.shouldCancel?.()) throw new Error('探索已取消');
-        upsertFeature(item, path, depth, screenTitle, 'listed', parentId);
+        const listPath = listingPathForItem(item, path, depth, snapshot);
+        upsertFeature(
+          item,
+          listPath,
+          listPath.length,
+          screenTitle,
+          'listed',
+          parentId,
+        );
       }
 
       const clickable = filterNavItemsForTap(snapshot.nav_items, path, depth).filter(
@@ -635,6 +672,7 @@ export async function runAppFeatureExplore(
           appName,
           machineOut,
           metrics,
+          { scrollRevealMenus: false },
         );
         if (isOffAppScreenTitle(afterSnap.screen_title)) {
           emitStep('error', '点击后进入站外', afterSnap.screen_title);
@@ -704,6 +742,7 @@ export async function runAppFeatureExplore(
           mode: traverseMode,
         });
       },
+      snapshotQueryOpts,
     };
 
     if (traverseMode === 'dfs') {

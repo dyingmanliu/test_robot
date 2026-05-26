@@ -162,7 +162,9 @@ const REGION_LABELS = {
   bottom_tab: "底部 Tab",
   bottom: "底部",
   top: "顶部",
+  category_tab: "顶部分类 Tab",
   side: "侧栏",
+  icon_grid: "图标宫格",
   list_item: "列表项",
   other: "其他",
 };

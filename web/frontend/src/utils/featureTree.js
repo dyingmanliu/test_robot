@@ -3,9 +3,11 @@
 const REGION_LABELS = {
   top_tab: "顶部 Tab",
   bottom_tab: "底部 Tab",
+  category_tab: "顶部分类 Tab",
   top: "顶部",
   bottom: "底部",
   side: "侧栏",
+  icon_grid: "图标宫格",
   list_item: "列表项",
   button: "按钮",
   tab: "Tab",

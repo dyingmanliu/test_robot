@@ -179,6 +179,8 @@ async function main(): Promise<number> {
     const traverseMode = (webPayload?.traverse_mode as string | undefined)?.trim();
     const bfsMaxDepth = webPayload?.bfs_max_depth;
     const fairSharePerRoot = webPayload?.fair_share_per_root;
+    const scrollRevealMenus = webPayload?.scroll_reveal_menus;
+    const scrollMaxPasses = webPayload?.scroll_max_passes;
 
     const exploreOutcome = await runAppFeatureExplore({
       appName: appName || bundleId || 'APP',
@@ -189,6 +191,8 @@ async function main(): Promise<number> {
       traverseMode: traverseMode as 'dfs' | 'bfs' | 'hybrid' | undefined,
       bfsMaxDepth: bfsMaxDepth ?? undefined,
       fairSharePerRoot: fairSharePerRoot ?? undefined,
+      scrollRevealMenus,
+      scrollMaxPasses: scrollMaxPasses ?? undefined,
       deviceId: resolvedDeviceId,
       hdcHome,
       machineOut,

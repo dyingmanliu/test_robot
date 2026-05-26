@@ -19,9 +19,11 @@ def _is_search_feature(feat: dict[str, Any]) -> bool:
 REGION_TO_FUNCTION_TYPE = {
     "top_tab": "顶部Tab",
     "bottom_tab": "底部Tab",
+    "category_tab": "顶部分类Tab",
     "top": "顶部导航",
     "bottom": "底部导航",
     "side": "侧栏",
+    "icon_grid": "图标宫格",
     "button": "按钮",
     "tab": "Tab",
     "list_item": "列表项",
@@ -30,6 +32,121 @@ REGION_TO_FUNCTION_TYPE = {
     "search_box": "搜索框",
     "other": "其他控件",
 }
+
+
+def _apply_icon_grid_heuristic(features: list[dict[str, Any]]) -> None:
+    """同屏批量将首页金刚位 other/button/list_item 提升为 icon_grid。"""
+    protected = frozenset(
+        {
+            "bottom_tab",
+            "bottom",
+            "top_tab",
+            "top",
+            "category_tab",
+            "search_bar",
+            "search",
+            "search_box",
+            "icon_grid",
+            "side",
+        }
+    )
+    candidates_regions = frozenset({"button", "other", "list_item", "tab"})
+
+    groups: dict[str, list[dict[str, Any]]] = {}
+    for feat in features:
+        key = "@@".join(
+            [
+                str(feat.get("screen_id") or ""),
+                str(feat.get("screen_title") or ""),
+                str(feat.get("depth") or len(feat.get("path") or [])),
+            ]
+        )
+        groups.setdefault(key, []).append(feat)
+
+    for group in groups.values():
+        candidates = []
+        for feat in group:
+            region = str(feat.get("region") or "other").lower()
+            if region in protected:
+                continue
+            if region in candidates_regions:
+                candidates.append(feat)
+        has_more = any(
+            str(f.get("name") or "").strip() in ("更多服务", "更多", "全部服务")
+            for f in group
+        )
+        if len(candidates) < 5 and not (len(candidates) >= 3 and has_more):
+            continue
+        for feat in candidates:
+            feat["region"] = "icon_grid"
+
+
+def _infer_active_bottom_tab(group: list[dict[str, Any]]) -> str | None:
+    tabs = [
+        str(f.get("name") or "").strip()
+        for f in group
+        if str(f.get("region") or "").lower() in ("bottom_tab", "bottom")
+    ]
+    tabs = [t for t in tabs if t]
+    if not tabs:
+        return None
+    title = str(group[0].get("screen_title") or "")
+    for t in tabs:
+        if t and t in title:
+            return t
+    names = {str(f.get("name") or "").strip() for f in group}
+    xiaotuan_signals = {"深度思考", "一键领券", "找优惠", "问小团", "AI小团"}
+    if names & xiaotuan_signals:
+        for t in tabs:
+            if "小团" in t or "AI" in t.upper():
+                return t
+    iconish = sum(
+        1
+        for f in group
+        if str(f.get("region") or "other").lower()
+        in ("icon_grid", "button", "other", "list_item")
+    )
+    if iconish >= 5:
+        for t in tabs:
+            if "推荐" in t or "首页" in t:
+                return t
+        return tabs[0]
+    return None
+
+
+def _reparent_root_tab_content(features: list[dict[str, Any]]) -> None:
+    """主界面 Tab 内控件误挂第一层时，归到当前底部 Tab 下（如 小团 > 深度思考）。"""
+    path_keys = {" > ".join(str(p) for p in (f.get("path") or [])) for f in features}
+    groups: dict[str, list[dict[str, Any]]] = {}
+    for feat in features:
+        key = str(feat.get("screen_id") or feat.get("screen_title") or "__default__")
+        groups.setdefault(key, []).append(feat)
+
+    for group in groups.values():
+        active = _infer_active_bottom_tab(group)
+        if not active:
+            continue
+        bottom_tabs = {
+            (f.get("path") or [None])[0] if f.get("path") else f.get("name")
+            for f in group
+            if str(f.get("region") or "").lower() in ("bottom_tab", "bottom")
+        }
+        for feat in list(group):
+            path = feat.get("path") or []
+            if not isinstance(path, list) or len(path) != 1:
+                continue
+            leaf = str(path[0] or "").strip()
+            region = str(feat.get("region") or "other").lower()
+            if leaf in bottom_tabs or region in ("bottom_tab", "bottom", "top_tab", "top", "search_bar", "icon_grid"):
+                continue
+            new_path = [active, leaf]
+            new_key = " > ".join(new_path)
+            if new_key in path_keys:
+                features.remove(feat)
+                continue
+            path_keys.add(new_key)
+            feat["path"] = new_path
+            feat["depth"] = len(new_path)
 
 
 def _function_type(region: str | None) -> str:
@@ -100,7 +217,7 @@ def build_function_tree_by_path(app_name: str, features: list[dict[str, Any]]) -
         "children": [],
     }
 
-    enriched = [_enrich_feature(f) for f in features if isinstance(f, dict)]
+    enriched = _prepare_features(features)
     enriched.sort(key=lambda f: (len(f.get("path") or []), " > ".join(f.get("path") or [])))
 
     path_keys: set[str] = set()
@@ -180,13 +297,20 @@ def _finalize_app_name(tree: dict[str, Any]) -> dict[str, Any]:
     return tree
 
 
+def _prepare_features(features: list[Any]) -> list[dict[str, Any]]:
+    feats = [dict(f) for f in features if isinstance(f, dict)]
+    _reparent_root_tab_content(feats)
+    _apply_icon_grid_heuristic(feats)
+    return [_enrich_feature(f) for f in feats]
+
+
 def sync_giic_tree_from_features(tree: dict[str, Any]) -> dict[str, Any]:
     """保存/确认时：始终以 features 为准重建 function_tree，避免与表格编辑不一致。"""
     app_name = str(tree.get("app_name") or "应用")
     features = tree.get("features") or []
     if not isinstance(features, list):
         features = []
-    tree["features"] = [_enrich_feature(f) for f in features if isinstance(f, dict)]
+    tree["features"] = _prepare_features(features)
     tree["function_tree_by_path"] = build_function_tree_by_path(app_name, tree["features"])
     screens = tree.get("screens") or []
     if isinstance(screens, list) and screens:
@@ -205,7 +329,7 @@ def ensure_giic_tree(tree: dict[str, Any]) -> dict[str, Any]:
     features = tree.get("features") or []
     if not isinstance(features, list):
         features = []
-    tree["features"] = [_enrich_feature(f) for f in features if isinstance(f, dict)]
+    tree["features"] = _prepare_features(features)
     tree["function_tree_by_path"] = build_function_tree_by_path(app_name, tree["features"])
     screens = tree.get("screens") or []
     if isinstance(screens, list) and screens:

@@ -501,6 +501,8 @@ async def start_feature_analysis(
         traverse_mode=body.traverse_mode,
         bfs_max_depth=body.bfs_max_depth,
         fair_share_per_root=body.fair_share_per_root,
+        scroll_reveal_menus=body.scroll_reveal_menus,
+        scroll_max_passes=body.scroll_max_passes,
         status="pending",
     )
     db.add(run)

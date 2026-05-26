@@ -12,6 +12,8 @@ const NAV_REGIONS = new Set([
   'bottom_tab',
   'top',
   'bottom',
+  'icon_grid',
+  'category_tab',
   'side',
   'left',
   'right',
@@ -33,19 +35,32 @@ export const REGION_RANK: Record<string, number> = {
   bottom: 0,
   top_tab: 1,
   top: 1,
-  search_bar: 2,
-  search: 2,
-  search_box: 2,
-  side: 3,
-  left: 4,
-  right: 4,
-  button: 5,
-  tab: 5,
-  list_item: 6,
-  other: 7,
+  category_tab: 1,
+  icon_grid: 2,
+  search_bar: 3,
+  search: 3,
+  search_box: 3,
+  side: 4,
+  left: 5,
+  right: 5,
+  button: 6,
+  tab: 6,
+  list_item: 7,
+  other: 8,
 };
 
-const TAB_REGIONS = new Set(['bottom_tab', 'bottom', 'top_tab', 'top', 'side', 'tab']);
+const TAB_REGIONS = new Set([
+  'bottom_tab',
+  'bottom',
+  'top_tab',
+  'top',
+  'side',
+  'tab',
+  'category_tab',
+]);
+
+/** hybrid 浅层广度扫描：Tab + 首页图标宫格（美团金刚位等） */
+const SHALLOW_BREADTH_REGIONS = new Set([...TAB_REGIONS, 'icon_grid']);
 
 const AUTO_TAP_BLOCKLIST = new Set(
   [
@@ -97,6 +112,54 @@ export function isFeatureItem(item: NavItem): boolean {
   return isNavigationItem(item) || isSearchItem(item);
 }
 
+const ICON_GRID_CANDIDATE_REGIONS = new Set(['button', 'other', 'list_item', 'tab']);
+
+const PROTECTED_NAV_REGIONS = new Set([
+  'bottom_tab',
+  'bottom',
+  'top_tab',
+  'top',
+  'category_tab',
+  'search_bar',
+  'search',
+  'search_box',
+  'icon_grid',
+  'side',
+  'left',
+  'right',
+]);
+
+function normalizeRegionAlias(region: string): string {
+  const r = region.trim().toLowerCase();
+  if (r === 'category_tab') return 'category_tab';
+  if (r === 'grid' || r === 'icon' || r === 'icons') return 'icon_grid';
+  return region.trim() || 'other';
+}
+
+function isIconGridCandidate(item: NavItem): boolean {
+  const r = (item.region || 'other').toLowerCase();
+  if (PROTECTED_NAV_REGIONS.has(r)) return false;
+  if (ICON_GRID_CANDIDATE_REGIONS.has(r)) return true;
+  return r === 'other' && item.name.trim().length > 0 && item.name.trim().length <= 12;
+}
+
+/** 首页图标宫格（美团金刚位等）：将密集的 button/other/list_item 提升为 icon_grid */
+export function applyIconGridRegionHeuristic(items: NavItem[]): NavItem[] {
+  if (!items.length) return items;
+  const candidates = items.filter(isIconGridCandidate);
+  const hasMoreServices = items.some((i) =>
+    /更多服务|全部服务|^更多$/.test(i.name.trim()),
+  );
+  const shouldApply =
+    candidates.length >= 5 || (candidates.length >= 3 && hasMoreServices);
+  if (!shouldApply) return items;
+
+  return items.map((item) => {
+    if (!isIconGridCandidate(item)) return item;
+    return { ...item, region: 'icon_grid' };
+  });
+}
+
 export function normalizeNavItems(raw: unknown): NavItem[] {
   if (!raw) return [];
   const list = Array.isArray(raw) ? raw : [raw];
@@ -111,19 +174,22 @@ export function normalizeNavItems(raw: unknown): NavItem[] {
       const o = item as Record<string, unknown>;
       const name = String(o.name ?? o.title ?? o.label ?? '').trim();
       if (!name) continue;
-      const region = o.region != null ? String(o.region).trim() : 'other';
+      const region = normalizeRegionAlias(
+        o.region != null ? String(o.region).trim() : 'other',
+      );
       const clickable =
         o.clickable === undefined ? true : Boolean(o.clickable);
       out.push(canonicalizeSearchNavItem({ name, region, clickable }));
     }
   }
   const seen = new Set<string>();
-  return out.filter((n) => {
+  const filtered = out.filter((n) => {
     const k = n.name.toLowerCase();
     if (seen.has(k)) return false;
     seen.add(k);
     return isFeatureItem(n);
   });
+  return applyIconGridRegionHeuristic(filtered);
 }
 
 export function sortNavItems(items: NavItem[]): NavItem[] {
@@ -156,6 +222,92 @@ export function longestCommonPrefix(a: string[], b: string[]): number {
   let i = 0;
   while (i < a.length && i < b.length && a[i] === b[i]) i += 1;
   return i;
+}
+
+export function isBottomTabRegion(region?: string): boolean {
+  const r = (region || '').toLowerCase();
+  return r === 'bottom_tab' || r === 'bottom';
+}
+
+export function isTopTabRegion(region?: string): boolean {
+  const r = (region || '').toLowerCase();
+  return r === 'top_tab' || r === 'top' || r === 'category_tab';
+}
+
+/** 小团 / AI 助手页等内容信号 → 归属底部 Tab */
+const TAB_CONTENT_SIGNALS: Record<string, RegExp[]> = {
+  小团: [/深度思考/, /一键领券/, /找优惠/, /问小团/, /AI小团/],
+};
+
+export function inferActiveBottomTab(
+  items: NavItem[],
+  screenTitle?: string,
+  explicit?: string,
+): string | undefined {
+  const tab = (explicit || '').trim();
+  if (tab) return tab;
+
+  const tabs = items
+    .filter((i) => isBottomTabRegion(i.region))
+    .map((i) => i.name.trim())
+    .filter(Boolean);
+  if (!tabs.length) return undefined;
+
+  const title = (screenTitle || '').trim();
+  for (const t of tabs) {
+    if (title && title.includes(t)) return t;
+  }
+
+  for (const t of tabs) {
+    const patterns = TAB_CONTENT_SIGNALS[t] || [];
+    if (patterns.some((re) => items.some((i) => re.test(i.name)))) return t;
+  }
+  for (const [tabName, patterns] of Object.entries(TAB_CONTENT_SIGNALS)) {
+    if (!tabs.includes(tabName)) continue;
+    if (patterns.some((re) => items.some((i) => re.test(i.name)))) return tabName;
+  }
+
+  const iconGridish = items.filter((i) => {
+    const r = (i.region || 'other').toLowerCase();
+    return (
+      r === 'icon_grid' ||
+      r === 'button' ||
+      r === 'other' ||
+      r === 'list_item'
+    );
+  }).length;
+  if (iconGridish >= 5) {
+    return tabs.find((t) => /推荐|首页|home/i.test(t)) || tabs[0];
+  }
+
+  return undefined;
+}
+
+export interface TabContextSnapshot {
+  nav_items: NavItem[];
+  screen_title?: string;
+  active_bottom_tab?: string;
+}
+
+/** 主界面快照：Tab 内控件应挂在当前选中的底部 Tab 下 */
+export function listingPathForItem(
+  item: NavItem,
+  navPath: string[],
+  depth: number,
+  snapshot: TabContextSnapshot,
+): string[] {
+  if (navPath.length > 0 || depth > 0) return navPath;
+  if (isBottomTabRegion(item.region) || isTopTabRegion(item.region)) {
+    return navPath;
+  }
+
+  const active = inferActiveBottomTab(
+    snapshot.nav_items,
+    snapshot.screen_title,
+    snapshot.active_bottom_tab,
+  );
+  if (!active) return navPath;
+  return [active];
 }
 
 function isBlockedTapName(name: string): boolean {
@@ -228,9 +380,9 @@ export function shouldEnqueueTap(
 
   if (mode === 'hybrid') {
     if (screenDepth < bfsMaxDepth) {
-      return TAB_REGIONS.has(r);
+      return SHALLOW_BREADTH_REGIONS.has(r);
     }
-    return !TAB_REGIONS.has(r) || r === 'tab';
+    return !TAB_REGIONS.has(r) || r === 'tab' || r === 'icon_grid';
   }
 
   return true;

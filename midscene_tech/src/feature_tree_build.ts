@@ -2,12 +2,13 @@
  * 将 DFS 扁平功能点列表组装为 GIIC 功能完备度分析用的层级功能树。
  */
 
-import { SEARCH_FEATURE_LABEL, isSearchItem } from './explore_common.js';
+import { SEARCH_FEATURE_LABEL, applyIconGridRegionHeuristic, inferActiveBottomTab, isBottomTabRegion, isSearchItem, isTopTabRegion } from './explore_common.js';
 import type { FeatureEntry, FunctionTreeNode, ScreenRecord } from './explore_types.js';
 
 const REGION_TO_FUNCTION_TYPE: Record<string, string> = {
   top_tab: '顶部Tab',
   bottom_tab: '底部Tab',
+  category_tab: '顶部分类Tab',
   top: '顶部导航',
   bottom: '底部导航',
   side: '侧栏',
@@ -16,6 +17,7 @@ const REGION_TO_FUNCTION_TYPE: Record<string, string> = {
   search_bar: '搜索框',
   search: '搜索框',
   search_box: '搜索框',
+  icon_grid: '图标宫格',
   button: '按钮',
   tab: 'Tab',
   list_item: '列表项',
@@ -241,6 +243,106 @@ export function buildScreenGroupedTree(
   return root;
 }
 
+/** 修正误挂在第一层的主界面 Tab 内控件（如小团下的深度思考） */
+export function reparentRootTabContent(features: FeatureEntry[]): FeatureEntry[] {
+  const pathKeys = new Set(
+    features.map((f) => (f.path || []).join(' > ')).filter(Boolean),
+  );
+  const byScreen = new Map<string, FeatureEntry[]>();
+  for (const feat of features) {
+    const key = feat.screen_id || feat.screen_title || '__default__';
+    const list = byScreen.get(key) ?? [];
+    list.push(feat);
+    byScreen.set(key, list);
+  }
+
+  const out: FeatureEntry[] = [];
+  for (const group of byScreen.values()) {
+    const navItems = group.map((f) => ({
+      name: f.name,
+      region: f.region,
+      clickable: true,
+    }));
+    const activeTab = inferActiveBottomTab(
+      navItems,
+      group[0]?.screen_title,
+      undefined,
+    );
+    const bottomTabs = new Set(
+      group
+        .filter((f) => isBottomTabRegion(f.region) && (f.path?.length ?? 0) <= 1)
+        .map((f) => (f.path?.length === 1 ? f.path[0] : f.name))
+        .filter(Boolean),
+    );
+
+    for (const feat of group) {
+      const path = feat.path || [];
+      if (path.length !== 1 || !activeTab) {
+        out.push(feat);
+        continue;
+      }
+      const leaf = path[0];
+      if (bottomTabs.has(leaf) || isBottomTabRegion(feat.region) || isTopTabRegion(feat.region)) {
+        out.push(feat);
+        continue;
+      }
+      const r = (feat.region || 'other').toLowerCase();
+      if (r === 'search_bar' || r === 'icon_grid') {
+        out.push(feat);
+        continue;
+      }
+
+      const newPath = [activeTab, leaf];
+      const newKey = newPath.join(' > ');
+      if (pathKeys.has(newKey)) continue;
+      pathKeys.add(newKey);
+      out.push({
+        ...feat,
+        path: newPath,
+        depth: newPath.length,
+      });
+    }
+  }
+
+  return out.length ? out : features;
+}
+
+/** 按同一界面批量提升图标宫格 region（弥补模型 other/list_item 误标） */
+export function reclassifyIconGridRegions(features: FeatureEntry[]): FeatureEntry[] {
+  const groups = new Map<string, FeatureEntry[]>();
+  for (const feat of features) {
+    const depth = feat.depth ?? feat.path?.length ?? 0;
+    const key = [
+      feat.screen_id || '',
+      feat.screen_title || '',
+      String(depth),
+    ].join('@@');
+    const list = groups.get(key) ?? [];
+    list.push(feat);
+    groups.set(key, list);
+  }
+
+  const upgradeIds = new Set<string>();
+  for (const group of groups.values()) {
+    const navItems = group.map((f) => ({
+      name: f.name,
+      region: f.region,
+      clickable: true,
+    }));
+    const upgraded = applyIconGridRegionHeuristic(navItems);
+    upgraded.forEach((item, idx) => {
+      if (item.region === 'icon_grid' && group[idx]?.region !== 'icon_grid') {
+        upgradeIds.add(group[idx].id);
+      }
+    });
+  }
+
+  if (!upgradeIds.size) return features;
+  return features.map((f) =>
+    upgradeIds.has(f.id) ? { ...f, region: 'icon_grid' } : f,
+  );
+}
+
 export function attachTreesToResult(
   appName: string,
   features: FeatureEntry[],
@@ -251,7 +353,8 @@ export function attachTreesToResult(
   function_tree_by_path: FunctionTreeNode;
   screens: ScreenRecord[];
 } {
-  const enriched = features.map(enrichFeatureGiicFields);
+  const reclassified = reparentRootTabContent(reclassifyIconGridRegions(features));
+  const enriched = reclassified.map(enrichFeatureGiicFields);
   return {
     features: enriched,
     function_tree: buildScreenGroupedTree(appName, screens, enriched),

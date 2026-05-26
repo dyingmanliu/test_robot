@@ -35,6 +35,8 @@ export interface WebTestDispatch {
   traverse_mode?: string;
   bfs_max_depth?: number;
   fair_share_per_root?: number;
+  scroll_reveal_menus?: boolean;
+  scroll_max_passes?: number;
   task_text?: string;
   preconditions?: string;
   steps_json?: string | unknown[];
@@ -150,6 +152,13 @@ export function parseWebDispatchJson(raw: string): WebTestDispatch {
       const n = Number(v);
       return Number.isFinite(n) ? Math.floor(n) : 0;
     })(),
+    scroll_reveal_menus:
+      o.scroll_reveal_menus === undefined
+        ? undefined
+        : o.scroll_reveal_menus === true ||
+          o.scroll_reveal_menus === 1 ||
+          String(o.scroll_reveal_menus).toLowerCase() === 'true',
+    scroll_max_passes: optPositiveInt(o.scroll_max_passes, 5),
     task_text: o.task_text !== undefined ? String(o.task_text) : undefined,
     preconditions:
       o.preconditions !== undefined ? String(o.preconditions) : undefined,

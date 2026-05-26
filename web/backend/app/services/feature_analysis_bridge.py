@@ -205,6 +205,8 @@ def execute_feature_analysis_run(db: Session, run_id: int) -> None:
         "traverse_mode": (run.traverse_mode or "hybrid").strip() or "hybrid",
         "bfs_max_depth": int(run.bfs_max_depth or 1),
         "fair_share_per_root": int(run.fair_share_per_root or 0),
+        "scroll_reveal_menus": bool(getattr(run, "scroll_reveal_menus", True)),
+        "scroll_max_passes": int(getattr(run, "scroll_max_passes", 5) or 5),
         "run_id": run_id,
         "robot_instance_id": run.robot_instance_id,
     }

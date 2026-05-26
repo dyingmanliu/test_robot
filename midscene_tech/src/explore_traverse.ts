@@ -9,6 +9,7 @@ import {
   filterNavItemsForTap,
   frontierPriority,
   inferHasSubPages,
+  listingPathForItem,
   pathKey,
   regionRank,
   screenFingerprint,
@@ -16,7 +17,12 @@ import {
   tapKey,
 } from './explore_common.js';
 import type { ExploreNavigation } from './explore_nav.js';
-import { queryScreenSnapshot, waitAfterTap, type ScreenSnapshot } from './explore_snapshot.js';
+import {
+  queryScreenSnapshot,
+  waitAfterTap,
+  type ScreenSnapshot,
+  type SnapshotQueryOptions,
+} from './explore_snapshot.js';
 import type { ExploreAgentHandle } from './explore_agent.js';
 import { logModelCall } from './model_log.js';
 import {
@@ -85,6 +91,7 @@ export interface TraverseEngineCtx {
     snapshot: ScreenSnapshot,
   ) => Promise<boolean>;
   emitQueue: (pending: number) => void;
+  snapshotQueryOpts: SnapshotQueryOptions;
 }
 
 function emitQueueEvent(ctx: TraverseEngineCtx, frontier: FrontierNode[]): void {
@@ -192,6 +199,7 @@ export async function runFrontierTraverse(
     ctx.appName,
     ctx.machineOut,
     ctx.metrics,
+    ctx.snapshotQueryOpts,
   );
   const rootOk = await ctx.recordScreen([], 0, rootSnap);
   if (!rootOk) return;
@@ -212,7 +220,14 @@ export async function runFrontierTraverse(
   }
   for (const item of rootItems) {
     if (ctx.shouldCancel?.()) throw new Error('探索已取消');
-    ctx.upsertFeature(item, [], 0, rootSnap.screen_title, 'listed');
+    const listPath = listingPathForItem(item, [], 0, rootSnap);
+    ctx.upsertFeature(
+      item,
+      listPath,
+      listPath.length,
+      rootSnap.screen_title,
+      'listed',
+    );
   }
   scheduleChildrenOnFrontier(frontier, [], 0, rootItems, undefined, ctx);
   ctx.navigation.setPath([]);
@@ -277,6 +292,7 @@ export async function runFrontierTraverse(
       ctx.appName,
       ctx.machineOut,
       ctx.metrics,
+      ctx.snapshotQueryOpts,
     );
     if (isOffAppScreenTitle(snap.screen_title)) {
       ctx.emitStep('error', '点击后进入站外', snap.screen_title);

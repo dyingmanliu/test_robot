@@ -87,6 +87,8 @@ class ExploreRunRequest(BaseModel):
     traverse_mode: str = "hybrid"
     bfs_max_depth: int = 1
     fair_share_per_root: int = 0
+    scroll_reveal_menus: bool = True
+    scroll_max_passes: int = 5
     run_id: int | None = None
     robot_instance_id: int | None = None
 

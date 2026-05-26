@@ -210,6 +210,20 @@ def ensure_schema(eng: Engine | None = None) -> None:
                             "ADD COLUMN fair_share_per_root INTEGER DEFAULT 0"
                         )
                     )
+                if "scroll_reveal_menus" not in fa_cols:
+                    conn.execute(
+                        text(
+                            "ALTER TABLE project_feature_analysis_runs "
+                            "ADD COLUMN scroll_reveal_menus TINYINT(1) DEFAULT 1"
+                        )
+                    )
+                if "scroll_max_passes" not in fa_cols:
+                    conn.execute(
+                        text(
+                            "ALTER TABLE project_feature_analysis_runs "
+                            "ADD COLUMN scroll_max_passes INTEGER DEFAULT 3"
+                        )
+                    )
     except Exception:
         _log.exception("ensure_schema 执行失败")
 

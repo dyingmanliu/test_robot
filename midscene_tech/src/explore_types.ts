@@ -91,6 +91,10 @@ export interface ExploreOptions {
    * 0=关闭；-1=按 maxScreens/一级入口数自动分配；正数=每分支固定上限。
    */
   fairSharePerRoot?: number;
+  /** 滑动 Tab/列表以发现首屏不可见菜单（默认 true，可用 EXPLORE_SCROLL_REVEAL_MENUS=0 关闭） */
+  scrollRevealMenus?: boolean;
+  /** 每屏最多滑动重扫次数（默认 3） */
+  scrollMaxPasses?: number;
   deviceId?: string;
   hdcHome?: string;
   aiActionContext?: string;

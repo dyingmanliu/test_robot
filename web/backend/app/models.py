@@ -375,6 +375,8 @@ class ProjectFeatureAnalysisRun(Base):
     traverse_mode: Mapped[str] = mapped_column(String(16), default="hybrid")
     bfs_max_depth: Mapped[int] = mapped_column(Integer, default=1)
     fair_share_per_root: Mapped[int] = mapped_column(Integer, default=0)
+    scroll_reveal_menus: Mapped[bool] = mapped_column(Boolean, default=True)
+    scroll_max_passes: Mapped[int] = mapped_column(Integer, default=5)
     status: Mapped[str] = mapped_column(String(32), default="pending", index=True)
     feature_json: Mapped[Optional[str]] = mapped_column(LongText, nullable=True)
     excel_path: Mapped[Optional[str]] = mapped_column(LongText, nullable=True)

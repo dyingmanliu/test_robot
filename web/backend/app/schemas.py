@@ -716,6 +716,16 @@ class FeatureAnalysisRunCreate(BaseModel):
         le=1000,
         description="每级 Tab 分支界面预算；0=关闭，-1=按 max_screens/一级入口自动分配",
     )
+    scroll_reveal_menus: bool = Field(
+        default=True,
+        description="滑动 Tab/列表以发现首屏不可见的菜单项",
+    )
+    scroll_max_passes: int = Field(
+        default=5,
+        ge=1,
+        le=6,
+        description="每屏最多滑动重扫次数",
+    )
 
 
 class FeatureAnalysisRunOut(BaseModel):
@@ -734,6 +744,8 @@ class FeatureAnalysisRunOut(BaseModel):
     traverse_mode: str = "hybrid"
     bfs_max_depth: int = 1
     fair_share_per_root: int = 0
+    scroll_reveal_menus: bool = True
+    scroll_max_passes: int = 5
     status: str
     feature_count: int
     screens_visited: int

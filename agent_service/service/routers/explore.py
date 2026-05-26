@@ -34,6 +34,8 @@ async def submit_explore(req: ExploreRunRequest):
             traverse_mode=req.traverse_mode,
             bfs_max_depth=req.bfs_max_depth,
             fair_share_per_root=req.fair_share_per_root,
+            scroll_reveal_menus=req.scroll_reveal_menus,
+            scroll_max_passes=req.scroll_max_passes,
             run_id=req.run_id,
             robot_instance_id=req.robot_instance_id,
         )
