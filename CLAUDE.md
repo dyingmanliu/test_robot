@@ -8,6 +8,8 @@ Mobile device test automation platform with a Web UI (Vue + FastAPI). **Digital 
 
 **agent_service** was extracted into an **independent FastAPI web service** (port 8100). The web backend calls it via HTTP (`agent_service_client.py`) instead of direct Python import. Each service has its own `.env`: `web/backend/.env` (database, JWT, logging) and `agent_service/.env` (LLM keys, model config). No root `.env`.
 
+Test cases use a **structured format only** (steps JSON + task text). Midscene execution uses natural language mode; AutoGLM uses the same task text. YAML format has been removed from the web layer. Key env vars: `PHONE_AGENT_TIMEOUT_SEC` (default 120), `DEVICE_SCREEN_MAX_WIDTH` (default 720), `DEVICE_SCREEN_JPEG_QUALITY` (default 75). Device discovery has a 3s TTL cache. `MIDSCENE_REPLANNING_CYCLE_LIMIT` and `MIDSCENE_STEP_TIMEOUT_SEC` are injected by agent_service runtime (defaults 100/180).
+
 ## Development Commands
 
 ### Web Backend (FastAPI / Python)
@@ -151,7 +153,9 @@ web/
 - **Auth**: JWT (python-jose) + bcrypt. Three roles: `platform_admin`, `tse`, `enterprise`.
 - **Multi-tenancy**: Projects/test cases scoped by `owner_id`. Company-level sharing via `Company.share_projects_cases_internally`.
 - **Environment**: Split per service: `web/backend/.env` (DB, JWT, logging, admin, AGENT_SERVICE_URL) and `agent_service/.env` (LLM keys, model config, CASE_GEN_*, PHONE_AGENT_*, MIDSCENE_*). Each service loads its own `.env`. See `.env.example` for full reference.
-- **agent_service communication**: Web backend calls agent_service via HTTP (`agent_service_client.py`). Short tasks use sync POST/GET. Long tasks (test execution, feature explore) use POST to submit → SSE stream for progress → DELETE to cancel. No more direct Python import of `agent_service/`.
+- **agent_service communication**: Web backend calls agent_service via HTTP (`agent_service_client.py`). Short tasks use sync POST/GET. Long tasks (test execution, feature explore) use POST to submit → SSE stream for progress → DELETE to cancel. No more direct Python import of `agent_service/`. Cancel is immediate: `signal_cancel()` sends DELETE to agent_service via `_run_task_ids` mapping, terminating the subprocess and closing the SSE stream.
+- **Test case format**: Structured only (steps JSON + task_text). Midscene execution uses natural language mode (`execution_mode: "natural"`) which auto-converts structured steps. `case_format_convert.py` and `case_yaml.py` have been removed.
+- **Agent optimization**: AutoGLM model calls have 120s timeout (`PHONE_AGENT_TIMEOUT_SEC`). Screenshots scaled to 720p JPEG (quality 75). Fixed action delays reduced by ~40%. Virtual keypad input hints embedded in task text. Device discovery cached for 3s. Midscene replanning cycle limit defaults to 100, step timeout to 180s.
 
 ### Ports
 

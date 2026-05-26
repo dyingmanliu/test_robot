@@ -43,7 +43,6 @@ Web 将租用的**数字机器人实例**按商城 **功能定位（`catalog_rob
 
 - 字段定义：`robot_instances.test_agent_backend`、`robot_instances.device_platform`（**默认**执行平台，可在用例页被覆盖）
 - 解析与路由：`web/backend/app/services/device_platform.py`、`web/backend/app/executor.py`
-- YAML 用例仅允许 `test_agent_backend=midscene`（平台可为 android 或 harmonyos）
 
 ### 1.2 测试执行时的设备选择（平台 + 终端）
 
@@ -63,7 +62,7 @@ Web 将租用的**数字机器人实例**按商城 **功能定位（`catalog_rob
 - **跨页实时执行**：Pinia `activeTestRun` 轮询 `GET /api/test-cases/runs/{id}`；离开用例页后顶栏可跳转 `/runs/:runId/live`（`RunExecutionLiveView.vue` + `RunLivePanel.vue`）。`RobotInstanceOut.active_run_id` 与 `runtime_status=executing` 供「我的机器人」列表展示 **执行详情** 入口。
 - **跨页功能点分析**：`RobotInstanceOut.active_feature_analysis_run_id` / `active_feature_analysis_project_id` 与 `runtime_status=executing` 供「我的机器人」展示 **分析详情**，跳转 `/projects/:projectId/feature-analysis?runId=`；`ProjectFeatureAnalysisView` 按 `runId` 恢复轮询 `step_log` 与投屏。
 
-### 1.3 测试分析机器人 Agent：用例生成（structured / YAML）与功能点分析（explore）
+### 1.3 测试分析机器人 Agent：用例生成（结构化）与功能点分析（explore）
 
 **用例生成**流程见下图；**功能点分析**时序见 §4.6。
 
@@ -75,20 +74,14 @@ Web 将租用的**数字机器人实例**按商城 **功能定位（`catalog_rob
 |----|------|
 | 包 | `agent_service/analysis_agent/`（`AnalysisAgent`，对齐 `autoglm_phone_tech` 目录约定） |
 | Web 适配 | `app/services/case_generation.py`（KB 检索 + ORM → `ProjectContext`） |
-| 格式转换 | `app/services/case_format_convert.py`（structured ↔ Midscene YAML，无 LLM） |
 | 生成路由 | `POST /api/test-cases/generate`（`TestCaseGenerateIn` → `TestCaseGenerateOut`） |
-| 互转路由 | `POST /api/test-cases/convert-format`（`CaseFormatConvertIn` → `CaseFormatConvertOut`） |
 | 持久化 | 上述接口**不写库**；用户在前端编辑后 `POST /api/test-cases` 保存 |
-| LLM 输出 | 始终 structured（标题、前置条件、步骤 JSON、执行说明、优先级） |
-| 生成可选格式 | 请求体 `case_format`：`structured`（默认）或 `yaml`；为 `yaml` 时在 `case_generation` 内调用 `structured_to_yaml()` |
-| 编辑互转 | 前端 `CasesView` 切换格式单选 → 确认 → `convert-format` |
+| LLM 输出 | 始终结构化（标题、前置条件、步骤 JSON、执行说明、优先级） |
 | 上下文 | `Project.name`、`tested_app_name`、`test_objective` + 用户 `prompt`（用户描述优先于项目被测应用名） |
 | RAG | `CASE_GEN_USE_KB=true` 时调用 `case_kb.search_cases_kb`（同项目、同租户 scope） |
-| 执行衔接 | structured → `case_agent_text.build_agent_task_text()`（AutoGLM / Midscene natural）；yaml → Midscene `runYaml`（仅 `test_agent_backend=midscene`） |
+| 执行衔接 | structured → `case_agent_text.build_agent_task_text()`（AutoGLM / Midscene natural） |
 
-**structured → YAML 约定**（`structured_to_yaml`）：前置条件 → `ai: 确保满足前置条件：…`；步骤 `description` → `ai:`，`expected` → `aiAssert:`；执行说明 → `ai: 【执行说明】…`；汇总为单条 `tasks[0].flow`。
-
-**YAML → structured**（`yaml_to_structured`）：按上述前缀/标记反向解析；手写或非约定 YAML 为最佳努力，复杂 `flow` 可能需手调。
+**注意**：用例已统一为结构化格式（不再支持 YAML）。所有用例通过 `steps_json` + `task_text` 描述步骤，Midscene 执行使用 natural 模式自动转换。`case_format_convert.py` 与 `case_yaml.py` 已移除。
 
 ```mermaid
 sequenceDiagram
@@ -96,26 +89,16 @@ sequenceDiagram
   participant API as test_cases_router
   participant Gen as case_generation
   participant AA as analysis_agent
-  participant Conv as case_format_convert
   participant LLM as OpenAI_compatible_API
 
-  UI->>API: POST /generate project_id prompt case_format
+  UI->>API: POST /generate project_id prompt
   API->>Gen: generate_case_draft
   Gen->>AA: generate_case_draft
   AA->>LLM: chat.completions JSON
   LLM-->>AA: structured draft
   AA-->>Gen: CaseDraft
-  alt case_format=yaml
-    Gen->>Conv: structured_to_yaml
-    Conv-->>Gen: case_yaml
-  end
   Gen-->>API: TestCaseGenerateOut
   API-->>UI: 预填编辑弹窗
-  opt 编辑时切换格式
-    UI->>API: POST /convert-format
-    API->>Conv: structured_to_yaml or yaml_to_structured
-    Conv-->>UI: 更新字段
-  end
   UI->>API: POST /test-cases 保存
 ```
 
@@ -131,7 +114,7 @@ sequenceDiagram
 | 对应代码 | `analysis_agent` / `AnalysisAgent` | `analysis_agent/feature_explore` → `midscene_tech` explore | `func_agent` → `autoglm_phone_tech` 或 `midscene_tech`（`executor` 择路） |
 | 是否连真机 | **否** | **是**（ADB/HDC） | **是** |
 | 主要 Web 入口 | 测试用例页 → **自动生成** | 项目空间 → **功能点分析** | 测试用例页 → **执行测试** |
-| 关键 API | `POST /api/test-cases/generate`、`convert-format`、`POST /api/test-cases` | `POST /api/projects/{id}/feature-analysis/runs`、`…/confirm` | `POST /api/test-cases/{id}/run`、`GET …/runs/{id}` |
+| 关键 API | `POST /api/test-cases/generate`、`POST /api/test-cases` | `POST /api/projects/{id}/feature-analysis/runs`、`…/confirm` | `POST /api/test-cases/{id}/run`、`GET …/runs/{id}` |
 | 环境变量 | `CASE_GEN_*` | `MIDSCENE_*`、`EXPLORE_TRAVERSE_MODE` 等 | `BIGMODEL_*` / `MIDSCENE_*`、设备 ID |
 | 产出物 | `test_cases` | `project_feature_trees`（确认版功能树） | `test_runs`、报告 |
 
@@ -141,7 +124,7 @@ sequenceDiagram
 2. **租用并启动测试分析实例**：商城租用「测试分析」→ 审批通过后启动实例。  
 3. **（可选）功能点分析**：项目卡片进入「功能点分析」→ 选 App 与遍历参数 → 真机混合遍历 → 编辑功能树 → **确认保存**多版本（取消/失败时若有采集数据也可确认）。  
 4. **生成并保存用例**：用例页「自动生成」选同一分析实例 → `generate` 草稿 → 编辑 → **保存** `test_cases`（与步骤 3 **不可同时进行**，实例互斥）。  
-5. **租用并启动测试执行实例**：选择 **技术路线**（AutoGLM / Midscene）与默认平台；YAML 须 Midscene。  
+5. **租用并启动测试执行实例**：选择 **技术路线**（AutoGLM / Midscene）与默认平台。  
 6. **执行与观测**：选用例 → 选执行实例与终端 → `run` → 轮询 / 投屏 → 报告。
 
 ```mermaid
@@ -268,12 +251,10 @@ autoglm-phone-test-agent/          # 仓库根目录
         │   ├── services/
         │   │   ├── case_generation.py   # Web 适配 → AnalysisAgent；可选转 YAML
         │   │   ├── feature_analysis_bridge.py  # Web 适配 → FeatureExploreAgent → explore
-        │   │   ├── case_format_convert.py  # structured ↔ Midscene YAML
-        │   │   ├── case_agent_text.py   # structured → 执行用自然语言
+        │   │   ├── case_agent_text.py   # structured → 执行用自然语言（含虚拟键盘提示）
         │   │   ├── case_kb.py           # 用例 KB 扁平检索（RAG 参考）
-        │   │   ├── case_yaml.py         # YAML 校验与默认模板
         │   │   ├── device_platform.py   # 平台/终端解析（实例默认 + 本次覆盖）
-        │   │   ├── device_discovery.py  # adb devices / hdc list targets
+        │   │   ├── device_discovery.py  # adb devices / hdc list targets（3s TTL 缓存）
         │   │   └── device_screen.py     # 投屏：ADB / HDC
         │   └── routers/
         │       ├── auth.py
@@ -367,13 +348,13 @@ agent_service 由 web 后端通过 `app/services/agent_service_client.py`（HTTP
 
 1. `POST /api/test-cases/{id}/run` 携带 `robot_instance_id`；可选 `device_platform`、`device_id` 覆盖本次执行目标。  
 2. 后端合并实例默认与本次参数：`resolve_execution_platform()`、`resolve_execution_device_id()`，写入 `test_runs.device_platform`、`test_runs.device_id`。  
-3. 读取实例 `test_agent_backend`（**测试执行**技术路线）；**YAML 用例**仅允许 **`midscene`** 路线，否则直接失败。  
+3. 读取实例 `test_agent_backend`（**测试执行**技术路线）。  
 4. 路由分支（`executor.py`）：  
-   - 构建 dispatch dict → `submit_func_agent_dispatch()` HTTP 提交到 agent_service → 获取 `task_id`。  
+   - 构建 dispatch dict → `submit_func_agent_dispatch()` HTTP 提交到 agent_service → 获取 `task_id` → 存入 `_run_task_ids` 映射。  
    - 循环读取 `stream_func_agent_events(task_id)` SSE 流：`step` / `line` / `usage` / `done` / `cancelled` 事件 → 写入 `step_log`。  
    - agent_service 内部按 `backend` 路由到 `autoglm_runner`（同进程）或 `midscene.runtime`（子进程）。  
 5. Midscene 事件：`kind: meta|step|done` → `step_log`；成功可写 `report_path`。  
-6. 取消：`threading.Event` + `cancel_task("func-agent", task_id)` HTTP DELETE 到 agent_service + `POST …/runs/{id}/cancel`。  
+6. 取消：`signal_cancel(run_id)` 同时设置本地 `threading.Event` + 通过 `_run_task_ids` 查找 `task_id` 直接 HTTP DELETE 到 agent_service，确保 SSE 流立即中断；前端 `POST …/runs/{id}/cancel`。  
 7. 投屏：`GET …/device-screen?device_platform=&device_id=`，与用例页当前选择一致（`device_screen.py`）。
 
 ### 4.4 WebSocket 运行监控（大屏）
@@ -386,7 +367,7 @@ agent_service 由 web 后端通过 `app/services/agent_service_client.py`（HTTP
 
 - **数据库（MySQL 8）**  
   - 环境变量 **`DATABASE_URL`** 或 **`TCM_DATABASE_URL`**，例如 `mysql+pymysql://user:pass@host:3306/tcm?charset=utf8mb4`。驱动 **PyMySQL**（见 `web/backend/requirements.txt`）。连接池：`TCM_DB_POOL_SIZE`（默认 10）、`TCM_DB_MAX_OVERFLOW`（默认 20）。本地实例：仓库根 **`docker-compose.yml`** → `docker compose up -d mysql`（默认库/用户/密码均为 `tcm`）。  
-  - **大字段**：`models.py` 中 `LongText = Text().with_variant(LONGTEXT, "mysql")`，用于 `step_log`、`feature_json`、`case_yaml` 等。  
+  - **大字段**：`models.py` 中 `LongText = Text().with_variant(LONGTEXT, "mysql")`，用于 `step_log`、`feature_json` 等。  
   - **启动与健康**：`main.py` 启动时 `create_all` + `ensure_schema()`；`GET /api/health` 执行 `SELECT 1` 并返回 `database: mysql`。  
   - 连接使用 `pool_pre_ping`、`pool_recycle` 与 session `time_zone=+00:00`。  
   - **外部连接（CLI / GUI）**：本地 MySQL 在 Docker 中，映射 **`127.0.0.1:3306`**。须指定 `-h 127.0.0.1`，勿用默认 socket（否则会报 `/tmp/mysql.sock`）。应用账号 `tcm`/`tcm`，库 `tcm`；root 为 `root`/`root`（见 `docker-compose.yml`）。示例：`mysql -h 127.0.0.1 -P 3306 -u tcm -ptcm tcm`；或 `docker compose exec mysql mysql -u tcm -ptcm tcm`。
@@ -499,9 +480,13 @@ sequenceDiagram
 | `CASE_GEN_USE_KB` / `CASE_GEN_KB_LIMIT` | 同项目用例 RAG |
 | `MIDSCENE_MODEL_BASE_URL` / `MIDSCENE_MODEL_API_KEY` | Midscene 视觉模型 |
 | `MIDSCENE_MODEL_NAME` / `MIDSCENE_MODEL_FAMILY` | Midscene 模型名与系列 |
-| `MIDSCENE_REPLANNING_CYCLE_LIMIT` | 单步 aiAct 重规划上限 |
-| `MIDSCENE_EXPLORE_STEP_TIMEOUT_SEC` | 功能遍历单步超时 |
+| `MIDSCENE_REPLANNING_CYCLE_LIMIT` | 单步 aiAct 重规划上限（默认 100，agent_service 启动时注入） |
+| `MIDSCENE_STEP_TIMEOUT_SEC` | 单步 aiAct/aiQuery 超时秒数（默认 180，由 agent_service 注入） |
+| `MIDSCENE_EXPLORE_STEP_TIMEOUT_SEC` | 功能遍历单步超时（未设 `MIDSCENE_STEP_TIMEOUT_SEC` 时生效，默认 120） |
 | `EXPLORE_TRAVERSE_MODE` | 功能遍历默认策略 |
+| `PHONE_AGENT_TIMEOUT_SEC` | AutoGLM 单次模型调用超时（默认 120，`model/client.py`） |
+| `DEVICE_SCREEN_MAX_WIDTH` | 截图缩放最大宽度（默认 720，`adb_bridge` / `hdc_bridge`） |
+| `DEVICE_SCREEN_JPEG_QUALITY` | 截图 JPEG 质量（默认 75，`adb_bridge` / `hdc_bridge`） |
 | `ADB_DEVICE_ID` / `HDC_DEVICE_ID` / `HDC_HOME` | 设备连接（执行用） |
 
 设备要求：
@@ -522,9 +507,8 @@ sequenceDiagram
 5. **改测试执行路由**：`executor.py`、`services/device_platform.py`；实例字段见 `models.RobotInstance`。  
 6. **改测试分析**：`agent_service/analysis_agent/`、`agent_service/service/routers/analysis.py`；环境变量在 `agent_service/.env`（`CASE_GEN_*`）。需重启 agent_service。  
 7. **数据库**：MySQL 8；`DATABASE_URL` 必填；无 Alembic，列迁移在 `database.ensure_schema()`。  
-8. **排查执行失败**：确认实例 **技术路线（autoglm/midscene）**、用例页 **平台+终端** 与用例格式（YAML→仅 Midscene 路线）；`adb devices` / `hdc list targets` 与所选 `device_id` 一致；看 `test_runs.device_platform`、`device_id`、`error_trace`、`step_log`；Midscene 报告见 `report_path`。  
+8. **排查执行失败**：确认实例 **技术路线（autoglm/midscene）**、用例页 **平台+终端**；`adb devices` / `hdc list targets` 与所选 `device_id` 一致；看 `test_runs.device_platform`、`device_id`、`error_trace`、`step_log`；Midscene 报告见 `report_path`。  
 9. **排查 AI 生成失败**：确认 `CASE_GEN_API_KEY`（或回退智谱 Key）与 `CASE_GEN_BASE_URL`/`CASE_GEN_MODEL` 匹配；改 `.env` 后重启 Uvicorn；Swagger `POST /api/test-cases/generate` 可直调；非法 JSON 时服务会自动重试一次修复。  
-10. **排查格式转换**：`convert-format` 返回 400 时检查 YAML 是否含 `tasks:` 且语法合法；YAML→structured 对非约定脚本可能不完整，可改回 structured 或手改 YAML。
 
 ## 8. 一句话小结
 

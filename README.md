@@ -1,6 +1,6 @@
 # autoglm-phone-test-agent
 
-基于 **Web 测试用例管理平台**（Vue 3 + FastAPI），将 **测试分析机器人 Agent**（`agent_service/analysis_agent`，用例生成）与 **测试执行机器人 Agent**（真机自动化）配合使用。测试执行侧已统一到 **`agent_service/func_agent` 业务域**，内部包含两条技术路线：**AutoGLM-Phone**（智谱 + `autoglm_phone_tech`）与 **Midscene.js**（视觉自动化，`midscene_tech`，支持 **Android / 鸿蒙**）。适用于在手机端按自然语言或 YAML 脚本执行自动化测试，并在浏览器中管理账号、项目空间、用例与执行记录；商城中的其他数字机器人品类可继续扩展独立 Agent 与路由。
+基于 **Web 测试用例管理平台**（Vue 3 + FastAPI），将 **测试分析机器人 Agent**（`agent_service/analysis_agent`，用例生成）与 **测试执行机器人 Agent**（真机自动化）配合使用。测试执行侧已统一到 **`agent_service/func_agent` 业务域**，内部包含两条技术路线：**AutoGLM-Phone**（智谱 + `autoglm_phone_tech`）与 **Midscene.js**（视觉自动化，`midscene_tech`，支持 **Android / 鸿蒙**）。适用于在手机端按自然语言执行自动化测试，并在浏览器中管理账号、项目空间、用例与执行记录；商城中的其他数字机器人品类可继续扩展独立 Agent 与路由。
 
 ---
 
@@ -23,9 +23,9 @@
 | 阶段 | 做什么 | 谁参与 | 典型页面 / API |
 |------|--------|--------|------------------|
 | 1. 项目准备 | 维护被测应用、测试目标等上下文，便于生成与 KB 检索 | 项目空间 | `/api/projects` |
-| 2. 用例生成 | 一句话描述 → LLM 产出草稿 → 人工核对 → **保存入库** | **测试分析**机器人实例（商城「测试分析」目录；**不连手机**） | 测试用例页「创建用例 → **自动生成**」；`POST /api/test-cases/generate`（仅草稿）、`POST /api/test-cases`（持久化）；可选 `POST /api/test-cases/convert-format` |
+| 2. 用例生成 | 一句话描述 → LLM 产出草稿 → 人工核对 → **保存入库** | **测试分析**机器人实例（商城「测试分析」目录；**不连手机**） | 测试用例页「创建用例 → **自动生成**」；`POST /api/test-cases/generate`（仅草稿）、`POST /api/test-cases`（持久化） |
 | 2b. 功能点分析 | 选已安装/上传 App → 真机界面遍历 → 产出 GIIC 功能树 → 编辑 → **确认保存多版本** | **测试分析**机器人实例（**须连手机**；与用例生成、功能点分析任务互斥） | 项目空间「功能点分析」；`/api/projects/{id}/feature-analysis`；详见 [`ARCHITECTURE.md`](./ARCHITECTURE.md) §4.6 |
-| 3. 执行准备 | 租用并启动 **测试执行** 实例，选择 **AutoGLM 或 Midscene** 技术路线并配置默认平台；YAML 用例须 Midscene 路线 | **功能执行**等商城目录（实例即测试执行机器人） | 「我的机器人」；`PATCH /api/robot-instances/...` |
+| 3. 执行准备 | 租用并启动 **测试执行** 实例，选择 **AutoGLM 或 Midscene** 技术路线并配置默认平台 | **功能执行**等商城目录（实例即测试执行机器人） | 「我的机器人」；`PATCH /api/robot-instances/...` |
 | 4. 真机执行 | 选用例 → 选测试执行实例与（可选）本次 Android/鸿蒙 + 目标终端 → 发起运行 → 看日志 / 投屏 / 报告 | 测试执行实例 + ADB/HDC | 测试用例页「执行测试」；`POST /api/test-cases/{id}/run`、`GET /api/test-cases/runs/{id}` |
 
 **要点**：生成使用 `CASE_GEN_*` 与 `agent_service/analysis_agent`，与真机执行的智谱 / Midscene Key 可分开配置；`generate` **不写库**，保存后写入 `test_cases`，再由 `run` 创建 `test_runs`。
@@ -63,7 +63,6 @@
 | `midscene` | `android` | `midscene_tech` + `@midscene/android` |
 | `midscene` | `harmonyos` | `midscene_tech` + `@midscene/harmony`（千问/GLM 等） |
 
-- **YAML 用例**仅支持 **Midscene 技术路线**（平台可选 Android 或鸿蒙）。
 - `device_platform` 为实例**默认**值；用例页「本次执行设备」可在执行前切换 Android / 鸿蒙。
 - 路由逻辑：`web/backend/app/executor.py`、`app/services/device_platform.py`。
 
@@ -81,16 +80,14 @@
 
 ### 1e. 测试分析机器人 Agent（`agent_service/analysis_agent/`，HTTP 服务调用）
 
-- **职责**：根据项目上下文与用户一句话，调用大模型生成 **structured** 用例草稿（`title` / `preconditions` / `steps` / `task_text` / `priority`）。LLM 始终产出结构化字段；若前端选择 YAML，由 `case_format_convert.py` 转为 Midscene `tasks:` 脚本。
+- **职责**：根据项目上下文与用户一句话，调用大模型生成 **structured** 用例草稿（`title` / `preconditions` / `steps` / `task_text` / `priority`）。所有用例统一为结构化格式，Midscene 执行使用 natural 模式自动转换。
 - **包**：[`agent_service/analysis_agent/`](./agent_service/analysis_agent/)（对齐 [`autoglm_phone_tech/`](./autoglm_phone_tech/) 模式：`AnalysisAgent` + `model/client` + `config`）。
-- **Web 适配**：`web/backend/app/services/case_generation.py` 组装 ORM / KB，通过 HTTP 调用 agent_service 的 `POST /api/agent/analysis/generate-case-draft`；可选 `case_format=yaml` 时在生成后做格式转换。
-- **格式互转**：`web/backend/app/services/case_format_convert.py` — structured ↔ Midscene YAML（规则转换，编辑弹窗切换格式时调用）。
-- **入口**：测试用例页 **「创建用例」→「自动生成」**（须选择已租用的 **测试分析** 机器人实例；可选生成格式）→ 预览编辑（可再切换格式）→ `POST /api/test-cases` 保存。
+- **Web 适配**：`web/backend/app/services/case_generation.py` 组装 ORM / KB，通过 HTTP 调用 agent_service 的 `POST /api/agent/analysis/generate-case-draft`。
+- **入口**：测试用例页 **「创建用例」→「自动生成」**（须选择已租用的 **测试分析** 机器人实例）→ 预览编辑 → `POST /api/test-cases` 保存。
 - **与测试执行配合**：保存后的用例与手动编写的用例相同，在列表中选中后用 **测试执行** 类机器人发起 `POST /api/test-cases/{id}/run`；生成与执行使用**不同**的 `robot_instance_id`。完整步骤见上文 **「端到端工作流」** 与架构文档 §1.0、§1.4。
 - **API**（均不写库）：
-  - `POST /api/test-cases/generate` — 请求体 `project_id`、`robot_instance_id`（`catalog_robot_id=test_analysis`）、`prompt`、可选 `case_format`（`structured` | `yaml`，默认 `structured`）
-  - `POST /api/test-cases/convert-format` — 编辑时 structured ↔ yaml 互转
-- **与执行 Agent 分离**：不连手机；真机执行由 **测试执行机器人** 通过 HTTP 提交到 agent_service，在 `executor.py` 中按 **AutoGLM / Midscene** 技术路线路由。YAML 用例须 **Midscene** 路线执行。
+  - `POST /api/test-cases/generate` — 请求体 `project_id`、`robot_instance_id`（`catalog_robot_id=test_analysis`）、`prompt`
+- **与执行 Agent 分离**：不连手机；真机执行由 **测试执行机器人** 通过 HTTP 提交到 agent_service，在 `executor.py` 中按 **AutoGLM / Midscene** 技术路线路由。
 
 **环境变量（`agent_service/.env`）**
 
