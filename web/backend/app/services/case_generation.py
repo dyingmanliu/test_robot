@@ -93,8 +93,6 @@ class GeneratedCaseDraft:
         self.steps = _draft_to_schema_steps(draft)
         self.task_text = draft.get("task_text", "")
         self.priority = draft.get("priority", "P2")
-        self.case_format = draft.get("case_format") or "structured"
-        self.case_yaml = ""
         self.model = draft.get("model", "")
         self.similar_case_ids = draft.get("similar_case_ids")
 
@@ -106,7 +104,6 @@ def generate_case_draft(
     user: User,
     robot_instance: RobotInstance,
     prompt: str,
-    case_format: str = "structured",
 ) -> GeneratedCaseDraft:
     if not can_use_robot_instance(db, user, robot_instance):
         raise AnalysisAgentError("无权使用该测试分析机器人实例，或实例已停用")
@@ -162,14 +159,4 @@ def generate_case_draft(
         draft_dict.get("model"),
     )
     out = GeneratedCaseDraft(draft_dict)
-    if (case_format or "structured").strip().lower() == "yaml":
-        from app.services.case_format_convert import structured_to_yaml
-
-        out.case_format = "yaml"
-        out.case_yaml = structured_to_yaml(
-            title=out.title,
-            preconditions=out.preconditions,
-            steps=out.steps,
-            task_text=out.task_text,
-        )
     return out

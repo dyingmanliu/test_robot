@@ -147,18 +147,16 @@ def execute_test_run(db: Session, run_id: int) -> None:
         device_platform=platform,
     )
 
-    case_format = (getattr(case, "case_format", None) or "structured").strip().lower()
     inst_code = getattr(inst, "instance_code", None) or "—"
 
     log.info(
-        "开始执行 run_id=%s case_id=%s case=%r engine=%s platform=%s device_id=%s format=%s robot=%s",
+        "开始执行 run_id=%s case_id=%s case=%r engine=%s platform=%s device_id=%s robot=%s",
         run_id,
         case.id,
         case.title,
         backend,
         platform,
         device_id or "(默认)",
-        case_format,
         inst_code,
     )
 
@@ -277,47 +275,19 @@ def execute_test_run(db: Session, run_id: int) -> None:
     try:
         web_dispatch: dict[str, Any] | None = None
 
-        if case_format == "yaml" and backend != "midscene":
-            row = db.query(TestRun).filter(TestRun.id == run_id).first()
-            if row:
-                row.status = "failed"
-                row.output_message = (
-                    "YAML 用例须使用 Midscene 执行引擎；请在机器人实例中将引擎设为 Midscene，"
-                    f"设备平台可选 {platform_label(platform)}。"
-                )
-                row.error_trace = None
-                row.finished_at = datetime.utcnow()
-                db.commit()
-            if lock_held and instance_lock is not None:
-                instance_lock.release()
-            _run_cancel_events.pop(run_id, None)
-            return
-
         if use_midscene:
-            if case_format == "yaml":
-                from app.services.case_yaml import validate_case_yaml
-
-                yaml_script = validate_case_yaml(getattr(case, "case_yaml", "") or "")
-                web_dispatch = {
-                    **dispatch_base,
-                    "execution_mode": "yaml",
-                    "yaml_script": yaml_script,
-                    "case_format": "yaml",
-                }
-            else:
-                web_dispatch = {
-                    **dispatch_base,
-                    "execution_mode": "natural",
-                    "agent_task": agent_task,
-                    "case_format": "structured",
-                }
-                if midscene_tech_steps:
-                    web_dispatch["agent_steps"] = midscene_tech_steps
-                    log.info(
-                        "Midscene 拆步执行 run_id=%s steps=%s",
-                        run_id,
-                        len(midscene_tech_steps),
-                    )
+            web_dispatch = {
+                **dispatch_base,
+                "execution_mode": "natural",
+                "agent_task": agent_task,
+            }
+            if midscene_tech_steps:
+                web_dispatch["agent_steps"] = midscene_tech_steps
+                log.info(
+                    "Midscene 拆步执行 run_id=%s steps=%s",
+                    run_id,
+                    len(midscene_tech_steps),
+                )
         elif backend == "autoglm":
             web_dispatch = None
         else:

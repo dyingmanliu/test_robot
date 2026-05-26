@@ -44,8 +44,6 @@ def test_case_to_out(tc: TestCase) -> TestCaseOut:
         task_text=tc.task_text,
         preconditions=tc.preconditions or "",
         steps=_steps_from_raw(tc.steps_json),
-        case_format=getattr(tc, "case_format", None) or "structured",
-        case_yaml=getattr(tc, "case_yaml", None) or "",
         priority=tc.priority or "P2",
         revision_no=tc.revision_no or 1,
         created_at=tc.created_at,
@@ -70,8 +68,6 @@ def revision_to_out(row: TestCaseRevision) -> TestCaseRevisionOut:
         task_text=row.task_text,
         preconditions=row.preconditions or "",
         steps=_steps_from_raw(row.steps_json),
-        case_format=getattr(row, "case_format", None) or "structured",
-        case_yaml=getattr(row, "case_yaml", None) or "",
         priority=row.priority or "P2",
         created_at=row.created_at,
     )

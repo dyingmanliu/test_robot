@@ -115,8 +115,7 @@ class TestCase(Base):
     task_text: Mapped[str] = mapped_column(LongText)
     preconditions: Mapped[str] = mapped_column(LongText, default="")
     steps_json: Mapped[str] = mapped_column(LongText, default="[]")
-    #: structured=表单步骤；yaml=Midscene YAML（仅 Midscene 机器人执行）
-    case_format: Mapped[str] = mapped_column(String(16), default="structured", index=True)
+    case_format: Mapped[str] = mapped_column(String(16), default="structured")
     case_yaml: Mapped[str] = mapped_column(LongText, default="")
     priority: Mapped[str] = mapped_column(String(16), default="P2")
     revision_no: Mapped[int] = mapped_column(Integer, default=1)

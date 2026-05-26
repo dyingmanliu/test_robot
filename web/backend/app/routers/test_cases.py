@@ -18,8 +18,6 @@ from app.models import Project, RobotInstance, TestCase, TestCaseRevision, TestR
 from app.rbac import can_view_all_cases, case_scope_filter, run_scope_query
 from app.services.company_scope import can_use_robot_instance, project_readable_by_user
 from app.schemas import (
-    CaseFormatConvertIn,
-    CaseFormatConvertOut,
     CaseGenerateMetaOut,
     CaseImportResultOut,
     CaseStepJson,
@@ -33,7 +31,6 @@ from app.schemas import (
     TestRunOut,
     RunCaseBody,
 )
-from app.services.case_format_convert import structured_to_yaml, yaml_to_structured
 from app.services.case_generation import CaseGeneratorError, generate_case_draft
 from app.services.case_agent_text import parse_steps_json
 from app.services.case_import import parse_import_file, row_to_create
@@ -103,22 +100,12 @@ def _append_revision_snapshot(db: Session, tc: TestCase) -> None:
             task_text=tc.task_text,
             preconditions=tc.preconditions or "",
             steps_json=tc.steps_json or "[]",
-            case_format=getattr(tc, "case_format", None) or "structured",
-            case_yaml=getattr(tc, "case_yaml", None) or "",
             priority=tc.priority or "P2",
         )
     )
 
 
 def _validate_test_case_row(tc: TestCase) -> None:
-    fmt = (getattr(tc, "case_format", None) or "structured").strip().lower()
-    if fmt == "yaml":
-        from app.services.case_yaml import validate_case_yaml
-
-        tc.case_yaml = validate_case_yaml(getattr(tc, "case_yaml", "") or "")
-        tc.case_format = "yaml"
-        return
-    tc.case_format = "structured"
     if not (tc.task_text or "").strip() and not parse_steps_json(tc.steps_json):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -142,43 +129,6 @@ def list_cases(
     return [test_case_to_out(tc) for tc in rows]
 
 
-@router.post("/convert-format", response_model=CaseFormatConvertOut)
-def convert_case_format(
-    body: CaseFormatConvertIn,
-    user: User = Depends(get_current_user),
-) -> CaseFormatConvertOut:
-    """编辑弹窗内 structured ↔ yaml 互转（不写库）。"""
-    _ = user
-    target = body.target_format
-    try:
-        if target == "yaml":
-            case_yaml = structured_to_yaml(
-                title=body.title,
-                preconditions=body.preconditions,
-                steps=body.steps,
-                task_text=body.task_text,
-            )
-            return CaseFormatConvertOut(
-                title=body.title,
-                preconditions=body.preconditions,
-                steps=body.steps,
-                task_text=body.task_text,
-                case_format="yaml",
-                case_yaml=case_yaml,
-            )
-        parsed = yaml_to_structured(body.case_yaml)
-        return CaseFormatConvertOut(
-            title=parsed.get("title") or body.title,
-            preconditions=parsed.get("preconditions", ""),
-            steps=parsed.get("steps") or [],
-            task_text=parsed.get("task_text", ""),
-            case_format="structured",
-            case_yaml="",
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
-
-
 @router.post("/generate", response_model=TestCaseGenerateOut)
 def generate_case_from_prompt(
     body: TestCaseGenerateIn,
@@ -192,12 +142,11 @@ def generate_case_from_prompt(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="机器人实例不存在")
 
     log.info(
-        "API 用例生成 project_id=%s user_id=%s instance_id=%s prompt_len=%s case_format=%s",
+        "API 用例生成 project_id=%s user_id=%s instance_id=%s prompt_len=%s",
         body.project_id,
         user.id,
         body.robot_instance_id,
         len(body.prompt),
-        body.case_format,
     )
     try:
         draft = generate_case_draft(
@@ -206,13 +155,9 @@ def generate_case_from_prompt(
             user=user,
             robot_instance=inst,
             prompt=body.prompt,
-            case_format=body.case_format,
         )
     except CaseGeneratorError as e:
         log.warning("API 用例生成失败 project_id=%s: %s", body.project_id, e)
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
-    except ValueError as e:
-        log.warning("API 用例生成格式转换失败 project_id=%s: %s", body.project_id, e)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
     return TestCaseGenerateOut(
         title=draft.title,
@@ -220,8 +165,6 @@ def generate_case_from_prompt(
         preconditions=draft.preconditions,
         steps=draft.steps,
         priority=draft.priority,
-        case_format=draft.case_format,
-        case_yaml=draft.case_yaml,
         generation_meta=CaseGenerateMetaOut(
             model=draft.model,
             similar_case_ids=draft.similar_case_ids or [],
@@ -243,8 +186,6 @@ def create_case(
         task_text=(body.task_text or "").strip(),
         preconditions=(body.preconditions or "").strip(),
         steps_json=steps_to_json(body.steps),
-        case_format=body.case_format,
-        case_yaml=(body.case_yaml or "").strip(),
         priority=(body.priority or "P2").strip()[:16],
         revision_no=1,
     )
@@ -458,10 +399,6 @@ def update_case(
         tc.steps_json = steps_to_json([CaseStepJson.model_validate(s) for s in data["steps"]])
     if "priority" in data and data["priority"] is not None:
         tc.priority = data["priority"].strip()[:16]
-    if "case_format" in data and data["case_format"] is not None:
-        tc.case_format = data["case_format"]
-    if "case_yaml" in data and data["case_yaml"] is not None:
-        tc.case_yaml = data["case_yaml"].strip()
 
     _validate_test_case_row(tc)
 

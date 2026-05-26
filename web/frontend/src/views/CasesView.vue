@@ -95,14 +95,6 @@
     >
       当前仅有测试分析机器人，无法执行用例。请在商城租用<strong>功能执行</strong>或<strong>专项执行</strong>类机器人后再执行测试。
     </div>
-    <div
-      v-else-if="projectsLoaded && needsMidsceneForSelection && !midsceneRobotInstances.length"
-      class="banner warn"
-    >
-      已选 YAML 用例须使用 <strong>Midscene（HarmonyOS / HDC）</strong> 机器人执行。当前公司下尚无 Midscene 实例，请到
-      <router-link to="/my-robots">我的机器人</router-link>
-      打开任一实例，将「测试执行引擎」改为 Midscene 后保存；或联系管理员审批新租用单时选择 Midscene 引擎。
-    </div>
     <div v-else-if="projectsLoaded && executionRobotInstances.length" class="robot-pick">
       <div class="robot-pick-row">
         <label class="robot-pick-inner">
@@ -158,9 +150,6 @@
         同一机器人可在执行前选择平台与具体终端（ADB 序列号 / HDC target）；默认平台取自「我的机器人」（当前：
         <strong>{{ defaultPlatformLabel }}</strong>）。
       </p>
-      <p v-if="needsMidsceneForSelection" class="robot-hint muted small">
-        已选 YAML 用例，请选用标注为 <strong>Midscene</strong> 的机器人（如 DR-000008 · 机器人贾维斯）。
-      </p>
       <div v-if="busyExecutionRobots.length" class="banner warn small busy-robots-banner">
         <p v-for="ins in busyExecutionRobots" :key="ins.id" class="busy-robot-line">
           <strong>{{ ins.instance_code }}</strong>
@@ -179,7 +168,7 @@
         </p>
       </div>
       <p v-if="!runnableRobotCount && !busyExecutionRobots.length" class="robot-hint warn small">
-        当前没有可执行用例的机器人：须为<strong>已启动</strong>且<strong>运行状态空闲</strong>；YAML 用例还须 Midscene 引擎。可在
+        当前没有可执行用例的机器人：须为<strong>已启动</strong>且<strong>运行状态空闲</strong>。可在
         <router-link v-if="auth.role === 'platform_admin'" to="/admin/robot-instances">机器人实例管理</router-link>
         <template v-else>「我的机器人」</template>
         中启用实例或等待执行结束。
@@ -204,7 +193,6 @@
             <th class="col-select">选择</th>
             <th class="col-title">标题</th>
             <th class="col-priority">优先级</th>
-            <th class="col-format">格式</th>
             <th class="col-steps">步骤</th>
             <th class="col-desc">执行说明</th>
             <th class="col-ops">操作</th>
@@ -222,7 +210,6 @@
             </td>
             <td class="col-title" :title="c.title">{{ c.title }}</td>
             <td class="col-priority">{{ c.priority || "—" }}</td>
-            <td class="col-format muted small">{{ formatLabel(c.case_format) }}</td>
             <td class="col-steps muted small">{{ stepPreview(c) }}</td>
             <td class="col-desc task">{{ truncate(c.task_text, 80) }}</td>
             <td class="col-ops ops">
@@ -481,17 +468,6 @@
           <template v-else>「我的机器人」</template>
           中启用或等待生成结束。
         </p>
-        <fieldset class="field format-field">
-          <span class="format-label">生成格式</span>
-          <label class="format-opt">
-            <input v-model="genDialog.case_format" type="radio" value="structured" :disabled="genDialog.loading" />
-            结构化（步骤 + 执行说明）
-          </label>
-          <label class="format-opt">
-            <input v-model="genDialog.case_format" type="radio" value="yaml" :disabled="genDialog.loading" />
-            Midscene YAML（须使用 Midscene 机器人执行）
-          </label>
-        </fieldset>
         <label class="field">
           <span>测试描述</span>
           <textarea
@@ -535,50 +511,6 @@
             <option value="P3">P3</option>
           </select>
         </label>
-        <fieldset class="field format-field">
-          <span class="format-label">用例格式</span>
-          <label class="format-opt">
-            <input
-              :checked="dialog.case_format === 'structured'"
-              type="radio"
-              value="structured"
-              :disabled="dialog.formatConverting"
-              @change="switchCaseFormat('structured')"
-            />
-            结构化（步骤 + 执行说明）
-          </label>
-          <label class="format-opt">
-            <input
-              :checked="dialog.case_format === 'yaml'"
-              type="radio"
-              value="yaml"
-              :disabled="dialog.formatConverting"
-              @change="switchCaseFormat('yaml')"
-            />
-            Midscene YAML（须使用 Midscene 机器人执行）
-          </label>
-          <span v-if="dialog.formatConverting" class="muted small">格式转换中…</span>
-        </fieldset>
-        <template v-if="dialog.case_format === 'yaml'">
-          <label class="field">
-            <span>Midscene YAML 脚本</span>
-            <textarea
-              v-model="dialog.case_yaml"
-              class="yaml-editor"
-              rows="16"
-              spellcheck="false"
-              placeholder="须包含 tasks: 段"
-            ></textarea>
-          </label>
-          <p class="muted small">
-            参考
-            <a href="https://midscenejs.com/automate-with-scripts-in-yaml" target="_blank" rel="noopener"
-              >Midscene YAML 文档</a
-            >。设备由服务端 HDC 连接。
-          </p>
-          <button type="button" class="btn ghost mini" @click="fillYamlTemplate">填入示例模板</button>
-        </template>
-        <template v-else>
         <label class="field">
           <span>前置条件</span>
           <textarea v-model="dialog.preconditions" rows="2" placeholder="环境、账号、数据准备等"></textarea>
@@ -598,7 +530,6 @@
           <textarea v-model="dialog.task_text" rows="4"></textarea>
         </label>
         <p class="muted small">保存时至少需要「执行说明」或一条有效步骤。</p>
-        </template>
         <p v-if="dialog.error" class="err">{{ dialog.error }}</p>
         <div class="modal-actions">
           <button type="button" class="btn ghost" :disabled="dialog.saving" @click="dialog.open = false">
@@ -818,7 +749,7 @@ const selectedRobotInstance = computed(() =>
 
 const runnableRobotCount = computed(() =>
   executionRobotInstances.value.filter((ins) =>
-    isRobotRunnableForCase(ins, needsMidsceneForSelection.value),
+    isRobotRunnableForCase(ins),
   ).length,
 );
 
@@ -832,7 +763,7 @@ const busyExecutionRobots = computed(() =>
 
 const canStartExecution = computed(() => {
   if (!selectedRobotInstanceId.value) return false;
-  if (!isRobotRunnableForCase(selectedRobotInstance.value, needsMidsceneForSelection.value)) {
+  if (!isRobotRunnableForCase(selectedRobotInstance.value)) {
     return false;
   }
   if (devicesLoading.value) return false;
@@ -1051,30 +982,6 @@ watch(projectExecutingRuns, (executing) => {
 
 const importMsg = ref("");
 
-const DEFAULT_YAML_TEMPLATE = `# Midscene YAML 用例（仅 tasks 段由 runYaml 执行）
-# - 设备：由用例页所选「平台 + 目标终端」连接（Android ADB / 鸿蒙 HDC）
-# - 须使用 test_agent_backend=midscene 的机器人实例执行
-# - flow 常用指令：ai（自然语言操作）、aiAssert（断言）、sleep（毫秒）
-# 文档：https://midscenejs.com/automate-with-scripts-in-yaml
-
-tasks:
-  - name: 美团搜索火锅并进入商户详情
-    flow:
-      - ai: 确保满足前置条件：已登录美团 App，网络正常
-      - ai: 打开美团 App；若不在首页则返回首页
-      - sleep: 2000
-      - aiAssert: 当前为美团首页，能看到顶部搜索框或「搜索」入口
-      - ai: 点击首页搜索框
-      - sleep: 1000
-      - aiAssert: 已进入搜索页，能看到搜索输入框
-      - ai: 在搜索框输入「火锅」并点击搜索或键盘确认
-      - sleep: 2000
-      - aiAssert: 已进入搜索结果页，列表中有火锅相关商户
-      - ai: 点击列表中第一家火锅店，进入商户详情
-      - sleep: 1500
-      - aiAssert: 已进入商户详情页，能看到店名、评分或「加入购物车」等入口
-`;
-
 const dialog = reactive({
   open: false,
   editing: false,
@@ -1083,18 +990,14 @@ const dialog = reactive({
   task_text: "",
   preconditions: "",
   priority: "P2",
-  case_format: "structured",
-  case_yaml: "",
   steps: [],
   error: "",
-  formatConverting: false,
   saving: false,
 });
 
 const genDialog = reactive({
   open: false,
   prompt: "",
-  case_format: "structured",
   loading: false,
   error: "",
 });
@@ -1109,21 +1012,6 @@ const verDialog = reactive({
   items: [],
   caseTitle: "",
 });
-
-function isMidsceneBackend(backend) {
-  return String(backend || "autoglm").toLowerCase() === "midscene";
-}
-
-const needsMidsceneForSelection = computed(() => {
-  const c = cases.value.find((x) => x.id === selectedCaseId.value);
-  return !!c && String(c.case_format || "").toLowerCase() === "yaml";
-});
-
-const midsceneRobotInstances = computed(() =>
-  robotInstances.value.filter(
-    (ins) => isExecutionInstance(ins) && isMidsceneBackend(ins.test_agent_backend),
-  ),
-);
 
 const analysisRobotInstances = computed(() =>
   robotInstances.value.filter((ins) => isAnalysisInstance(ins)),
@@ -1156,13 +1044,11 @@ function analysisOptionHint(ins) {
 
 function robotOptionDisabled(ins) {
   if (!ins || !isInstanceStarted(ins.status)) return true;
-  const needMid = needsMidsceneForSelection.value;
-  if (needMid && !isMidsceneBackend(ins.test_agent_backend)) return true;
   return false;
 }
 
 function robotOptionHint(ins) {
-  return robotUnselectableHint(ins, needsMidsceneForSelection.value);
+  return robotUnselectableHint(ins);
 }
 
 function syncAnalysisRobotSelection() {
@@ -1181,15 +1067,13 @@ function syncAnalysisRobotSelection() {
 
 /** 新建执行配置：保留用户已选的已启动实例（含「执行中」），仅在不合法时改选空闲机器人 */
 function syncDraftRobotSelection() {
-  const needMid = needsMidsceneForSelection.value;
   const runnable = executionRobotInstances.value.filter((ins) =>
-    isRobotRunnableForCase(ins, needMid),
+    isRobotRunnableForCase(ins),
   );
   const current = executionRobotInstances.value.find((ins) => ins.id === selectedRobotInstanceId.value);
   const currentDraftOk =
     current &&
-    isInstanceStarted(current.status) &&
-    (!needMid || isMidsceneBackend(current.test_agent_backend));
+    isInstanceStarted(current.status);
 
   if (currentDraftOk) {
     syncAnalysisRobotSelection();
@@ -1307,22 +1191,9 @@ function truncate(s, n) {
   return s.length <= n ? s : `${s.slice(0, n)}…`;
 }
 
-function formatLabel(fmt) {
-  return String(fmt || "structured").toLowerCase() === "yaml" ? "YAML" : "结构化";
-}
-
 function stepPreview(c) {
-  if (String(c.case_format || "").toLowerCase() === "yaml") return "YAML";
   const n = Array.isArray(c.steps) ? c.steps.length : 0;
   return n ? `${n} 步` : "—";
-}
-
-function fillYamlTemplate() {
-  if (dialog.case_yaml.trim()) {
-    const ok = window.confirm("将覆盖当前 YAML 内容，是否填入完整示例模板？");
-    if (!ok) return;
-  }
-  dialog.case_yaml = DEFAULT_YAML_TEMPLATE;
 }
 
 function fmtTime(iso) {
@@ -1377,8 +1248,6 @@ function openCreate() {
   dialog.task_text = "";
   dialog.preconditions = "";
   dialog.priority = "P2";
-  dialog.case_format = "structured";
-  dialog.case_yaml = "";
   dialog.steps = [{ description: "", expected: "" }];
   dialog.error = "";
   dialog.saving = false;
@@ -1389,7 +1258,6 @@ function openGenerate() {
   syncAnalysisRobotSelection();
   genDialog.open = true;
   genDialog.prompt = "";
-  genDialog.case_format = "structured";
   genDialog.loading = false;
   genDialog.error = "";
 }
@@ -1401,13 +1269,10 @@ function closeGenerate() {
 }
 
 function applyDraftToDialog(draft) {
-  const fmt = String(draft.case_format || "structured").toLowerCase();
   dialog.title = draft.title || "";
   dialog.task_text = draft.task_text || "";
   dialog.preconditions = draft.preconditions || "";
   dialog.priority = draft.priority || "P2";
-  dialog.case_format = fmt === "yaml" ? "yaml" : "structured";
-  dialog.case_yaml = draft.case_yaml || "";
   const st = Array.isArray(draft.steps) ? draft.steps : [];
   dialog.steps = st.length
     ? st.map((x) => ({
@@ -1424,36 +1289,7 @@ function openCreateWithDraft(draft) {
   dialog.id = null;
   applyDraftToDialog(draft);
   dialog.error = "";
-  dialog.formatConverting = false;
   dialog.saving = false;
-}
-
-async function switchCaseFormat(target) {
-  if (!dialog.open || dialog.formatConverting) return;
-  const current = dialog.case_format;
-  if (current === target) return;
-  const ok = window.confirm(
-    `将用例从「${formatLabel(current)}」转为「${formatLabel(target)}」，会按规则转换当前内容（可再手动修改）。是否继续？`,
-  );
-  if (!ok) return;
-  dialog.formatConverting = true;
-  dialog.error = "";
-  try {
-    const { data } = await client.post("/api/test-cases/convert-format", {
-      target_format: target,
-      title: dialog.title.trim(),
-      preconditions: (dialog.preconditions || "").trim(),
-      steps: buildStepsPayload(),
-      task_text: dialog.task_text.trim(),
-      case_yaml: dialog.case_yaml || "",
-    });
-    applyDraftToDialog(data);
-    dialog.case_format = target;
-  } catch (e) {
-    dialog.error = formatApiError(e);
-  } finally {
-    dialog.formatConverting = false;
-  }
 }
 
 async function submitGenerate() {
@@ -1481,7 +1317,6 @@ async function submitGenerate() {
       project_id: selectedProjectId.value,
       robot_instance_id: selectedAnalysisRobotInstanceId.value,
       prompt,
-      case_format: genDialog.case_format || "structured",
     });
     genDialog.open = false;
     openCreateWithDraft(data);
@@ -1500,8 +1335,6 @@ function openEdit(c) {
   dialog.task_text = c.task_text || "";
   dialog.preconditions = c.preconditions || "";
   dialog.priority = c.priority || "P2";
-  dialog.case_format = c.case_format || "structured";
-  dialog.case_yaml = c.case_yaml || "";
   const st = Array.isArray(c.steps) && c.steps.length ? c.steps : [];
   dialog.steps = st.length
     ? st.map((x) => ({
@@ -1542,27 +1375,19 @@ function buildStepsPayload() {
 function validateDialogForm() {
   if (!dialog.title.trim()) return "请填写标题";
   const stepsPayload = buildStepsPayload();
-  if (dialog.case_format === "yaml") {
-    if (!dialog.case_yaml.trim()) return "请填写 Midscene YAML 脚本";
-  } else if (!dialog.task_text.trim() && stepsPayload.length === 0) {
+  if (!dialog.task_text.trim() && stepsPayload.length === 0) {
     return "请填写执行说明或至少一条步骤";
   }
   return null;
 }
 
-function validateExecutionReady(caseFormat) {
-  const needMid = String(caseFormat || "structured").toLowerCase() === "yaml";
+function validateExecutionReady() {
   if (!selectedRobotInstanceId.value) {
-    return needMid
-      ? "YAML 用例须选择 Midscene 机器人；请到「我的机器人」将实例引擎改为 Midscene"
-      : "请先选择要使用的机器人实例";
+    return "请先选择要使用的机器人实例";
   }
   const picked = robotInstances.value.find((ins) => ins.id === selectedRobotInstanceId.value);
   if (!picked || !isInstanceStarted(picked.status)) {
     return "请选择已启动的机器人实例";
-  }
-  if (needMid && !isMidsceneBackend(picked.test_agent_backend)) {
-    return "YAML 用例须绑定 Midscene 机器人实例执行";
   }
   const rt = String(picked.runtime_status || "").toLowerCase();
   if (rt === "executing") {
@@ -1595,8 +1420,6 @@ function buildSaveBody() {
     task_text: dialog.task_text.trim(),
     preconditions: (dialog.preconditions || "").trim(),
     priority: dialog.priority,
-    case_format: dialog.case_format,
-    case_yaml: dialog.case_format === "yaml" ? dialog.case_yaml : "",
     steps: buildStepsPayload(),
   };
 }
@@ -1622,7 +1445,7 @@ async function saveDialog(andRun = false) {
     return;
   }
   if (andRun) {
-    const runErr = validateExecutionReady(dialog.case_format);
+    const runErr = validateExecutionReady();
     if (runErr) {
       dialog.error = runErr;
       return;
@@ -1894,7 +1717,7 @@ async function runSelected() {
   const caseId = selectedCaseId.value;
   if (!caseId) return;
   const pickedCase = cases.value.find((c) => c.id === caseId);
-  const runErr = validateExecutionReady(pickedCase?.case_format);
+  const runErr = validateExecutionReady();
   if (runErr) {
     loadError.value = runErr;
     return;
@@ -2773,14 +2596,6 @@ textarea {
   color: #334155;
   margin-bottom: 0.35rem;
   cursor: pointer;
-}
-
-.yaml-editor {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.82rem;
-  line-height: 1.45;
-  width: 100%;
-  box-sizing: border-box;
 }
 
 .step-row {

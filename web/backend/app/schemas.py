@@ -228,10 +228,6 @@ class TestCaseGenerateIn(BaseModel):
     project_id: int = Field(..., ge=1, description="所属项目空间 ID")
     robot_instance_id: int = Field(..., ge=1, description="测试分析机器人实例 ID")
     prompt: str = Field(..., min_length=1, max_length=2000, description="用户一句话描述")
-    case_format: Literal["structured", "yaml"] = Field(
-        default="structured",
-        description="生成结果格式：structured 表单；yaml 在 LLM 生成 structured 后自动转换",
-    )
 
 
 class CaseGenerateMetaOut(BaseModel):
@@ -247,29 +243,7 @@ class TestCaseGenerateOut(BaseModel):
     preconditions: str = ""
     steps: list[CaseStepJson] = Field(default_factory=list)
     priority: str = "P2"
-    case_format: Literal["structured", "yaml"] = "structured"
-    case_yaml: str = ""
     generation_meta: CaseGenerateMetaOut = Field(default_factory=CaseGenerateMetaOut)
-
-
-class CaseFormatConvertIn(BaseModel):
-    """编辑弹窗内 structured ↔ yaml 互转。"""
-
-    target_format: Literal["structured", "yaml"]
-    title: str = ""
-    preconditions: str = ""
-    steps: list[CaseStepJson] = Field(default_factory=list)
-    task_text: str = ""
-    case_yaml: str = ""
-
-
-class CaseFormatConvertOut(BaseModel):
-    title: str
-    preconditions: str = ""
-    steps: list[CaseStepJson] = Field(default_factory=list)
-    task_text: str = ""
-    case_format: Literal["structured", "yaml"]
-    case_yaml: str = ""
 
 
 class TestCaseCreate(BaseModel):
@@ -279,19 +253,9 @@ class TestCaseCreate(BaseModel):
     preconditions: str = Field(default="", max_length=16000)
     steps: list[CaseStepJson] = Field(default_factory=list)
     priority: str = Field(default="P2", max_length=16)
-    case_format: Literal["structured", "yaml"] = Field(
-        default="structured",
-        description="structured=表单步骤；yaml=Midscene YAML（绑定 Midscene 机器人执行）",
-    )
-    case_yaml: str = Field(default="", max_length=200000, description="Midscene YAML 脚本（case_format=yaml 时必填）")
 
     @model_validator(mode="after")
     def validate_case_body(self) -> TestCaseCreate:
-        if self.case_format == "yaml":
-            from app.services.case_yaml import validate_case_yaml
-
-            self.case_yaml = validate_case_yaml(self.case_yaml)
-            return self
         if not self.task_text.strip() and not self.steps:
             raise ValueError("请填写「执行说明」或至少一条「测试步骤」")
         return self
@@ -303,8 +267,6 @@ class TestCaseUpdate(BaseModel):
     preconditions: Optional[str] = Field(None, max_length=16000)
     steps: Optional[list[CaseStepJson]] = None
     priority: Optional[str] = Field(None, max_length=16)
-    case_format: Optional[Literal["structured", "yaml"]] = None
-    case_yaml: Optional[str] = Field(None, max_length=200000)
 
 
 class TestCaseOut(BaseModel):
@@ -315,8 +277,6 @@ class TestCaseOut(BaseModel):
     task_text: str
     preconditions: str = ""
     steps: list[CaseStepJson] = Field(default_factory=list)
-    case_format: str = "structured"
-    case_yaml: str = ""
     priority: str = "P2"
     revision_no: int = 1
     created_at: datetime
@@ -331,8 +291,6 @@ class TestCaseRevisionOut(BaseModel):
     task_text: str
     preconditions: str = ""
     steps: list[CaseStepJson] = Field(default_factory=list)
-    case_format: str = "structured"
-    case_yaml: str = ""
     priority: str = "P2"
     created_at: datetime
 

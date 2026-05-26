@@ -102,7 +102,6 @@
         </label>
         <p class="hint small">
           此为用例页的默认设备；执行前仍可在「测试用例」页临时切换 Android / 鸿蒙。
-          YAML 用例仅支持 Midscene 引擎。
         </p>
         <button type="button" class="btn primary" :disabled="saving" @click="save">
           {{ saving ? "保存中…" : "保存修改" }}

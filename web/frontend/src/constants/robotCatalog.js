@@ -79,28 +79,20 @@ export function isInstanceStarted(status) {
   return String(status || "").trim().toLowerCase() === "active";
 }
 
-/** 是否可在测试用例页选中执行：已启动 + 运行空闲 + 可选 YAML 引擎约束 */
-export function isRobotRunnableForCase(ins, needsMidscene = false) {
+/** 是否可在测试用例页选中执行：已启动 + 运行空闲 */
+export function isRobotRunnableForCase(ins) {
   if (!ins) return false;
   if (!isInstanceStarted(ins.status)) return false;
   if (String(ins.runtime_status || "").toLowerCase() !== "idle") return false;
-  if (needsMidscene) {
-    const b = String(ins.test_agent_backend || "autoglm").toLowerCase();
-    if (b !== "midscene") return false;
-  }
   return true;
 }
 
-export function robotUnselectableHint(ins, needsMidscene = false) {
+export function robotUnselectableHint(ins) {
   if (!ins) return "";
   if (!isInstanceStarted(ins.status)) return "（已停用）";
   const rt = String(ins.runtime_status || "").toLowerCase();
   if (rt === "executing") return "（执行中）";
   if (rt === "abnormal") return "（异常）";
-  if (needsMidscene) {
-    const b = String(ins.test_agent_backend || "autoglm").toLowerCase();
-    if (b !== "midscene") return "（不可用于 YAML）";
-  }
   return "";
 }
 
