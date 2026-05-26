@@ -138,8 +138,8 @@ export function parseWebDispatchJson(raw: string): WebTestDispatch {
     yaml_script,
     bundle_id,
     app_name,
-    max_screens: optPositiveInt(o.max_screens, 30),
-    max_depth: optPositiveInt(o.max_depth, 4),
+    max_screens: optPositiveInt(o.max_screens, 1000),
+    max_depth: optPositiveInt(o.max_depth, 5),
     max_taps_per_screen: optPositiveInt(o.max_taps_per_screen, 8),
     traverse_mode:
       o.traverse_mode !== undefined ? String(o.traverse_mode).trim() : undefined,

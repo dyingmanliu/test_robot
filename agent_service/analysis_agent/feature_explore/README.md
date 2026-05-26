@@ -18,9 +18,9 @@ ProjectFeatureAnalysisView
 | 字段 | 默认 | 说明 |
 |------|------|------|
 | `traverse_mode` | `hybrid` | `hybrid` \| `bfs` \| `dfs` |
-| `max_screens` | 30 | 最多记录不同界面数 |
-| `max_depth` | 4 | 导航路径最大深度 |
-| `bfs_max_depth` | 1 | hybrid/bfs 下优先广度的层数 |
+| `max_screens` | 1000 | 最多记录不同界面数 |
+| `max_depth` | 5 | 导航路径最大深度 |
+| `bfs_max_depth` | 1 | **仅 hybrid**：前几层路径仅 Tab/主导航入队；bfs 模式忽略此参数 |
 | `fair_share_per_root` | 0 | `0` 关；`-1` 自动；`>0` 每级 Tab 分支固定屏数上限 |
 
 环境变量 `EXPLORE_TRAVERSE_MODE` 可在未传 `traverse_mode` 时作为全局默认。

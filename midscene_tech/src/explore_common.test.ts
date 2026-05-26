@@ -81,6 +81,19 @@ describe('shouldEnqueueTap hybrid', () => {
   });
 });
 
+describe('shouldEnqueueTap bfs', () => {
+  it('enqueues all clickable non-search items regardless of depth', () => {
+    assert.equal(
+      shouldEnqueueTap('bfs', 0, { name: '首页', region: 'bottom_tab' }, 1),
+      true,
+    );
+    assert.equal(
+      shouldEnqueueTap('bfs', 0, { name: '更多', region: 'button' }, 1),
+      true,
+    );
+  });
+});
+
 describe('frontierPriority', () => {
   it('orders shallower depth first', () => {
     const shallow = frontierPriority(1, { name: 'A', region: 'button' });

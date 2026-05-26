@@ -61,8 +61,8 @@
 | app_artifact_id | 可选 FK project_app_artifacts |
 | bundle_id | package / bundleName |
 | app_display_name | 展示名 |
-| max_screens | 最多访问界面数，默认 30 |
-| max_depth | 导航路径最大深度，默认 4 |
+| max_screens | 最多访问界面数，默认 1000 |
+| max_depth | 导航路径最大深度，默认 5 |
 | traverse_mode | hybrid \| bfs \| dfs，默认 hybrid |
 | bfs_max_depth | 混合/广度优先层数，默认 1 |
 | fair_share_per_root | 0 关；-1 按 Tab 均分屏数；正数为每分支上限 |

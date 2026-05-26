@@ -14,8 +14,8 @@ class ExploreDispatch:
     device_id: str
     app_name: str
     bundle_id: str
-    max_screens: int = 30
-    max_depth: int = 4
+    max_screens: int = 1000
+    max_depth: int = 5
     traverse_mode: str = "hybrid"
     bfs_max_depth: int = 1
     fair_share_per_root: int = 0

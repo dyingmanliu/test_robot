@@ -173,8 +173,8 @@ async function main(): Promise<number> {
       console.error('explore 模式需要 bundle_id 或 app_name（已安装应用可按名称启动）');
       return 1;
     }
-    const maxScreens = webPayload?.max_screens ?? numOpt(values['max-screens'], 30);
-    const maxDepth = webPayload?.max_depth ?? numOpt(values['max-depth'], 4);
+    const maxScreens = webPayload?.max_screens ?? numOpt(values['max-screens'], 1000);
+    const maxDepth = webPayload?.max_depth ?? numOpt(values['max-depth'], 5);
 
     const traverseMode = (webPayload?.traverse_mode as string | undefined)?.trim();
     const bfsMaxDepth = webPayload?.bfs_max_depth;

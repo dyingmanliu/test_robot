@@ -190,7 +190,7 @@
               <option value="dfs">深度优先</option>
             </select>
           </label>
-          <label v-if="form.traverse_mode !== 'dfs'" class="field">
+          <label v-if="form.traverse_mode === 'hybrid'" class="field field--with-hint">
             <span>广度层级</span>
             <input
               v-model.number="form.bfs_max_depth"
@@ -199,6 +199,7 @@
               max="5"
               :disabled="running"
             />
+            <small class="muted field-hint">{{ bfsMaxDepthHint }}</small>
           </label>
           <label class="field">
             <span>最大界面数</span>
@@ -206,7 +207,7 @@
               v-model.number="form.max_screens"
               type="number"
               min="5"
-              max="80"
+              max="1000"
               :disabled="running"
             />
           </label>
@@ -492,8 +493,8 @@ const form = reactive({
   app_artifact_id: null,
   bundle_id: "",
   app_display_name: "",
-  max_screens: 30,
-  max_depth: 4,
+  max_screens: 1000,
+  max_depth: 5,
   traverse_mode: "hybrid",
   bfs_max_depth: 1,
   fair_share_enabled: true,
@@ -588,12 +589,19 @@ const activeTraverseMode = computed(() => {
 const traverseModeHint = computed(() => {
   const m = activeTraverseMode.value;
   if (m === "bfs") {
-    return "按界面广度优先遍历（BFS），记录每屏功能点并组装 GIIC 功能树";
+    return "按界面广度优先遍历（BFS），各层可点击入口均入队探索";
   }
   if (m === "dfs") {
     return "按界面深度优先遍历（DFS），记录每屏功能点并组装 GIIC 功能树";
   }
   return "混合遍历：先扫 Tab/主导航再深入页面，记录功能点并组装 GIIC 功能树";
+});
+
+const bfsMaxDepthHint = computed(() => {
+  const n = Number(form.bfs_max_depth);
+  if (!Number.isFinite(n) || n < 0) return "前 N 层路径优先入队 Tab/底栏/顶栏，更深再点页内按钮";
+  if (n === 0) return "0：各层 Tab 与页内按钮同时入队";
+  return `前 ${n} 层路径仅 Tab/主导航入队，更深再点页内按钮（仅混合模式）`;
 });
 
 const queuePending = computed(() => {
@@ -1415,6 +1423,15 @@ onUnmounted(stopPoll);
 .traverse-params .field select {
   width: 100%;
   box-sizing: border-box;
+}
+.traverse-params .field--with-hint {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.traverse-params .field-hint {
+  font-size: 0.75rem;
+  line-height: 1.35;
 }
 .fair-share-toggle {
   display: flex;

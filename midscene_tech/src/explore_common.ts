@@ -2,8 +2,8 @@
 
 import type { NavItem, TraverseMode } from './explore_types.js';
 
-export const DEFAULT_MAX_SCREENS = 30;
-export const DEFAULT_MAX_DEPTH = 4;
+export const DEFAULT_MAX_SCREENS = 1000;
+export const DEFAULT_MAX_DEPTH = 5;
 export const DEFAULT_MAX_TAPS = 8;
 export const DEFAULT_BFS_MAX_DEPTH = 1;
 

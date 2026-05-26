@@ -62,7 +62,7 @@
         </label>
         <label class="field">
           <span>最大页面数</span>
-          <input v-model.number="form.max_screens" type="number" min="5" max="80" :disabled="running" />
+          <input v-model.number="form.max_screens" type="number" min="5" max="1000" :disabled="running" />
         </label>
         <label class="field">
           <span>最大深度</span>
@@ -184,8 +184,8 @@ const form = reactive({
   robot_instance_id: 0,
   bundle_id: "",
   app_name: "",
-  max_screens: 30,
-  max_depth: 4,
+  max_screens: 1000,
+  max_depth: 5,
 });
 
 const run = ref(null);
