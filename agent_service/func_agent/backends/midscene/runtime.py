@@ -88,28 +88,43 @@ def _build_midscene_cli_cmd(mid_root: Path, cli_rel: Path) -> list[str]:
     return [npx, "--yes", "tsx", cli, "--web-dispatch"]
 
 
+def _model_gateway_hosts(env: dict[str, str]) -> list[str]:
+    """从 Midscene 模型 URL 解析需直连的网关 host（跳过本地与特殊 scheme）。"""
+    skip_hosts = {"localhost", "127.0.0.1", "::1"}
+    hosts: list[str] = []
+    for env_key in ("MIDSCENE_MODEL_BASE_URL", "MIDSCENE_INSIGHT_MODEL_BASE_URL"):
+        base_url = (env.get(env_key) or "").strip()
+        if not base_url:
+            continue
+        parsed = urlparse(base_url)
+        if parsed.scheme and parsed.scheme not in ("http", "https"):
+            continue
+        host = (parsed.hostname or "").strip().lower()
+        if not host or host in skip_hosts:
+            continue
+        if host not in hosts:
+            hosts.append(host)
+    return hosts
+
+
 def _append_no_proxy_for_midscene_model(env: dict[str, str]) -> None:
     """
-    DashScope 在一些本地代理环境下会出现 CONNECT 403。
-    当 Midscene 走 DashScope 网关时，自动把目标 host 加入 no_proxy/NO_PROXY，
-    避免子进程请求被本地代理错误拦截。
+    部分本地/企业代理会对模型 API 的 CONNECT 请求返回 403。
+    将 Midscene 模型网关 host 加入 no_proxy/NO_PROXY，避免子进程请求被错误拦截。
     """
-    base_url = (env.get("MIDSCENE_MODEL_BASE_URL") or "").strip()
-    if not base_url:
-        return
-    host = (urlparse(base_url).hostname or "").strip().lower()
-    if not host:
-        return
-    if "dashscope.aliyuncs.com" not in host:
+    hosts = _model_gateway_hosts(env)
+    if not hosts:
         return
 
     for key in ("NO_PROXY", "no_proxy"):
         current = env.get(key, "")
         parts = [p.strip() for p in current.split(",") if p.strip()]
         lowered = {p.lower() for p in parts}
-        if host not in lowered:
-            parts.append(host)
-            env[key] = ",".join(parts)
+        for host in hosts:
+            if host not in lowered:
+                parts.append(host)
+                lowered.add(host)
+        env[key] = ",".join(parts)
 
 
 def run_midscene_task(
