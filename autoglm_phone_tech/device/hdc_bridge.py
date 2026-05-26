@@ -92,7 +92,9 @@ class HdcBridge:
         return "System Home"
 
     def get_screenshot(self, timeout: int = 10) -> Screenshot:
-        temp_path = os.path.join(tempfile.gettempdir(), f"hdc_screen_{uuid.uuid4().hex}.png")
+        max_width = int(os.getenv("DEVICE_SCREEN_MAX_WIDTH", "720"))
+        jpeg_quality = int(os.getenv("DEVICE_SCREEN_JPEG_QUALITY", "75"))
+        temp_path = os.path.join(tempfile.gettempdir(), f"hdc_screen_{uuid.uuid4().hex}.jpeg")
         remote = f"/data/local/tmp/tmp_autoglm_{uuid.uuid4().hex[:12]}.jpeg"
         try:
             result = self._run(
@@ -115,8 +117,12 @@ class HdcBridge:
 
             with Image.open(temp_path) as img:
                 width, height = img.size
+                if width > max_width:
+                    ratio = max_width / width
+                    img = img.resize((max_width, int(height * ratio)), Image.LANCZOS)
+                    width, height = img.size
                 buf = BytesIO()
-                img.save(buf, format="PNG")
+                img.save(buf, format="JPEG", quality=jpeg_quality)
                 b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
             os.remove(temp_path)
             return Screenshot(base64_data=b64, width=width, height=height, is_sensitive=False)

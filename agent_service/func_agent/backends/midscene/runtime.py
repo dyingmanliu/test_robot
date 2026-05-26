@@ -139,6 +139,8 @@ def run_midscene_task(
     agent_backend = str(dispatch.get("agent_backend") or "midscene").strip().lower()
     if agent_backend == "autoglm":
         env["MIDSCENE_AGENT_BACKEND"] = "autoglm"
+    env.setdefault("MIDSCENE_REPLANNING_CYCLE_LIMIT", "100")
+    env.setdefault("MIDSCENE_STEP_TIMEOUT_SEC", "180")
     _append_no_proxy_for_midscene_model(env)
 
     proc = subprocess.Popen(

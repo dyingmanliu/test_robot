@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import time
 from dataclasses import dataclass, field
 from typing import Any
@@ -50,6 +51,7 @@ class ModelClient:
         time_to_first_token: float | None = None
         time_to_thinking_end: float | None = None
 
+        timeout_sec = float(os.getenv("PHONE_AGENT_TIMEOUT_SEC", "120"))
         stream = self.client.chat.completions.create(
             messages=messages,
             model=self.config.model_name,
@@ -59,6 +61,7 @@ class ModelClient:
             frequency_penalty=self.config.frequency_penalty,
             extra_body=self.config.extra_body,
             stream=True,
+            timeout=timeout_sec,
         )
 
         raw_content = ""

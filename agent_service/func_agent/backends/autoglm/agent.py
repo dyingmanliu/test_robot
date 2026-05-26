@@ -71,10 +71,12 @@ class PhoneTestAgent:
         )
         self._context: list[dict[str, Any]] = []
         self._step_count = 0
+        self._last_app: str | None = None
 
     def reset(self) -> None:
         self._context = []
         self._step_count = 0
+        self._last_app = None
 
     def run(
         self,
@@ -105,6 +107,7 @@ class PhoneTestAgent:
         self._step_count += 1
         screenshot = self.device.get_screenshot()
         current_app = self.device.get_current_app()
+        self._last_app = current_app
         if is_first:
             self._context.append(MessageBuilder.create_system_message(self.agent_config.system_prompt or ""))
             screen_info = MessageBuilder.build_screen_info(current_app)
@@ -136,7 +139,9 @@ class PhoneTestAgent:
                 f" 原始片段: {raw_action[:500]}{'…' if len(raw_action) > 500 else ''}"
             )
             action = {"_metadata": "do", "action": "Wait", "duration": "2 seconds"}
-        self._context[-1] = MessageBuilder.remove_images_from_message(self._context[-1])
+        # 清理旧消息中的截图，只保留最新一条的图片以控制上下文大小
+        for i in range(len(self._context) - 1):
+            self._context[i] = MessageBuilder.remove_images_from_message(self._context[i])
         try:
             result = self.action_handler.execute(action, screenshot.width, screenshot.height)
         except Exception as e:

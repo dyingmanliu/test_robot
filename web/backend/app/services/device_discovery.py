@@ -6,8 +6,13 @@ import os
 import re
 import shutil
 import subprocess
+import time
 from dataclasses import dataclass
 from pathlib import Path
+
+# 设备列表缓存：platform -> (expire_at, devices)，避免短时间内重复调用 adb/hdc
+_devices_cache: dict[str, tuple[float, list[ConnectedDevice]]] = {}
+_CACHE_TTL = 3.0  # 秒，平衡实时性与性能
 
 
 @dataclass(frozen=True)
@@ -131,6 +136,13 @@ def list_harmonyos_devices(*, timeout: int = 15) -> list[ConnectedDevice]:
 
 def list_connected_devices(platform: str) -> list[ConnectedDevice]:
     p = (platform or "android").strip().lower()
+    now = time.monotonic()
+    cached = _devices_cache.get(p)
+    if cached is not None and now < cached[0]:
+        return cached[1]
     if p in ("harmonyos", "harmony", "hmos", "ohos"):
-        return list_harmonyos_devices()
-    return list_android_devices()
+        devices = list_harmonyos_devices()
+    else:
+        devices = list_android_devices()
+    _devices_cache[p] = (now + _CACHE_TTL, devices)
+    return devices

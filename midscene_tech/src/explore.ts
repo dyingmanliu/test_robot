@@ -289,28 +289,38 @@ export async function runAppFeatureExplore(
 
       const offByBundle =
         foreground != null && !bundleMatches(foreground, target);
-      let offByVision = false;
-      if (!offByBundle) {
-        const vision = await visionSaysInTargetApp();
-        offByVision = vision === false;
-      }
 
-      if (!offByBundle && !offByVision) {
+      // shell 已确认在目标应用内，直接信任，不再额外调用视觉验证
+      if (!offByBundle) {
         scopeOffAppStreakRef.value = 0;
         emit({
           kind: 'explore_scope',
           in_target: true,
           foreground_bundle: foreground || undefined,
           target_bundle: target,
-          message: context,
+          message: `[shell] ${context}`,
+        });
+        return true;
+      }
+
+      // shell 显示不在目标应用，再用视觉验证作为辅助判断
+      const vision = await visionSaysInTargetApp();
+      const offByVision = vision === false;
+
+      if (!offByVision) {
+        scopeOffAppStreakRef.value = 0;
+        emit({
+          kind: 'explore_scope',
+          in_target: true,
+          foreground_bundle: foreground || undefined,
+          target_bundle: target,
+          message: `视觉确认在目标应用内（${context}）`,
         });
         return true;
       }
 
       scopeOffAppStreakRef.value += 1;
-      const msg = offByBundle
-        ? `前台 ${foreground} ≠ 目标 ${target}（${context}）`
-        : `视觉判断已离开「${appName}」（${context}）`;
+      const msg = `前台 ${foreground} ≠ 目标 ${target}（${context}）`;
       emit({
         kind: 'explore_scope',
         in_target: false,

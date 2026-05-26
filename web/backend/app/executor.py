@@ -30,6 +30,8 @@ class StepResult:
 
 # run_id -> Event；在发起执行前注册，便于用户在 worker 启动前点击终止
 _run_cancel_events: dict[int, threading.Event] = {}
+# run_id -> task_id；signal_cancel 通过它直接取消 agent_service 端任务，避免阻塞在 SSE 流
+_run_task_ids: dict[int, str] = {}
 
 
 def prepare_cancel_slot(run_id: int) -> None:
@@ -43,8 +45,16 @@ def signal_cancel(run_id: int) -> bool:
         ev = threading.Event()
         ev.set()
         _run_cancel_events[run_id] = ev
-        return True
-    ev.set()
+    else:
+        ev.set()
+    # 直接取消 agent_service 端任务，避免阻塞在 SSE 流上等待下一个事件
+    task_id = _run_task_ids.pop(run_id, None)
+    if task_id:
+        try:
+            from app.services.agent_service_client import cancel_task
+            cancel_task("func-agent", task_id)
+        except Exception:
+            pass
     return True
 
 
@@ -56,6 +66,7 @@ def execute_test_run(db: Session, run_id: int) -> None:
         run = db.query(TestRun).filter(TestRun.id == run_id).first()
         if run is None:
             _run_cancel_events.pop(run_id, None)
+            _run_task_ids.pop(run_id, None)
             return
         run.status = "cancelled"
         run.output_message = "已在执行开始前终止"
@@ -63,11 +74,13 @@ def execute_test_run(db: Session, run_id: int) -> None:
         run.finished_at = datetime.utcnow()
         db.commit()
         _run_cancel_events.pop(run_id, None)
+        _run_task_ids.pop(run_id, None)
         return
 
     run = db.query(TestRun).filter(TestRun.id == run_id).first()
     if run is None:
         _run_cancel_events.pop(run_id, None)
+        _run_task_ids.pop(run_id, None)
         return
     case = db.query(TestCase).filter(TestCase.id == run.case_id).first()
     if case is None:
@@ -76,6 +89,7 @@ def execute_test_run(db: Session, run_id: int) -> None:
         run.finished_at = datetime.utcnow()
         db.commit()
         _run_cancel_events.pop(run_id, None)
+        _run_task_ids.pop(run_id, None)
         return
 
     inst: RobotInstance | None = None
@@ -98,6 +112,7 @@ def execute_test_run(db: Session, run_id: int) -> None:
             run.finished_at = datetime.utcnow()
             db.commit()
             _run_cancel_events.pop(run_id, None)
+            _run_task_ids.pop(run_id, None)
 
         busy = find_active_run_for_instance(db, run.robot_instance_id, exclude_run_id=run_id)
         if busy is not None:
@@ -303,6 +318,7 @@ def execute_test_run(db: Session, run_id: int) -> None:
             if lock_held and instance_lock is not None:
                 instance_lock.release()
             _run_cancel_events.pop(run_id, None)
+            _run_task_ids.pop(run_id, None)
             return
 
         if use_midscene and web_dispatch is not None:
@@ -325,6 +341,7 @@ def execute_test_run(db: Session, run_id: int) -> None:
             report_file = None
             try:
                 task_id = submit_func_agent_dispatch(dispatch_dict)
+                _run_task_ids[run_id] = task_id
                 for event_name, event_data in stream_func_agent_events(task_id):
                     if should_cancel() and task_id:
                         try:
@@ -396,6 +413,7 @@ def execute_test_run(db: Session, run_id: int) -> None:
             autoglm_msg = ""
             try:
                 task_id = submit_func_agent_dispatch(dispatch_dict)
+                _run_task_ids[run_id] = task_id
                 for event_name, event_data in stream_func_agent_events(task_id):
                     if should_cancel() and task_id:
                         try:
@@ -463,3 +481,4 @@ def execute_test_run(db: Session, run_id: int) -> None:
         if lock_held and instance_lock is not None:
             instance_lock.release()
         _run_cancel_events.pop(run_id, None)
+        _run_task_ids.pop(run_id, None)

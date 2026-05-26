@@ -77,6 +77,8 @@ class AdbBridge:
         return "System Home"
 
     def get_screenshot(self, timeout: int = 10) -> Screenshot:
+        max_width = int(os.getenv("DEVICE_SCREEN_MAX_WIDTH", "720"))
+        jpeg_quality = int(os.getenv("DEVICE_SCREEN_JPEG_QUALITY", "75"))
         temp_path = os.path.join(tempfile.gettempdir(), f"screenshot_{uuid.uuid4()}.png")
         try:
             result = subprocess.run(
@@ -100,8 +102,12 @@ class AdbBridge:
 
             img = Image.open(temp_path)
             width, height = img.size
+            if width > max_width:
+                ratio = max_width / width
+                img = img.resize((max_width, int(height * ratio)), Image.LANCZOS)
+                width, height = img.size
             buffered = BytesIO()
-            img.save(buffered, format="PNG")
+            img.save(buffered, format="JPEG", quality=jpeg_quality)
             b64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
             os.remove(temp_path)
             return Screenshot(base64_data=b64, width=width, height=height, is_sensitive=False)

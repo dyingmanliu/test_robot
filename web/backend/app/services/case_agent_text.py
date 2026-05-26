@@ -76,7 +76,7 @@ def _sanitize_midscene_instruction(text: str) -> str:
 
 
 def _split_compound_midscene_description(desc: str) -> list[str]:
-    """将单步内多段 UI 操作拆成更短的 aiAct，降低规划失败率。"""
+    """将单步内多段 UI 操作拆成更短的 aiAct，降低规划失败率（最多拆为 2 段）。"""
     d = desc.strip()
     scroll_kw = ("滑动", "向下滑", "向上滑", "下滑", "上滑", "滚动")
     if any(k in d for k in scroll_kw) and "点击" in d:
@@ -87,7 +87,7 @@ def _split_compound_midscene_description(desc: str) -> list[str]:
                 click_part = f"点击{click_part}"
             if scroll_part and click_part:
                 return [scroll_part, click_part]
-    if len(d) < 48:
+    if len(d) < 80:
         return [d]
     if ("弹窗" in d or "弹出" in d) and ("选择" in d or "确认" in d):
         if "选规格" in d or "加入购物车" in d:
@@ -95,10 +95,6 @@ def _split_compound_midscene_description(desc: str) -> list[str]:
                 "点击菜单里第一款奶茶的选规格或加入购物车按钮",
                 "在规格弹窗中保持默认口味与糖度，点击确认加入购物车",
             ]
-    if "或" in d and d.count("，") >= 2:
-        segs = [x.strip() for x in re.split(r"[，。；]", d) if x.strip()]
-        if 2 <= len(segs) <= 4:
-            return segs
     return [d]
 
 
@@ -113,7 +109,10 @@ def build_midscene_tech_steps(
     steps = parse_steps_json(steps_json)
     lines: list[str] = []
     pre = _sanitize_midscene_instruction(preconditions)
-    _input_kw = ("输入", "填写", "键入", "密码", "PIN", "金额", "支付", "账号")
+    _input_hint = (
+        "（如果此步骤需要输入数字/密码/符号且屏幕弹出数字键盘而非全键盘，"
+        "请逐个点击数字键盘上的按键，不要一次性输入全部文本）"
+    )
     for i, s in enumerate(steps):
         if not isinstance(s, dict):
             continue
@@ -126,8 +125,8 @@ def build_midscene_tech_steps(
             part = chunk
             if exp and j == len(sub_chunks) - 1:
                 part += f"。预期：{exp}"
-            if any(k in desc for k in _input_kw):
-                part += "。注意：如果弹出虚拟数字键盘，请逐个点击键盘上的数字/符号按键来输入，不要使用一次性输入全部文本的方式。"
+            # 条件式输入提示嵌入每个步骤，不误导纯文本输入
+            part += _input_hint
             if not lines and pre:
                 part = f"【前置条件】{pre}\n{part}"
             lines.append(part)
