@@ -176,5 +176,5 @@ web/
 
 - Business features/API changes → update `README.md`
 - Architecture details → update `ARCHITECTURE.md`
-- New environment variables → add to respective `.env` file and `.env.example`
+- New environment variables → add to root `.env.example` (single reference) and the service’s `.env` (`web/backend/.env` or `agent_service/.env`)
 - Device-layer changes → update the respective agent's `README.md`

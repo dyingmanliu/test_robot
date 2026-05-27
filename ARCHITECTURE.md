@@ -670,7 +670,7 @@ agent 启动：`python -m agent_service.service`（`access_log=False`，避免�
 |----------|------|----------|
 | `web/backend/.env` | Web 后端 | `main.py` → `load_dotenv` |
 | `agent_service/.env` | Agent Service | `service/app.py` → `load_dotenv` |
-| `.env.example` | 参考文档 | 按服务分区的完整变量说明 |
+| `.env.example`（仓库根目录） | 参考文档 | 唯一环境变量模板；按分区复制到 `web/backend/.env` 与 `agent_service/.env` |
 
 ### Web 后端（`web/backend/.env`）
 

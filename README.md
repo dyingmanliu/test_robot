@@ -10,7 +10,7 @@
 |----------|-------------------|
 | 新增/调整业务功能、API、路由、数据模型 | **本 README**（模块说明与启动方式 relevant 部分） |
 | 架构细节、目录约定、执行链路深度说明 | [`ARCHITECTURE.md`](./ARCHITECTURE.md) |
-| 新增环境变量 | [`.env.example`](./.env.example)、[`web/frontend/.env.example`](./web/frontend/.env.example) |
+| 新增环境变量 | 根目录 [`.env.example`](./.env.example)（Web/Agent）；前端 [`web/frontend/.env.example`](./web/frontend/.env.example) |
 | 功能测试机器人（统一域） | `agent_service/func_agent/`（统一调度） + [`autoglm_phone_tech/README.md`](./autoglm_phone_tech/README.md)、[`midscene_tech/README.md`](./midscene_tech/README.md) |
 | MAI-UI 技术路线（GUI Grounding） | [`mai_ui_tech/README.md`](./mai_ui_tech/README.md) |
 
@@ -202,7 +202,7 @@ CASE_GEN_TIMEOUT_SEC=120
 - **Web 数据库**：Docker Desktop（或本机 MySQL 8）；见下方数据库小节
 - **Android 真机**：ADB、`BIGMODEL_API_KEY`（AutoGLM）或 Midscene 模型 Key
 - **鸿蒙真机**：HDC（DevEco toolchains）、Midscene 模型 Key；AutoGLM+鸿蒙组合另需智谱 Key
-- 根目录已移除 `.env`；请分别在 `web/backend/` 和 `agent_service/` 下配置各自的 `.env`，参考 [`.env.example`](./.env.example)。
+- 环境变量模板仅保留仓库根目录 [`.env.example`](./.env.example)（按分区复制到 `web/backend/.env` 与 `agent_service/.env`）；各服务目录下不再单独维护 `.env.example`。
 
 ### 0. 数据库（MySQL 8）
 
