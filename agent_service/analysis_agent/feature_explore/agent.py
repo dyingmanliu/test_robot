@@ -7,15 +7,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from dotenv import load_dotenv
-
 from agent_service.analysis_agent.feature_explore.types import (
     CancelCheck,
     ExploreDispatch,
     ExploreRunResult,
     MachineLineCallback,
 )
-from agent_service.func_agent.backends.midscene.runtime import run_midscene_task
 
 
 def _repo_root() -> Path:
@@ -43,47 +40,14 @@ class FeatureExploreAgent:
         should_cancel: CancelCheck | None = None,
         log_model_usage: MachineLineCallback | None = None,
     ) -> ExploreRunResult:
-        load_dotenv(Path(__file__).resolve().parents[2] / ".env")
-        tree_holder: dict[str, Any] = {"tree": None}
-        feature_json_holder: dict[str, Any] = {"features": []}
+        from agent_service.langchain_platform.graphs.explore_run import run_explore_graph
 
-        def handle_line(obj: dict[str, Any]) -> None:
-            if obj.get("kind") == "model_usage" and log_model_usage:
-                log_model_usage(obj)
-            if on_machine_line:
-                on_machine_line(obj)
-            if obj.get("kind") == "done" and isinstance(obj.get("tree"), dict):
-                tree_holder["tree"] = obj["tree"]
-            if obj.get("kind") == "explore_feature":
-                feat = obj.get("feature")
-                if isinstance(feat, dict):
-                    feats = feature_json_holder.get("features")
-                    if isinstance(feats, list):
-                        feats.append(feat)
-
-        try:
-            ok, msg, report_file = run_midscene_task(
-                dispatch.to_midscene_payload(),
-                on_machine_line=handle_line,
-                should_cancel=should_cancel,
-                log_model_usage=log_model_usage,
-            )
-        except Exception as exc:
-            return ExploreRunResult(ok=False, message=f"功能点分析执行异常: {exc}")
-
-        tree = tree_holder.get("tree")
-        if tree is None and feature_json_holder.get("features"):
-            tree = {
-                "app_name": dispatch.app_name,
-                "bundle_id": dispatch.bundle_id,
-                "features": feature_json_holder["features"],
-                "screens_visited": 0,
-            }
-
-        if tree is None:
-            tree = self._empty_tree(dispatch)
-
-        return ExploreRunResult(ok=ok, message=msg, tree=tree, report_file=report_file)
+        return run_explore_graph(
+            dispatch,
+            on_machine_line=on_machine_line,
+            should_cancel=should_cancel,
+            log_model_usage=log_model_usage,
+        )
 
     @staticmethod
     def merge_feature_from_line(

@@ -134,12 +134,19 @@ def generate_case_draft(
         robot_instance.id,
         len((prompt or "").strip()),
     )
+    scope = _kb_owner_scope(db, user)
+    owner_scope_str: str | None = None
+    if scope is not None:
+        owner_scope_str = ",".join(str(i) for i in scope)
+
     try:
         with analysis_generation_lock(robot_instance.id):
             draft_dict = _agent_generate(
                 project=_project_context(project),
                 prompt=prompt,
                 kb_snippets=kb_snippets,
+                project_id=project.id,
+                owner_scope_ids=owner_scope_str,
             )
     except RuntimeError as e:
         if str(e) == "analysis_instance_busy":
@@ -150,7 +157,11 @@ def generate_case_draft(
     except AgentServiceError as e:
         raise AnalysisAgentError(str(e)) from e
 
-    draft_dict["similar_case_ids"] = similar_ids or None
+    agent_similar = draft_dict.get("similar_case_ids")
+    if agent_similar:
+        draft_dict["similar_case_ids"] = agent_similar
+    else:
+        draft_dict["similar_case_ids"] = similar_ids or None
     log.info(
         "用例生成完成 project_id=%s title=%r steps=%s model=%s",
         project.id,

@@ -20,6 +20,8 @@ class GenerateCaseDraftRequest(BaseModel):
     project: ProjectContextBody
     prompt: str
     kb_snippets: list[str] | None = None
+    project_id: int | None = None
+    owner_scope_ids: str | None = None
 
 
 class CaseStepBody(BaseModel):

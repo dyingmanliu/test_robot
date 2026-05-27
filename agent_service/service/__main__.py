@@ -9,5 +9,6 @@ if __name__ == "__main__":
         "agent_service.service.app:app",
         host=SERVICE_HOST,
         port=SERVICE_PORT,
-        log_level="info",
+        log_config=None,
+        access_log=False,
     )

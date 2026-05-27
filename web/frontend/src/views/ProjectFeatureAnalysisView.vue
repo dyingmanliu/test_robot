@@ -93,22 +93,16 @@
           </p>
           <label class="field field-wide">
             <span>安装应用</span>
-            <select
-              :value="installedSelectValue"
+            <AppSearchSelect
+              :key="activeCatalogBlock.platform"
+              :model-value="installedSelectValue"
+              :options="installedAppSelectOptions"
+              :extra-option="orphanInstalledOption"
+              placeholder="输入应用名或包名搜索…"
               :disabled="running || catalogLoading"
-              @change="onSelectInstalledApp(activeCatalogBlock.platform, $event.target.value)"
-            >
-              <option value="">请选择已安装应用</option>
-              <option
-                v-if="orphanInstalledBundle"
-                :value="orphanInstalledBundle"
-              >
-                {{ activeRunAppName }}（{{ orphanInstalledBundle }}）· 当前分析
-              </option>
-              <option v-for="a in activeCatalogBlock.apps" :key="a.bundle_id" :value="a.bundle_id">
-                {{ a.label || a.bundle_id }}（{{ a.bundle_id }}）
-              </option>
-            </select>
+              @update:model-value="(v) => onSelectInstalledApp(activeCatalogBlock.platform, v)"
+            />
+            <span class="muted small field-hint">支持模糊搜索，可输入中文名或包名片段</span>
           </label>
           <p v-if="activeCatalogBlock.error" class="err small">
             {{ activeCatalogBlock.platform_label }}：{{ activeCatalogBlock.error }}
@@ -373,6 +367,7 @@
 import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import client, { formatApiError } from "@/api/client";
+import AppSearchSelect from "@/components/AppSearchSelect.vue";
 import FeatureAnalysisWorkbench from "@/components/FeatureAnalysisWorkbench.vue";
 import {
   analysisRobotUnselectableHint,
@@ -488,6 +483,22 @@ const orphanInstalledBundle = computed(() => {
   if (!bid || !activeCatalogBlock.value) return "";
   const inList = (activeCatalogBlock.value.apps || []).some((a) => a.bundle_id === bid);
   return inList ? "" : bid;
+});
+
+const installedAppSelectOptions = computed(() => {
+  const apps = activeCatalogBlock.value?.apps || [];
+  return apps.map((a) => ({
+    value: a.bundle_id,
+    label: a.label || a.bundle_id,
+  }));
+});
+
+const orphanInstalledOption = computed(() => {
+  if (!orphanInstalledBundle.value) return null;
+  return {
+    value: orphanInstalledBundle.value,
+    label: `${activeRunAppName.value}（${orphanInstalledBundle.value}）· 当前分析`,
+  };
 });
 
 const fileInstallBusy = computed(() => uploading.value || installingFromFile.value);
@@ -905,8 +916,28 @@ function clearInstalledSelection(platform) {
 function applyInstalledBundleSelection(platform, bundleId) {
   const block = installedCatalog.value.find((b) => b.platform === platform);
   const app = block?.apps?.find((a) => a.bundle_id === bundleId);
-  if (!bundleId || !app) {
+  if (!bundleId) {
     clearInstalledSelection(platform);
+    return;
+  }
+  if (!app) {
+    const isKnownOrphan =
+      bundleId === orphanInstalledBundle.value ||
+      bundleId === String(run.value?.bundle_id || "").trim();
+    if (!isKnownOrphan) {
+      clearInstalledSelection(platform);
+      return;
+    }
+    clearOtherPlatformSelections(platform);
+    selectedByPlatform[platform] = bundleId;
+    const dev = String(run.value?.device_id || selectedDeviceByPlatform[platform] || "").trim();
+    selectedDeviceByPlatform[platform] =
+      dev || (block?.devices?.length ? block.devices[0].device_id : "");
+    form.bundle_id = bundleId;
+    activeInstalledPlatform.value = platform;
+    detectedPlatform.value = platform;
+    parsedAppName.value = activeRunAppName.value || bundleId;
+    form.app_display_name = parsedAppName.value;
     return;
   }
   clearOtherPlatformSelections(platform);
@@ -1495,6 +1526,9 @@ onUnmounted(stopPoll);
 }
 .field-wide {
   grid-column: 1 / -1;
+}
+.field-hint {
+  margin-top: 0.2rem;
 }
 .btn-link {
   margin-left: 0.5rem;

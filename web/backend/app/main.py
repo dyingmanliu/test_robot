@@ -40,6 +40,7 @@ from app.routers import (
     dashboard,
     device_pools_api,
     devices,
+    internal_knowledge,
     knowledge,
     marketplace,
     mai_ui,
@@ -121,6 +122,7 @@ app.include_router(device_pools_api.router, prefix="/api")
 app.include_router(devices.router, prefix="/api")
 app.include_router(test_cases.router, prefix="/api")
 app.include_router(knowledge.router, prefix="/api")
+app.include_router(internal_knowledge.router, prefix="/api")
 app.include_router(admin.router, prefix="/api")
 app.include_router(platform_api.router, prefix="/api")
 app.include_router(marketplace.router, prefix="/api")

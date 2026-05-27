@@ -41,11 +41,23 @@ def generate_case_draft(
     project: dict[str, Any],
     prompt: str,
     kb_snippets: list[str] | None = None,
+    *,
+    project_id: int | None = None,
+    owner_scope_ids: str | None = None,
 ) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "project": project,
+        "prompt": prompt,
+        "kb_snippets": kb_snippets,
+    }
+    if project_id is not None:
+        payload["project_id"] = project_id
+    if owner_scope_ids:
+        payload["owner_scope_ids"] = owner_scope_ids
     with httpx.Client(timeout=SHORT_TIMEOUT) as client:
         resp = client.post(
             f"{_base()}/api/agent/analysis/generate-case-draft",
-            json={"project": project, "prompt": prompt, "kb_snippets": kb_snippets},
+            json=payload,
         )
         _raise_for_status(resp)
         return resp.json()

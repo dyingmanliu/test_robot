@@ -44,12 +44,13 @@
               {{ appsLoading ? "刷新中…" : "刷新设备应用列表" }}
             </button>
           </span>
-          <select v-model="form.bundle_id" :disabled="running || appsLoading" @change="onBundleChange">
-            <option value="" disabled>请选择已安装应用</option>
-            <option v-for="a in installedApps" :key="a.bundle_id" :value="a.bundle_id">
-              {{ a.bundle_id }}
-            </option>
-          </select>
+          <AppSearchSelect
+            v-model="form.bundle_id"
+            :options="installedAppSelectOptions"
+            placeholder="输入包名搜索…"
+            :disabled="running || appsLoading"
+            @update:model-value="onBundleChange"
+          />
         </label>
         <label class="field">
           <span>APP 显示名（可选）</span>
@@ -142,6 +143,7 @@
 import { computed, onMounted, onUnmounted, reactive, ref } from "vue";
 import { useRoute } from "vue-router";
 import client, { formatApiError } from "@/api/client";
+import AppSearchSelect from "@/components/AppSearchSelect.vue";
 
 const route = useRoute();
 const projectId = computed(() => {
@@ -179,6 +181,12 @@ const robotsLoading = ref(true);
 const robotsError = ref("");
 
 const installedApps = ref([]);
+const installedAppSelectOptions = computed(() =>
+  (installedApps.value || []).map((a) => ({
+    value: a.bundle_id,
+    label: a.label ? `${a.label}（${a.bundle_id}）` : a.bundle_id,
+  })),
+);
 const appsLoading = ref(false);
 const appsError = ref("");
 

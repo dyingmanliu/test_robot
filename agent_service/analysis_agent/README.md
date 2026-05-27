@@ -1,59 +1,50 @@
 # analysis_agent
 
-**测试分析机器人** Agent 包，包含两类能力：
+**测试分析机器人** Agent 包：用例生成 + 功能点 / 功能菜单树遍历。
 
-| 能力 | 模块 | 设备 | 环境变量 |
-|------|------|------|----------|
-| 用例自动生成 | `agent.py` → `AnalysisAgent` | 否 | `CASE_GEN_*` |
-| 功能点 / 功能菜单树遍历 | `feature_explore/` → `FeatureExploreAgent` | 是（Midscene） | `MIDSCENE_*`；默认 **hybrid** 遍历（`traverse_mode` / `EXPLORE_TRAVERSE_MODE`） |
+实现已委托 **`agent_service/langchain_platform/`**（LangChain 1.x）；本包保留门面类型与对外类名，便于 Web / OpenAPI 不变。
 
-用例生成与 `autoglm_phone_tech`（测试执行）分离；功能点遍历通过 **Midscene explore 子进程**（`midscene_tech/src/explore.ts`）操作真机，由 Web 适配层 `feature_analysis_bridge.py` 持久化任务与日志。
+| 能力 | 门面 | LangChain 实现 | 设备 |
+|------|------|----------------|------|
+| 用例自动生成 | `agent.py` → `AnalysisAgent` | `CaseGenChain` | 否 |
+| 功能点遍历 | `feature_explore/agent.py` → `FeatureExploreAgent` | `ExploreOrchestratorGraph` | 是（Midscene） |
 
-**说明**：本包不生成 Midscene YAML。若 Web 端请求 `case_format=yaml` 或用户在编辑弹窗切换为 YAML，由 `web/backend/app/services/case_format_convert.py` 在 structured 字段与 `tasks:` 脚本之间做规则转换（见根目录 `ARCHITECTURE.md` §1.3）。
+**调用流程（完整时序）**：[`langchain_platform/README.md`](../langchain_platform/README.md)  
+**架构总览**：仓库根 [`ARCHITECTURE.md`](../../ARCHITECTURE.md) §1.3、§1.3.1、§4.6
 
 ## 目录结构
 
 ```
 agent_service/analysis_agent/
-  agent.py              # AnalysisAgent — 用例生成
-  feature_explore/      # FeatureExploreAgent — 功能树遍历（默认 hybrid）
-    README.md
-    agent.py
-    types.py
-    tree_build.py
+  agent.py              # AnalysisAgent 门面 → CaseGenChain
+  feature_explore/
+    agent.py            # FeatureExploreAgent 门面 → explore_run 图
+    types.py            # ExploreDispatch / ExploreRunResult
+    tree_build.py       # GIIC 树归一化
   types.py              # ProjectContext / CaseDraft / CaseStep
   errors.py
-  config/               # CASE_GEN_* 环境变量、系统提示
-  model/client.py       # OpenAI 兼容 chat.completions
-  parser.py             # JSON 解析与校验
+  config/               # CASE_GEN_* 提示词与环境变量
+  parser.py             # JSON 解析（CaseGenChain 复用）
+  model/client.py       # 遗留 OpenAI SDK 客户端（当前生成路径未使用）
 ```
 
 ## 环境变量
 
-仓库根 `.env`（与 Web / AutoGLM 共用）：
+`agent_service/.env`：
 
 | 变量 | 说明 |
 |------|------|
 | `CASE_GEN_API_KEY` | 优先；缺省回退 `BIGMODEL_API_KEY` |
-| `CASE_GEN_BASE_URL` | OpenAI 兼容网关 |
-| `CASE_GEN_MODEL` | 模型名，默认 `glm-4-flash` |
-| `CASE_GEN_TIMEOUT_SEC` | 超时（秒） |
+| `CASE_GEN_BASE_URL` / `CASE_GEN_MODEL` | 用例生成网关与模型 |
+| `CASE_GEN_USE_KB` / `CASE_GEN_KB_LIMIT` | KB 开关与条数 |
+| `WEB_INTERNAL_API_URL` / `WEB_SERVICE_TOKEN` | agent 侧 Retriever 调 Web internal API |
+| `MIDSCENE_*` / `EXPLORE_TRAVERSE_MODE` | 功能点遍历（explore 子进程） |
 
-RAG 检索由 Web 层 `case_kb` 完成，结果以 `kb_snippets` 传入 Agent。
+## Web 侧适配
 
-## Web 调用示例
+| 能力 | Web 模块 |
+|------|----------|
+| 用例生成 | `web/backend/app/services/case_generation.py` |
+| 功能点分析 | `web/backend/app/services/feature_analysis_bridge.py` |
 
-```python
-from agent_service.analysis_agent import AnalysisAgent, ProjectContext
-
-agent = AnalysisAgent()
-draft = agent.generate_case_draft(
-    project=ProjectContext(name="...", tested_app_name="美团", test_objective="..."),
-    prompt="在美团点一杯奶茶",
-    kb_snippets=["【参考用例 ...】\n..."],
-)
-```
-
-- 用例生成适配层：`web/backend/app/services/case_generation.py`；格式互见 `case_format_convert.py` 与 `POST /api/test-cases/convert-format`。
-- 功能点分析适配层：`web/backend/app/services/feature_analysis_bridge.py`；API 前缀 `/api/projects/{id}/feature-analysis`。
-- 功能点遍历参数与事件说明：[`feature_explore/README.md`](./feature_explore/README.md)。
+HTTP 客户端：`web/backend/app/services/agent_service_client.py`。

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Mobile device test automation platform with a Web UI (Vue + FastAPI). **Digital robots** are grouped by **business role** in the marketplace: **test analysis** (case generation, no device) vs **test execution** (runs cases on real devices). The **test execution** role is implemented by **two technical routes** today—**AutoGLM** (`autoglm_phone_tech`, in-process Python) and **Midscene** (`midscene_tech`, subprocess + visual model)—selected per robot instance via `test_agent_backend` × `device_platform`. **Test analysis** maps to `agent_service/analysis_agent/` and the web bridge.
+Mobile device test automation platform with a Web UI (Vue + FastAPI). **Digital robots** are grouped by **business role** in the marketplace: **test analysis** (case generation, no device) vs **test execution** (runs cases on real devices). The **test execution** role is implemented by **two technical routes** today—**AutoGLM** (`autoglm_phone_tech`, in-process Python) and **Midscene** (`midscene_tech`, subprocess + visual model)—selected per robot instance via `test_agent_backend` × `device_platform`. **Test analysis** maps to `agent_service/analysis_agent/` (facade) + `agent_service/langchain_platform/` (LangChain 1.x: `CaseGenChain`, `ExploreOrchestratorGraph`). **Test execution** orchestration uses `FuncDispatchGraph` → `AutoglmExecGraph` | `MidsceneExecGraph`. Call-flow docs: `ARCHITECTURE.md` §1.3.1, `agent_service/langchain_platform/README.md`.
 
 **agent_service** was extracted into an **independent FastAPI web service** (port 8100). The web backend calls it via HTTP (`agent_service_client.py`) instead of direct Python import. Each service has its own `.env`: `web/backend/.env` (database, JWT, logging) and `agent_service/.env` (LLM keys, model config). No root `.env`.
 
@@ -115,8 +115,9 @@ agent_service/
   common/
     device_resolve.py         #   resolve_execution_device_id (removes circular dep)
   func_agent/cli.py           # Functional test CLI entrypoint
-  analysis_agent/             # Test analysis robot agent: NL → structured draft
-  requirements.txt            # agent_service dependencies
+  analysis_agent/             # Test analysis facade → langchain_platform
+  langchain_platform/         # LangChain 1.x: chains, graphs, retrievers, tools
+  requirements.txt            # agent_service dependencies (langchain-core/openai/graph)
 autoglm_phone_tech/           # Test execution · AutoGLM route (LLM-driven device automation)
   model/client.py             #   model client/resources
   device/device_factory.py    #   AdbBridge / HdcBridge abstraction
@@ -136,7 +137,8 @@ web/
     routers/                  # API route modules
     services/                 # business logic
       agent_service_client.py # HTTP client for agent_service (replaces direct import)
-      case_generation.py      # Web bridge → agent_service HTTP
+      case_generation.py      # Web bridge → agent_service HTTP (+ case_kb RAG)
+      routers/internal_knowledge.py  # Bearer WEB_SERVICE_TOKEN KB for agent retriever
       case_agent_text.py      # structured fields → agent task text
       case_kb.py              # case KB search for RAG
   frontend/src/

@@ -2,6 +2,14 @@
 
 本文档描述本仓库的技术架构与目录约定，供初级工程师维护代码时查阅。
 
+**近期架构要点（2025）**
+
+- **三进程**：Vue (:5173) → Web 后端 (:8000) → **agent_service** (:8100)；长任务经 **HTTP POST + SSE**，取消经 **DELETE**。
+- **LangChain 1.x**：测试分析编排与用例生成、功能测试执行调度均在 `agent_service/langchain_platform/`（`langchain-core` 1.4.x、`langgraph` 1.2.x）；`analysis_agent` / `func_agent` 为薄门面。
+- **用例格式**：仅 **structured**（`steps_json` + `task_text`）；Midscene 执行走 **natural** 模式，Web 层不再使用 YAML。
+- **KB**：Web `case_kb` 预检索 + 可选 agent `WebCaseKbRetriever` → `GET /api/internal/knowledge/cases/search`（`WEB_SERVICE_TOKEN`）。
+- **日志**：Web 与 agent_service 共用 `LOG_LEVEL` / `LOG_FORMAT` 风格（毫秒时间戳 + 模块 + 文件行号）；agent 见 `agent_service/service/logging_config.py`。
+
 ## 1. 系统定位
 
 ### 1.0 数字机器人 × Agent 边界（概念与扩展）
@@ -10,7 +18,7 @@ Web 将租用的**数字机器人实例**按商城 **功能定位（`catalog_rob
 
 | 业务定位（示例） | 代码侧 Agent | 说明 |
 |------------------|--------------|------|
-| **测试分析机器人** | `agent_service/analysis_agent/` | **用例生成**：LLM → structured/YAML（`CASE_GEN_*`，**不连真机**）。**功能点分析**：真机界面遍历 → GIIC 功能树（`feature_explore/` → Midscene `explore`，`MIDSCENE_*`） |
+| **测试分析机器人** | `agent_service/analysis_agent/` + `langchain_platform/` | **用例生成**：LangChain `CaseGenChain` → structured（`CASE_GEN_*`，**不连真机**）。**功能点分析**：`ExploreOrchestratorGraph` → Midscene `explore`（`MIDSCENE_*`） |
 | **测试执行机器人（func_agent）** | `agent_service/func_agent/`（内含 `autoglm_phone_tech/` 与 `midscene_tech/` 技术后端） | **同一业务定位下的两条技术路线**：LLM 驱动 UI（智谱 AutoGLM-Phone）与视觉驱动 UI（Midscene.js）。由实例字段 **`test_agent_backend`**（`autoglm` \| `midscene`）与 **`device_platform`** 在 `executor.py` 中择路；均经 ADB/HDC 操作真机 |
 | **其他功能定位**（专项执行、质量评估等） | 未来各自 **独立 Agent 包 + 路由/服务** | 与 `case_generation`、`executor` 平行扩展；本架构图以虚线占位，不展开具体实现 |
 
@@ -20,15 +28,17 @@ Web 将租用的**数字机器人实例**按商城 **功能定位（`catalog_rob
 
 1. **`agent_service/analysis_agent/`（Python）** — **测试分析机器人 Agent**：**用例生成**（`AnalysisAgent`，无真机，Web 适配 `case_generation.py`）；**功能点分析**（`FeatureExploreAgent`，Midscene explore 子进程，Web 适配 `feature_analysis_bridge.py`）。详见 [`agent_service/analysis_agent/README.md`](./agent_service/analysis_agent/README.md)。
 
-2. **`agent_service/func_agent/`（Python）** — **功能测试机器人统一业务域**：向 `executor` 暴露统一调度入口；内部编排两条后端路线（AutoGLM / Midscene）。
+2. **`agent_service/func_agent/`（Python）** — **功能测试机器人门面**：`orchestrator` → `FuncDispatchGraph`；内部两条后端（AutoGLM / Midscene）。
 
 3. **`autoglm_phone_tech/`（Python）** 与 **`midscene_tech/`（Node）** — **func_agent 技术后端实现**：前者为观察→推理→执行（ADB/HDC），后者为视觉自动化（`@midscene/android` / `@midscene/harmony`，Web 子进程 `--web-dispatch`）。
 
 4. **`web/`（Web 应用）**  
    **前端**：项目与用例 CRUD、自动生成草稿、触发执行、轮询步骤日志与结果。  
-   **后端**：认证与持久化；**用例生成**走 `case_generation` → `analysis_agent`；**功能点分析**走 `feature_analysis_bridge` → `feature_explore` → Midscene explore；**测试执行**走 `executor` → AutoGLM 同进程或 Midscene 子进程。
+   **后端**：认证与持久化；经 **`agent_service_client.py`** HTTP 调用 agent_service；**用例生成** → `CaseGenChain`；**功能点分析** → `ExploreOrchestratorGraph` + Midscene explore；**测试执行** → `FuncDispatchGraph` → AutoGLM 同进程或 Midscene 子进程。
 
-5. **`mai_ui_tech/`（Python）** — **GUI Grounding 技术路线**：本地 MAI-UI 推理与坐标解析；由 Web 服务 `mai_ui_service.py` 对接 `/api/mai-ui/*` 能力。
+5. **`agent_service/langchain_platform/`（Python）** — **LangChain 1.x 统一实现层**：LCEL 链、LangGraph 编排、Retriever、Tool；对外 HTTP/SSE **契约不变**。详见 §1.3.1、[`langchain_platform/README.md`](./agent_service/langchain_platform/README.md)。
+
+6. **`mai_ui_tech/`（Python）** — **GUI Grounding 技术路线**：本地 MAI-UI 推理与坐标解析；由 Web 服务 `mai_ui_service.py` 对接 `/api/mai-ui/*` 能力。
 
 ### 1.1 测试执行：技术路线 × 设备平台（`test_agent_backend` × `device_platform`）
 
@@ -66,43 +76,192 @@ Web 将租用的**数字机器人实例**按商城 **功能定位（`catalog_rob
 
 **用例生成**流程见下图；**功能点分析**时序见 §4.6。
 
-**用例生成**与 §1.1 **测试执行** 分离：生成路径不调用 `PhoneTestAgent`；LLM 在 Web 进程内通过 OpenAI 兼容 API 产出 **structured** 字段。
+**用例生成**与 §1.1 **测试执行** 分离：生成路径不调用 `PhoneTestAgent`；LLM 在 **agent_service** 内经 **LangChain `CaseGenChain`**（`langchain-openai`）产出 **structured** 字段。
 
-**功能点遍历**（`analysis_agent/feature_explore/` → `FeatureExploreAgent`）走 Midscene `explore` 子进程，与用例生成、同实例其它占用互斥；详见 §4.6。
+**功能点遍历**经 **`ExploreOrchestratorGraph`** 编排后调用 Midscene `explore` 子进程；与用例生成、同实例其它占用互斥。详见 §1.3.1、§4.6。
 
 | 项 | 说明 |
 |----|------|
-| 包 | `agent_service/analysis_agent/`（`AnalysisAgent`，对齐 `autoglm_phone_tech` 目录约定） |
-| Web 适配 | `app/services/case_generation.py`（KB 检索 + ORM → `ProjectContext`） |
+| 包 | `agent_service/analysis_agent/`（门面）+ `langchain_platform/`（实现） |
+| Web 适配 | `app/services/case_generation.py`（KB + ORM → HTTP → agent_service） |
 | 生成路由 | `POST /api/test-cases/generate`（`TestCaseGenerateIn` → `TestCaseGenerateOut`） |
 | 持久化 | 上述接口**不写库**；用户在前端编辑后 `POST /api/test-cases` 保存 |
 | LLM 输出 | 始终结构化（标题、前置条件、步骤 JSON、执行说明、优先级） |
-| 上下文 | `Project.name`、`tested_app_name`、`test_objective` + 用户 `prompt`（用户描述优先于项目被测应用名） |
-| RAG | `CASE_GEN_USE_KB=true` 时调用 `case_kb.search_cases_kb`（同项目、同租户 scope） |
+| 上下文 | `Project.name`、`tested_app_name`、`test_objective` + 用户 `prompt` |
+| RAG | Web 侧 `case_kb.search_cases_kb` → `kb_snippets`；agent 侧可选 `WebCaseKbRetriever`（§1.3.1） |
 | 执行衔接 | structured → `case_agent_text.build_agent_task_text()`（AutoGLM / Midscene natural） |
 
-**注意**：用例已统一为结构化格式（不再支持 YAML）。所有用例通过 `steps_json` + `task_text` 描述步骤，Midscene 执行使用 natural 模式自动转换。`case_format_convert.py` 与 `case_yaml.py` 已移除。
+**注意**：用例已统一为结构化格式（不再支持 YAML）。所有用例通过 `steps_json` + `task_text` 描述步骤，Midscene 执行使用 natural 模式自动转换。
+
+**配置**：`agent_service/.env` 的 `CASE_GEN_*`；KB Retriever 另需 `WEB_SERVICE_TOKEN`（与 `web/backend/.env` 一致）。详见 §6。
+
+### 1.3.1 LangChain 1.x 统一层（`agent_service/langchain_platform/`）
+
+测试分析（用例生成、功能点分析编排）与功能测试执行（AutoGLM / Midscene）**默认**经 **LangChain 1.x + LangGraph** 实现；对外 HTTP/SSE 路径与 payload **不变**（Web 仍通过 `agent_service_client.py` 调用）。
+
+| 能力 | 入口（门面） | LangChain 实现 |
+|------|--------------|----------------|
+| 用例生成 | `AnalysisAgent.generate_case_draft` | `CaseGenChain`（LCEL + `ChatOpenAI`） |
+| 功能点分析 | `FeatureExploreAgent.run` | `ExploreOrchestratorGraph` → `explore_core` → Midscene |
+| 测试执行 | `run_func_agent_dispatch` | `FuncDispatchGraph` → `AutoglmExecGraph` \| `MidsceneExecGraph` |
+
+| 模块 | 路径 |
+|------|------|
+| 配置 / 模型工厂 | `langchain_platform/config.py`、`models.py` |
+| 用例生成 | `langchain_platform/chains/case_generation.py` |
+| KB Retriever | `langchain_platform/retrievers/web_case_kb.py` |
+| 功能点分析 | `graphs/explore_run.py`、`explore_core.py` |
+| 执行调度 | `graphs/func_dispatch.py`、`autoglm_exec.py`、`midscene_exec.py` |
+| 设备 / 子进程 Tool | `tools/device_autoglm.py`、`tools/midscene_dispatch.py` |
+| Skill 注册 | `tools/registry.py` |
+| SSE 回调 | `callbacks/sse.py` |
+
+依赖（仅 `agent_service`）：`langchain-core` 1.4.x、`langchain-openai` 1.2.x、`langgraph` 1.2.x、`openai` 2.x。调用流程详见 [`langchain_platform/README.md`](./agent_service/langchain_platform/README.md)。
+
+#### 用例生成调用链
 
 ```mermaid
 sequenceDiagram
   participant UI as CasesView
   participant API as test_cases_router
   participant Gen as case_generation
-  participant AA as analysis_agent
-  participant LLM as OpenAI_compatible_API
+  participant KB as case_kb
+  participant Client as agent_service_client
+  participant Router as analysis_router
+  participant AA as AnalysisAgent
+  participant Chain as CaseGenChain
+  participant Ret as WebCaseKbRetriever
+  participant IntKB as internal_knowledge_API
+  participant LLM as ChatOpenAI_CASE_GEN
 
-  UI->>API: POST /generate project_id prompt
+  UI->>API: POST /api/test-cases/generate
   API->>Gen: generate_case_draft
-  Gen->>AA: generate_case_draft
-  AA->>LLM: chat.completions JSON
-  LLM-->>AA: structured draft
-  AA-->>Gen: CaseDraft
+  Gen->>KB: search_cases_kb（租户 scope）
+  KB-->>Gen: kb_snippets, similar_case_ids
+  Gen->>Client: POST /api/agent/analysis/generate-case-draft
+  Note over Gen,Client: project_id, owner_scope_ids, kb_snippets
+  Client->>Router: GenerateCaseDraftRequest
+  Router->>AA: generate_case_draft
+  AA->>Chain: generate
+  alt kb_snippets 为空且 CASE_GEN_USE_KB
+    Chain->>Ret: invoke(prompt)
+    Ret->>IntKB: GET /api/internal/knowledge/cases/search
+    IntKB-->>Ret: items（Bearer WEB_SERVICE_TOKEN）
+    Ret-->>Chain: Documents
+  end
+  Chain->>LLM: invoke messages
+  LLM-->>Chain: JSON text
+  Chain-->>AA: CaseDraft
+  AA-->>Router: response
+  Router-->>Client: JSON
+  Client-->>Gen: draft + similar_case_ids
   Gen-->>API: TestCaseGenerateOut
   API-->>UI: 预填编辑弹窗
-  UI->>API: POST /test-cases 保存
 ```
 
-**配置**：仓库根 `.env` 的 `CASE_GEN_*`。本地调试常用 DeepSeek（`CASE_GEN_BASE_URL=https://api.deepseek.com`、`CASE_GEN_MODEL=deepseek-v4-pro`）；未设 `CASE_GEN_API_KEY` 时回退 `BIGMODEL_API_KEY`。详见 §6 环境变量表。
+#### 功能点分析调用链
+
+```mermaid
+sequenceDiagram
+  participant UI as FeatureAnalysisView
+  participant Bridge as feature_analysis_bridge
+  participant Client as agent_service_client
+  participant Explore as explore_router
+  participant FE as FeatureExploreAgent
+  participant Graph as ExploreOrchestratorGraph
+  participant Core as explore_core
+  participant MS as midscene_explore_subprocess
+
+  UI->>Bridge: POST /feature-analysis/runs（异步）
+  Bridge->>Client: submit_explore_run
+  Client->>Explore: POST /api/agent/explore/run
+  Explore->>FE: run(dispatch)
+  FE->>Graph: run_explore_graph
+  Graph->>Graph: validate → run_explore → sync_tree
+  Graph->>Core: execute_explore_run
+  Core->>MS: run_midscene_task(explore payload)
+  MS-->>Core: JSONL line/done
+  Core-->>Bridge: SSE line/usage（经 Client stream）
+  Bridge-->>UI: 轮询 step_log / feature_json
+```
+
+#### 测试执行调用链
+
+```mermaid
+sequenceDiagram
+  participant UI as CasesView
+  participant API as test_cases_router
+  participant Exec as executor
+  participant Client as agent_service_client
+  participant FA as func_agent_router
+  participant Orch as orchestrator
+  participant Graph as FuncDispatchGraph
+  participant AG as AutoglmExecGraph
+  participant MS as MidsceneExecGraph
+
+  UI->>API: POST /test-cases/{id}/run
+  API->>Exec: execute_test_run（线程）
+  Exec->>Exec: build_agent_task_text / agent_steps
+  Exec->>Client: POST func-agent/dispatch
+  Client->>FA: 202 task_id
+  Exec->>Client: GET …/dispatch/{id}/stream SSE
+  FA->>Orch: run_func_agent_dispatch
+  Orch->>Graph: run_func_dispatch_graph
+  alt backend autoglm
+    Graph->>AG: run_autoglm_graph
+    AG-->>FA: SSE step
+  else backend midscene
+    Graph->>MS: run_midscene_graph
+    MS-->>FA: SSE line/usage
+  end
+  FA-->>Exec: done / error / cancelled
+  Exec-->>UI: 轮询 GET /runs/{id}
+```
+
+#### LangGraph 节点与 SSE 事件（实现对照）
+
+| 图 | 节点（顺序） | 真机 / 子进程 | agent_service SSE 事件 |
+|----|--------------|---------------|-------------------------|
+| `ExploreOrchestratorGraph` | `validate_dispatch` → `run_explore` → `sync_tree` | Midscene `explore` JSONL | `line` / `usage` / `done` / `error` |
+| `FuncDispatchGraph` | 按 `backend` 分支 | — | — |
+| `AutoglmExecGraph` | 步进循环 `PhoneTestAgent` | 同进程 ADB/HDC | `step` |
+| `MidsceneExecGraph` | 调 `midscene_dispatch` | Node 子进程 `--web-dispatch` | `line` / `usage` / `done` |
+
+任务生命周期（三条长任务共用）：`task_manager` 内存注册 → POST 返回 `task_id` → GET `…/stream` 推 SSE → DELETE 取消（杀子进程 / 中断图执行）。Web 侧 `executor` / `feature_analysis_bridge` 消费 SSE 写库 `step_log`。
+
+#### agent_service HTTP API（Web 消费）
+
+| 能力 | 提交 | 流式 | 取消 |
+|------|------|------|------|
+| 用例生成 | `POST /api/agent/analysis/generate-case-draft`（同步） | — | — |
+| 功能点分析 | `POST /api/agent/explore/run` | `GET …/explore/run/{id}/stream` | `DELETE …/explore/run/{id}` |
+| 测试执行 | `POST /api/agent/func-agent/dispatch` | `GET …/func-agent/dispatch/{id}/stream` | `DELETE …/func-agent/dispatch/{id}` |
+| 健康检查 | `GET /api/agent/health` | — | — |
+
+服务间 KB：`GET /api/internal/knowledge/cases/search`（仅 Web :8000，Bearer `WEB_SERVICE_TOKEN`）。
+
+```mermaid
+flowchart LR
+  subgraph web["Web :8000"]
+    WAPI[FastAPI routers]
+    WClient[agent_service_client]
+    WKB[case_kb / internal_knowledge]
+  end
+  subgraph agent["agent_service :8100"]
+    Routers[service/routers]
+  end
+  subgraph lc["langchain_platform"]
+    CG[CaseGenChain]
+    EG[ExploreOrchestratorGraph]
+    FG[FuncDispatchGraph]
+  end
+  WAPI --> WClient
+  WClient -->|HTTP SSE| Routers
+  Routers --> CG
+  Routers --> EG
+  Routers --> FG
+  CG -.->|可选| WKB
+```
 
 ### 1.4 端到端：用例生成 · 功能点分析 · 测试执行
 
@@ -111,7 +270,8 @@ sequenceDiagram
 | 维度 | 测试分析 · 用例生成 | 测试分析 · 功能点分析 | 测试执行 · 设备自动化 |
 |------|---------------------|----------------------|------------------------|
 | 典型 `catalog_robot_id` | **测试分析**（`test_analysis`） | 同上（同一类实例） | **功能执行**等 |
-| 对应代码 | `analysis_agent` / `AnalysisAgent` | `analysis_agent/feature_explore` → `midscene_tech` explore | `func_agent` → `autoglm_phone_tech` 或 `midscene_tech`（`executor` 择路） |
+| LangChain 实现 | `CaseGenChain` | `ExploreOrchestratorGraph` | `FuncDispatchGraph` → AutoGLM / Midscene |
+| 对应代码（门面） | `analysis_agent` / `AnalysisAgent` | `feature_explore` / `FeatureExploreAgent` | `func_agent/orchestrator`（`executor` 择路） |
 | 是否连真机 | **否** | **是**（ADB/HDC） | **是** |
 | 主要 Web 入口 | 测试用例页 → **自动生成** | 项目空间 → **功能点分析** | 测试用例页 → **执行测试** |
 | 关键 API | `POST /api/test-cases/generate`、`POST /api/test-cases` | `POST /api/projects/{id}/feature-analysis/runs`、`…/confirm` | `POST /api/test-cases/{id}/run`、`GET …/runs/{id}` |
@@ -132,8 +292,8 @@ flowchart TB
   subgraph gen["用例生成（无真机）"]
     A1[测试分析实例]
     A2[POST /test-cases/generate]
-    A3[AnalysisAgent + CASE_GEN_*]
-    A4[编辑 / convert-format]
+    A3[CaseGenChain + CASE_GEN_*]
+    A4[编辑草稿]
     A5[POST /test-cases]
     A1 --> A2 --> A3 --> A4 --> A5
   end
@@ -151,7 +311,7 @@ flowchart TB
   subgraph run["测试执行（真机）"]
     B1[测试执行实例]
     B2[POST /test-cases/id/run]
-    B3[executor → autoglm 或 midscene]
+    B3[executor → FuncDispatchGraph]
     B4[test_runs]
     B1 --> B2 --> B3 --> B4
   end
@@ -164,39 +324,67 @@ flowchart TB
 
 ## 2. 技术栈总览
 
-| 层级 | 技术 | 语言 |
-|------|------|------|
+### 2.1 按运行时进程
+
+| 进程 | 端口 | 主要技术 | 职责 |
+|------|------|----------|------|
+| 前端 | 5173 | Vue 3、Vite 6、Pinia、Vue Router、Axios | UI、JWT 存 localStorage、轮询 / SSE 消费由后端代理 |
+| Web 后端 | 8000 | FastAPI、Uvicorn、SQLAlchemy 2、Pydantic v2、PyMySQL | 认证、多租户、ORM、编排 agent_service、设备发现/投屏 |
+| agent_service | 8100 | FastAPI、Uvicorn、**LangChain 1.x**、LangGraph、OpenAI SDK 2.x | LLM 用例生成、探索/执行编排、SSE 任务、设备执行 |
+| Midscene CLI | 子进程 | Node ≥18、`@midscene/android` / `@midscene/harmony` | 视觉 `aiAct`、explore 遍历（由 agent 拉起） |
+| MySQL | 3306 | MySQL 8（Docker Compose） | 持久化 |
+
+Web 后端**不**直接 `import` agent 包；仅 HTTP（`agent_service_client.py`）。配置拆分：`web/backend/.env` 与 `agent_service/.env`（无仓库根 `.env`）。
+
+### 2.2 分层技术明细
+
+| 层级 | 技术 | 语言 / 版本要点 |
+|------|------|-----------------|
 | 前端框架 | Vue 3（Composition API） | JavaScript |
-| 前端构建 | Vite 6 | JS / Node |
-| 前端路由 | Vue Router 4 | JS |
-| 前端状态 | Pinia | JS |
-| HTTP 客户端 | Axios | JS |
+| 前端构建 | Vite 6 | Node |
 | 后端框架 | FastAPI | Python 3 |
-| ASGI 服务器 | Uvicorn（`standard`） | Python |
-| ORM | SQLAlchemy 2.x | Python |
-| 校验 / Schema | Pydantic v2 | Python |
-| 认证 | JWT（`python-jose`）+ 密码哈希（`bcrypt`） | Python |
-| 数据库 | MySQL 8（`DATABASE_URL`） | PyMySQL |
-| Agent / LLM | `openai` 官方 SDK（兼容 OpenAI 风格 Base URL） | Python |
-| 图像 | Pillow（`PIL`，Agent 侧截图等） | Python |
-| 设备 | ADB（Android）、HDC（鸿蒙） | — |
-| 视觉自动化 | Midscene.js（`@midscene/android`、`@midscene/harmony`） | TypeScript / Node |
-| GUI Grounding | MAI-UI（本地 MLX / Ollama） | Python |
+| ASGI | Uvicorn `standard` | 两服务均使用；agent 启动建议 `log_config=None` |
+| ORM | SQLAlchemy 2.x | 仅 Web 后端 |
+| 校验 | Pydantic v2 | Web schemas + agent `service/schemas.py` |
+| 认证 | JWT（`python-jose`）+ bcrypt | 仅 Web |
+| 数据库 | MySQL 8 | `DATABASE_URL` / `TCM_DATABASE_URL` |
+| **Agent 编排** | **LangChain Core 1.4.x**、**LangGraph 1.2.x**、**langchain-openai 1.2.x** | 仅 `agent_service` |
+| LLM 调用 | `ChatOpenAI`（用例生成）、OpenAI 兼容 SDK 2.x（AutoGLM 等） | `CASE_GEN_*` / `BIGMODEL_*` |
+| RAG | Web `case_kb`（MySQL LIKE）+ `WebCaseKbRetriever`（httpx → internal API） | 双路径可并存 |
+| 图像 | Pillow | 截图缩放（`DEVICE_SCREEN_*`） |
+| 设备 | ADB、HDC | Android / HarmonyOS |
+| 视觉自动化 | Midscene.js | TypeScript；`execution_mode`: `natural` / `explore` |
+| GUI Grounding | MAI-UI | `mai_ui_tech/` + Web `mai_ui_service.py` |
+| 日志 | `dictConfig`、统一 `LOG_*` 环境变量 | `web/backend/app/logging_config.py`、`agent_service/service/logging_config.py` |
+| 可选追踪 | LangSmith | `LANGSMITH_API_KEY`、`LANGCHAIN_TRACING_V2`、`LANGCHAIN_PROJECT`（`configure_langsmith()` 于 agent 启动时注入） |
 
-依赖清单：
+### 2.3 依赖清单
 
-- AutoGLM Agent（根目录）：`requirements.txt`
-- Midscene Agent：`midscene_tech/package.json`
-- Web 后端：`web/backend/requirements.txt`
-- Web 前端：`web/frontend/package.json`
+| 包路径 | 文件 | 说明 |
+|--------|------|------|
+| Web 后端 | `web/backend/requirements.txt` | FastAPI、SQLAlchemy、PyMySQL、httpx 等 |
+| agent_service | `agent_service/requirements.txt` | FastAPI + **LangChain 1.x** + `openai>=2.26` |
+| Midscene | `midscene_tech/package.json` | 视觉执行与 explore |
+| AutoGLM 资源 | 根目录 `requirements.txt` | 与 autoglm 设备层共用（CLI） |
+| Web 前端 | `web/frontend/package.json` | Vue 生态 |
 
 ## 3. 目录结构
 
 ```
 autoglm-phone-test-agent/          # 仓库根目录
 ├── ARCHITECTURE.md                # 本文档
-├── agent_service/analysis_agent/                # 测试分析：用例生成 + feature_explore/ 功能点分析
-├── agent_service/func_agent/                    # 功能测试机器人统一业务域（对外调度入口）
+├── agent_service/analysis_agent/                # 测试分析门面 → langchain_platform
+├── agent_service/langchain_platform/            # LangChain 1.x 实现层
+│   ├── chains/case_generation.py              #   CaseGenChain（LCEL）
+│   ├── graphs/                                #   explore_run、func_dispatch、autoglm_exec、midscene_exec
+│   ├── explore_core.py                        #   explore 事件聚合
+│   ├── models.py                              #   get_chat_model(case_gen|autoglm)
+│   ├── config.py                              #   WEB_*、LangSmith
+│   ├── retrievers/web_case_kb.py
+│   ├── tools/                                 #   midscene_dispatch、device_autoglm、registry
+│   ├── callbacks/sse.py
+│   └── README.md
+├── agent_service/func_agent/                    # 功能测试门面 → FuncDispatchGraph
 │   ├── orchestrator.py
 │   ├── core.py
 │   └── backends/
@@ -204,10 +392,11 @@ autoglm-phone-test-agent/          # 仓库根目录
 │       ├── autoglm/agent.py
 │       └── midscene/runtime.py
 ├── agent_service/service/                       # agent_service Web 服务（独立进程，端口 8100）
-│   ├── app.py                                   #   FastAPI app、lifespan、路由挂载
+│   ├── app.py                                   #   FastAPI、lifespan、HTTP 访问日志中间件
+│   ├── logging_config.py                        #   与 Web 后端一致的 LOG_* 配置
 │   ├── __main__.py                              #   python -m agent_service.service
 │   ├── task_manager.py                          #   内存任务注册表（SSE 推流 + 取消）
-│   ├── schemas.py / sse.py / config.py          #   模型、SSE 工具、服务配置
+│   ├── schemas.py / sse.py / config.py
 │   └── routers/                                 #   health / analysis / func_agent / explore / midscene / tree
 ├── agent_service/common/
 │   └── device_resolve.py                        #   设备 ID 解析（消除对 web backend 的循环依赖）
@@ -241,7 +430,8 @@ autoglm-phone-test-agent/          # 仓库根目录
     │   └── package.json
     └── backend/
         ├── app/
-        │   ├── main.py            # FastAPI 入口、CORS、挂载路由
+        │   ├── main.py            # FastAPI 入口、configure_logging、HTTP 中间件
+        │   ├── logging_config.py  # LOG_LEVEL / LOG_FORMAT / LOG_SQL
         │   ├── database.py        # DATABASE_URL、MySQL engine、ensure_schema
         │   ├── models.py          # SQLAlchemy ORM；MySQL 大字段用 LongText（LONGTEXT）
         │   ├── schemas.py         # Pydantic 出入参
@@ -249,8 +439,9 @@ autoglm-phone-test-agent/          # 仓库根目录
         │   ├── auth_utils.py      # 密码、JWT
         │   ├── executor.py        # 测试执行：按 test_agent_backend × 平台路由两技术路线
         │   ├── services/
-        │   │   ├── case_generation.py   # Web 适配 → AnalysisAgent；可选转 YAML
-        │   │   ├── feature_analysis_bridge.py  # Web 适配 → FeatureExploreAgent → explore
+        │   │   ├── case_generation.py   # Web 适配 → HTTP → CaseGenChain；KB 预检索
+        │   │   ├── agent_service_client.py  # HTTP/SSE 客户端（:8100）
+        │   │   ├── feature_analysis_bridge.py  # Web 适配 → explore SSE
         │   │   ├── case_agent_text.py   # structured → 执行用自然语言（含虚拟键盘提示）
         │   │   ├── case_kb.py           # 用例 KB 扁平检索（RAG 参考）
         │   │   ├── device_platform.py   # 平台/终端解析（实例默认 + 本次覆盖）
@@ -259,6 +450,7 @@ autoglm-phone-test-agent/          # 仓库根目录
         │   └── routers/
         │       ├── auth.py
         │       ├── test_cases.py
+        │       ├── internal_knowledge.py  # GET /api/internal/knowledge/cases/search（Bearer）
         │       ├── project_feature_analysis.py  # 项目功能点分析 runs / confirm
         │       ├── robot_instances.py
         │       ├── devices.py           # GET /devices/connected
@@ -288,11 +480,13 @@ flowchart TB
 
   subgraph agent["Agent Service（端口 8100 · 独立进程）"]
     ASApp["FastAPI + routers\nSSE 推流 / 任务管理"]
-    AA["AnalysisAgent\n用例生成 · 同进程"]
-    FE["FeatureExploreAgent\n功能点分析 · 编排"]
-    PTA["autoglm_phone_tech\n同进程 · ADB/HDC"]
+    LC["langchain_platform\nCaseGenChain / LangGraph"]
+    AA["AnalysisAgent\n门面"]
+    FE["FeatureExploreAgent\n门面"]
+    Orch["func_agent/orchestrator"]
+    PTA["autoglm_phone_tech\nADB/HDC"]
     MSProc["midscene_tech 子进程"]
-    LLMGen["OpenAI 兼容 API\nCASE_GEN_*"]
+    LLMGen["ChatOpenAI\nCASE_GEN_*"]
     LLM1["智谱等"]
     LLMVis["Midscene 视觉模型\nMIDSCENE_*"]
   end
@@ -307,10 +501,18 @@ flowchart TB
   FastAPI -->|"功能点分析"| FAB -->|"HTTP SSE"| Client
   FastAPI -->|"用例执行"| Exec -->|"HTTP SSE"| Client
   Client -->|"HTTP"| ASApp
-  ASApp -->|"generate_case_draft"| AA --> LLMGen
-  ASApp -->|"explore run"| FE --> MSProc
-  ASApp -->|"func-agent dispatch"| PTA --> LLM1
-  ASApp -->|"func-agent dispatch"| MSProc
+  ASApp --> AA
+  AA --> LC
+  LC --> LLMGen
+  Gen -.->|"可选 internal KB"| Client
+  ASApp --> FE
+  FE --> LC
+  FE --> MSProc
+  ASApp --> Orch
+  Orch --> LC
+  LC --> PTA
+  LC --> MSProc
+  PTA --> LLM1
   MSProc --> LLMVis
   PTA --> ADB["ADB"]
   PTA --> HDC["HDC"]
@@ -338,8 +540,8 @@ agent_service 由 web 后端通过 `app/services/agent_service_client.py`（HTTP
 1. 浏览器 → `POST /api/auth/login`（或 register）→ 返回 JWT。  
 2. 前端 `localStorage` 存 token，后续请求 `Authorization: Bearer ...`。  
 3. 用例列表 → `GET /api/test-cases`。
-3b. **AI 生成草稿** → `POST /api/test-cases/generate`；`case_generation` → HTTP `POST /api/agent/analysis/generate-case-draft` → agent_service `AnalysisAgent`；**不写库**直至 `POST /api/test-cases`。须**测试分析**实例；与功能点分析、用例执行**互斥**（见 §1.4）。  
-3c. **功能点分析** → `POST /api/projects/{id}/feature-analysis/runs`；`feature_analysis_bridge` → HTTP submit → agent_service `FeatureExploreAgent` SSE stream → Midscene `explore`；轮询 `GET …/runs/{id}`；结束后 `POST …/confirm` → `project_feature_trees`（成功/取消/失败且有功能点均可）。详见 §4.6。  
+3b. **AI 生成草稿** → `POST /api/test-cases/generate`；`case_generation` → HTTP `POST /api/agent/analysis/generate-case-draft` → `AnalysisAgent` → `CaseGenChain`（§1.3.1）；**不写库**直至 `POST /api/test-cases`。须**测试分析**实例；与功能点分析、用例执行**互斥**（见 §1.4）。
+3c. **功能点分析** → `POST /api/projects/{id}/feature-analysis/runs`；`feature_analysis_bridge` → HTTP submit/SSE → `FeatureExploreAgent` → `ExploreOrchestratorGraph` → Midscene `explore`；轮询 `GET …/runs/{id}`；结束后 `POST …/confirm` → `project_feature_trees`。详见 §1.3.1、§4.6。
 4. 执行 → `POST /api/test-cases/{id}/run`：请求体含 `robot_instance_id`，可选 `device_platform`、`device_id`；创建 `TestRun` 后**异步**在线程池执行 `executor.execute_test_run`。  
 5. 执行前枚举设备 → `GET /api/devices/connected?platform=…`（用例页「目标终端」下拉）。  
 6. 前端轮询 → `GET /api/test-cases/runs/{run_id}` 获取 `status`、`step_log`、`output_message` 等。
@@ -352,7 +554,7 @@ agent_service 由 web 后端通过 `app/services/agent_service_client.py`（HTTP
 4. 路由分支（`executor.py`）：  
    - 构建 dispatch dict → `submit_func_agent_dispatch()` HTTP 提交到 agent_service → 获取 `task_id` → 存入 `_run_task_ids` 映射。  
    - 循环读取 `stream_func_agent_events(task_id)` SSE 流：`step` / `line` / `usage` / `done` / `cancelled` 事件 → 写入 `step_log`。  
-   - agent_service 内部按 `backend` 路由到 `autoglm_runner`（同进程）或 `midscene.runtime`（子进程）。  
+   - agent_service：`orchestrator` → **`FuncDispatchGraph`** → `AutoglmExecGraph`（同进程 `autoglm_phone_tech`）或 `MidsceneExecGraph`（`midscene_dispatch` 子进程）。  
 5. Midscene 事件：`kind: meta|step|done` → `step_log`；成功可写 `report_path`。  
 6. 取消：`signal_cancel(run_id)` 同时设置本地 `threading.Event` + 通过 `_run_task_ids` 查找 `task_id` 直接 HTTP DELETE 到 agent_service，确保 SSE 流立即中断；前端 `POST …/runs/{id}/cancel`。  
 7. 投屏：`GET …/device-screen?device_platform=&device_id=`，与用例页当前选择一致（`device_screen.py`）。
@@ -362,31 +564,6 @@ agent_service 由 web 后端通过 `app/services/agent_service_client.py`（HTTP
 1. 浏览器打开 `/monitor`（仅 `platform_admin` / `tse`），使用 **同源 WebSocket** `ws(s)://…/api/ws/monitor/robots?token=<JWT>`（开发时走 Vite `/api` 代理，`vite.config.js` 需 `ws: true`）。  
 2. 后端 `accept` 后校验 JWT 与角色，随后按固定间隔（约 2s）推送 JSON：`online`、`idle`、`executing`；其中 **executing** 与库表 `test_runs` 中 `status=running` 条数一致，**idle** 等可由 `app/services/robot_monitor.py` 占位模拟，对接 Agent 管理服务后改为拉取/订阅同一指标源。  
 3. 断线后前端可指数退避重连，用于展示与运营值守场景。
-
-## 5. 数据存储
-
-- **数据库（MySQL 8）**  
-  - 环境变量 **`DATABASE_URL`** 或 **`TCM_DATABASE_URL`**，例如 `mysql+pymysql://user:pass@host:3306/tcm?charset=utf8mb4`。驱动 **PyMySQL**（见 `web/backend/requirements.txt`）。连接池：`TCM_DB_POOL_SIZE`（默认 10）、`TCM_DB_MAX_OVERFLOW`（默认 20）。本地实例：仓库根 **`docker-compose.yml`** → `docker compose up -d mysql`（默认库/用户/密码均为 `tcm`）。  
-  - **大字段**：`models.py` 中 `LongText = Text().with_variant(LONGTEXT, "mysql")`，用于 `step_log`、`feature_json` 等。  
-  - **启动与健康**：`main.py` 启动时 `create_all` + `ensure_schema()`；`GET /api/health` 执行 `SELECT 1` 并返回 `database: mysql`。  
-  - 连接使用 `pool_pre_ping`、`pool_recycle` 与 session `time_zone=+00:00`。  
-  - **外部连接（CLI / GUI）**：本地 MySQL 在 Docker 中，映射 **`127.0.0.1:3306`**。须指定 `-h 127.0.0.1`，勿用默认 socket（否则会报 `/tmp/mysql.sock`）。应用账号 `tcm`/`tcm`，库 `tcm`；root 为 `root`/`root`（见 `docker-compose.yml`）。示例：`mysql -h 127.0.0.1 -P 3306 -u tcm -ptcm tcm`；或 `docker compose exec mysql mysql -u tcm -ptcm tcm`。
-
-- **表（逻辑）**  
-  - `users`：账号与密码哈希、RBAC `role` 等。  
-  - `projects`：项目空间（被测应用、测试目标），多租户按 `owner_id`。  
-  - `test_cases`：归属 `project_id`；标题、执行说明、前置条件、`steps_json`（步骤与预期）、优先级、`revision_no`。  
-  - `test_case_revisions`：每次保存的快照（版本管理）。  
-  - `case_kb_documents`：检索用扁平文本（标题/步骤/说明聚合），供 `/api/knowledge/cases/search`。  
-  - `robot_instances`：租用实例化后的数字机器人；`instance_code`（DR-xxxxxx）、`test_agent_backend`、`device_platform`（**默认**平台）、`catalog_robot_id` 等。  
-  - `test_runs`：`robot_instance_id`、`device_platform` / `device_id`（**本次**执行实际使用）、`pending` / `running` / `success` / `failed` / `cancelled`、`step_log`、`report_path`（Midscene HTML）、`output_message`、`error_trace`。  
-  - `project_reports`：项目维度测试报告摘要（供看板「最新报告」）。  
-  - `defects`：缺陷（开放/已解决时间），供看板「未处理缺陷存量」趋势。  
-  - `billing_preorders`：机器人商城「立即租用」生成的预订单（`pending_payment` 等），对接支付网关前由计费模块写入。  
-  - `project_app_artifacts`：项目内上传的安装包路径；`test_case_sets` / `test_case_set_items`：用例集合；`functional_dispatch_tasks`：功能测试下发任务及 Kafka 投递状态快照。
-  - `app_explore_runs`：顶栏「功能清单探索」（全局，与项目无关）。
-  - `project_feature_analysis_runs`：项目内功能点分析任务（`traverse_mode`、`max_screens`、`max_depth`、`fair_share_per_root`、`feature_json`、`step_log` 等）。
-  - `project_feature_trees`：用户确认后的功能树多版本（`tree_json`、`version_label`、`confirmed_at`）。
 
 ### 4.5 APP 功能清单探索（Midscene，全局）
 
@@ -420,7 +597,8 @@ sequenceDiagram
 
 | 项 | 说明 |
 |----|------|
-| 编排 | `agent_service/analysis_agent/feature_explore/agent.py` |
+| 编排门面 | `analysis_agent/feature_explore/agent.py` → `langchain_platform/graphs/explore_run.py` |
+| 核心执行 | `langchain_platform/explore_core.py` → `tools/midscene_dispatch.py` |
 | Web 适配 | `web/backend/app/services/feature_analysis_bridge.py` |
 | 路由 | `web/backend/app/routers/project_feature_analysis.py` |
 | 遍历实现 | `midscene_tech/src/explore.ts`（`explore_common` / `explore_snapshot` / `explore_nav` / `explore_traverse`） |
@@ -441,6 +619,49 @@ sequenceDiagram
 
 **与顶栏「功能清单探索」**：后者无项目归属、表 `app_explore_runs`；项目内入口为项目卡片「功能点分析」。
 
+### 4.7 可观测性（日志）
+
+两服务均在加载 `.env` 后调用 `configure_logging()`，默认 **detailed** 格式：
+
+`2026-05-27 11:09:24.463 | INFO | agent_service.http | app.py:94 | GET /api/agent/health | client=127.0.0.1 | status=200 | 1.1ms`
+
+| 变量 | Web 后端 | agent_service | 说明 |
+|------|----------|---------------|------|
+| `LOG_LEVEL` | ✓ | ✓ | 默认 `INFO` |
+| `LOG_FORMAT` | ✓ | ✓ | `detailed` \| `simple` \| `custom` |
+| `LOG_FORMAT_TEMPLATE` | ✓ | ✓ | `LOG_FORMAT=custom` 时生效 |
+| `LOG_HTTP_QUERY` | ✓ | ✓ | 访问日志是否带 query |
+| `LOG_HTTP_QUIET_POLLS` | ✓ | ✓ | 健康检查 / SSE stream 降为 DEBUG |
+| `LOG_SQL` | ✓ | — | SQLAlchemy SQL（仅 Web） |
+| `LOG_HTTP` | — | ✓ | `httpx`/`httpcore` 详情（KB Retriever） |
+
+agent 启动：`python -m agent_service.service`（`access_log=False`，避免与 `agent_service.http` 重复）。
+
+## 5. 数据存储
+
+- **数据库（MySQL 8）**  
+  - 环境变量 **`DATABASE_URL`** 或 **`TCM_DATABASE_URL`**，例如 `mysql+pymysql://user:pass@host:3306/tcm?charset=utf8mb4`。驱动 **PyMySQL**（见 `web/backend/requirements.txt`）。连接池：`TCM_DB_POOL_SIZE`（默认 10）、`TCM_DB_MAX_OVERFLOW`（默认 20）。本地实例：仓库根 **`docker-compose.yml`** → `docker compose up -d mysql`（默认库/用户/密码均为 `tcm`）。  
+  - **大字段**：`models.py` 中 `LongText = Text().with_variant(LONGTEXT, "mysql")`，用于 `step_log`、`feature_json` 等。  
+  - **启动与健康**：`main.py` 启动时 `create_all` + `ensure_schema()`；`GET /api/health` 执行 `SELECT 1` 并返回 `database: mysql`。  
+  - 连接使用 `pool_pre_ping`、`pool_recycle` 与 session `time_zone=+00:00`。  
+  - **外部连接（CLI / GUI）**：本地 MySQL 在 Docker 中，映射 **`127.0.0.1:3306`**。须指定 `-h 127.0.0.1`，勿用默认 socket（否则会报 `/tmp/mysql.sock`）。应用账号 `tcm`/`tcm`，库 `tcm`；root 为 `root`/`root`（见 `docker-compose.yml`）。示例：`mysql -h 127.0.0.1 -P 3306 -u tcm -ptcm tcm`；或 `docker compose exec mysql mysql -u tcm -ptcm tcm`。
+
+- **表（逻辑）**  
+  - `users`：账号与密码哈希、RBAC `role` 等。  
+  - `projects`：项目空间（被测应用、测试目标），多租户按 `owner_id`。  
+  - `test_cases`：归属 `project_id`；标题、执行说明、前置条件、`steps_json`（步骤与预期）、`task_text`、`priority`、`revision_no`。  
+  - `test_case_revisions`：每次保存的快照（版本管理）。  
+  - `case_kb_documents`：检索用扁平文本（标题/步骤/说明聚合），供 `/api/knowledge/cases/search` 与 RAG。  
+  - `robot_instances`：租用实例化后的数字机器人；`instance_code`（DR-xxxxxx）、`test_agent_backend`、`device_platform`（**默认**平台）、`catalog_robot_id` 等。  
+  - `test_runs`：`robot_instance_id`、`device_platform` / `device_id`（**本次**执行实际使用）、`pending` / `running` / `success` / `failed` / `cancelled`、`step_log`、`report_path`（Midscene HTML）、`output_message`、`error_trace`。  
+  - `project_reports`：项目维度测试报告摘要（供看板「最新报告」）。  
+  - `defects`：缺陷（开放/已解决时间），供看板「未处理缺陷存量」趋势。  
+  - `billing_preorders`：机器人商城「立即租用」生成的预订单（`pending_payment` 等），对接支付网关前由计费模块写入。  
+  - `project_app_artifacts`：项目内上传的安装包路径；`test_case_sets` / `test_case_set_items`：用例集合；`functional_dispatch_tasks`：功能测试下发任务及 Kafka 投递状态快照。
+  - `app_explore_runs`：顶栏「功能清单探索」（全局，与项目无关）。
+  - `project_feature_analysis_runs`：项目内功能点分析任务（`traverse_mode`、`max_screens`、`max_depth`、`fair_share_per_root`、`feature_json`、`step_log` 等）。
+  - `project_feature_trees`：用户确认后的功能树多版本（`tree_json`、`version_label`、`confirmed_at`）。
+
 ## 6. 外部依赖与环境变量
 
 配置已按服务拆分，不再使用仓库根目录 `.env`：
@@ -458,9 +679,10 @@ sequenceDiagram
 | `DATABASE_URL` / `TCM_DATABASE_URL` | MySQL 8 连接字符串 |
 | `TCM_DB_POOL_SIZE` / `TCM_DB_MAX_OVERFLOW` | MySQL 连接池（可选） |
 | `JWT_SECRET` / `JWT_EXPIRE_MINUTES` | JWT 签名密钥与过期时间 |
-| `LOG_LEVEL` / `LOG_FORMAT` / `LOG_SQL` | 日志配置 |
+| `LOG_LEVEL` / `LOG_FORMAT` / `LOG_HTTP_*` / `LOG_SQL` | 日志（见 §4.7） |
 | `TCM_BUILTIN_ADMIN_*` / `TCM_BOOTSTRAP_ADMIN_*` | 内置平台管理员引导 |
 | `AGENT_SERVICE_URL` | agent_service 地址（默认 `http://127.0.0.1:8100`） |
+| `WEB_SERVICE_TOKEN` | agent_service 调 internal KB API 的 Bearer token（与 agent_service `.env` 相同） |
 | `ADB_DEVICE_ID` / `HDC_DEVICE_ID` / `HDC_HOME` | 设备发现与投屏 |
 | `DEVICE_SCREEN_MAX_WIDTH` | 投屏缩略图最大宽度 |
 | `KAFKA_*` | 功能测试下发（可选） |
@@ -471,13 +693,16 @@ sequenceDiagram
 | 变量（示例） | 用途 |
 |----------------|------|
 | `AGENT_SERVICE_HOST` / `AGENT_SERVICE_PORT` | 监听地址（默认 `0.0.0.0:8100`） |
+| `LOG_LEVEL` / `LOG_FORMAT` / `LOG_HTTP_*` | 日志格式与 HTTP 访问日志（与 Web 后端一致，见 `service/logging_config.py`） |
 | `BIGMODEL_API_KEY` / `ZHIPU_API_KEY` | 智谱 API Key（AutoGLM + 用例生成兜底） |
 | `OPENAI_BASE_URL` | 智谱网关等 |
 | `PHONE_AGENT_MODEL` / `PHONE_AGENT_MAX_STEPS` | AutoGLM 模型与步数上限 |
 | `CASE_GEN_API_KEY` | 用例生成 API Key；未设则回退 `BIGMODEL_API_KEY` |
 | `CASE_GEN_BASE_URL` | 用例生成网关（如 `https://api.deepseek.com`） |
 | `CASE_GEN_MODEL` / `CASE_GEN_TIMEOUT_SEC` | 用例生成模型与超时 |
-| `CASE_GEN_USE_KB` / `CASE_GEN_KB_LIMIT` | 同项目用例 RAG |
+| `CASE_GEN_USE_KB` / `CASE_GEN_KB_LIMIT` | 用例生成是否用 KB、条数上限 |
+| `WEB_INTERNAL_API_URL` | Retriever 访问 Web 的 base URL（默认 `http://127.0.0.1:8000`） |
+| `WEB_SERVICE_TOKEN` | 与 Web 后端相同；供 `WebCaseKbRetriever` 调 `/api/internal/knowledge/cases/search` |
 | `MIDSCENE_MODEL_BASE_URL` / `MIDSCENE_MODEL_API_KEY` | Midscene 视觉模型 |
 | `MIDSCENE_MODEL_NAME` / `MIDSCENE_MODEL_FAMILY` | Midscene 模型名与系列 |
 | `MIDSCENE_REPLANNING_CYCLE_LIMIT` | 单步 aiAct 重规划上限（默认 100，agent_service 启动时注入） |
@@ -488,6 +713,10 @@ sequenceDiagram
 | `DEVICE_SCREEN_MAX_WIDTH` | 截图缩放最大宽度（默认 720，`adb_bridge` / `hdc_bridge`） |
 | `DEVICE_SCREEN_JPEG_QUALITY` | 截图 JPEG 质量（默认 75，`adb_bridge` / `hdc_bridge`） |
 | `ADB_DEVICE_ID` / `HDC_DEVICE_ID` / `HDC_HOME` | 设备连接（执行用） |
+| `LANGSMITH_API_KEY` | LangSmith API Key（与 `LANGCHAIN_API_KEY` 二选一） |
+| `LANGCHAIN_TRACING_V2` / `LANGSMITH_TRACING` | 设为 `false` 可关闭；仅配 Key 时默认开启 |
+| `LANGCHAIN_PROJECT` / `LANGSMITH_PROJECT` | 追踪项目名，默认 `test-robots` |
+| `LANGCHAIN_ENDPOINT` / `LANGSMITH_ENDPOINT` | 可选，默认 LangSmith SaaS |
 
 设备要求：
 
@@ -505,11 +734,12 @@ sequenceDiagram
 3. **改测试执行 · AutoGLM 路线**：`autoglm_phone_tech/`（`device_factory`、`hdc_bridge` 等）；影响所有 `test_agent_backend=autoglm` 的执行。  
 4. **改测试执行 · Midscene 路线**：`midscene_tech/`；`npm run typecheck`；影响 `test_agent_backend=midscene`；改完后重启 Uvicorn。长时间任务不建议 `uvicorn --reload`。  
 5. **改测试执行路由**：`executor.py`、`services/device_platform.py`；实例字段见 `models.RobotInstance`。  
-6. **改测试分析**：`agent_service/analysis_agent/`、`agent_service/service/routers/analysis.py`；环境变量在 `agent_service/.env`（`CASE_GEN_*`）。需重启 agent_service。  
-7. **数据库**：MySQL 8；`DATABASE_URL` 必填；无 Alembic，列迁移在 `database.ensure_schema()`。  
-8. **排查执行失败**：确认实例 **技术路线（autoglm/midscene）**、用例页 **平台+终端**；`adb devices` / `hdc list targets` 与所选 `device_id` 一致；看 `test_runs.device_platform`、`device_id`、`error_trace`、`step_log`；Midscene 报告见 `report_path`。  
-9. **排查 AI 生成失败**：确认 `CASE_GEN_API_KEY`（或回退智谱 Key）与 `CASE_GEN_BASE_URL`/`CASE_GEN_MODEL` 匹配；改 `.env` 后重启 Uvicorn；Swagger `POST /api/test-cases/generate` 可直调；非法 JSON 时服务会自动重试一次修复。  
+6. **改 LangChain 编排**：`agent_service/langchain_platform/`（链/图/Retriever/Tool）；门面 `analysis_agent/`、`func_agent/orchestrator.py`；HTTP 路由 `agent_service/service/routers/`。**改代码或 `agent_service/.env` 后须重启 agent_service**（默认无 `--reload`）。  
+7. **改测试分析业务类型**：同上 + `web/backend/app/services/case_generation.py`、`feature_analysis_bridge.py`。  
+8. **数据库**：MySQL 8；`DATABASE_URL` 必填；无 Alembic，列迁移在 `database.ensure_schema()`。  
+9. **排查执行失败**：确认实例 **技术路线（autoglm/midscene）**、用例页 **平台+终端**；`adb devices` / `hdc list targets`；看 agent 日志 `agent_service.func_agent` 与 `step_log`；Midscene 报告见 `report_path`。  
+10. **排查 AI 生成失败**：`CASE_GEN_*`、`WEB_SERVICE_TOKEN`（Retriever）；Web `POST /api/test-cases/generate` 或 agent `POST /api/agent/analysis/generate-case-draft`；`CaseGenChain` 对非法 JSON 自动重试一轮。  
 
 ## 8. 一句话小结
 
-**Vue 3 + FastAPI + MySQL 8** 管理用例与租用机器人实例。**测试分析**实例承担 **用例生成**（`CASE_GEN_*`）与 **功能点分析**（Midscene explore → GIIC 功能树确认保存）两项能力；**测试执行**实例在真机上跑用例，由 **`executor` 在 AutoGLM 与 Midscene 间二选一**。同一项目内可先功能点分析、再生成/落库用例、再 `run`；执行与分析前可选 **Android/鸿蒙** 与 **目标终端**。详见 §1.0、§1.4、§4.6。
+**Vue 3 + Web FastAPI + agent_service（LangChain 1.x）+ MySQL 8**：Web 管租户与持久化，agent 管 LLM/图编排与设备执行（HTTP+SSE）。**测试分析**走 `CaseGenChain` / `ExploreOrchestratorGraph`；**测试执行**走 `FuncDispatchGraph`（AutoGLM 同进程或 Midscene 子进程）。用例仅 **structured**；KB 可 Web 预检索或 agent Retriever。详见 §1.3.1、§2、§4.7。

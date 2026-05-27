@@ -38,6 +38,8 @@ async def generate_case_draft(req: GenerateCaseDraftRequest):
             project=project,
             prompt=req.prompt,
             kb_snippets=req.kb_snippets,
+            project_id=req.project_id,
+            owner_scope_ids=req.owner_scope_ids,
         )
     except AnalysisAgentError as e:
         raise HTTPException(status_code=422, detail=str(e))
