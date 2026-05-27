@@ -107,6 +107,48 @@
           {{ saving ? "保存中…" : "保存修改" }}
         </button>
       </section>
+
+      <section v-if="canEdit" class="card detail">
+        <h2>知识库与 Skill</h2>
+        <p class="hint">绑定项目知识库集合与 Skill 配置，供 Agentic RAG 检索（用例生成 / 功能分析 / 测试执行）。</p>
+        <label class="field">
+          <span>Skill 配置</span>
+          <select v-model.number="kbDraft.skill_profile_id" class="select-full">
+            <option :value="null">（默认）</option>
+            <option v-for="sp in skillProfiles" :key="sp.id" :value="sp.id">
+              {{ sp.name }} — {{ (sp.skill_names || []).join(", ") }}
+            </option>
+          </select>
+        </label>
+        <div class="field">
+          <div class="kb-coll-head">
+            <span>知识库集合</span>
+            <button
+              v-if="kbDraft.collection_ids.length"
+              type="button"
+              class="btn ghost mini"
+              @click="kbDraft.collection_ids = []"
+            >
+              清空选择
+            </button>
+          </div>
+          <p v-if="!allCollections.length" class="hint small">暂无集合，请先在项目「知识库」页创建。</p>
+          <ul v-else class="kb-coll-list">
+            <li v-for="c in allCollections" :key="c.id">
+              <label class="kb-coll-item">
+                <input v-model="kbDraft.collection_ids" type="checkbox" :value="c.id" />
+                <span>[项目 {{ c.project_id }}] {{ c.name }}</span>
+              </label>
+            </li>
+          </ul>
+        </div>
+        <p v-if="kbBinding.skill_names?.length" class="hint small">
+          当前可用 Skill：{{ kbBinding.skill_names.join(", ") }}
+        </p>
+        <button type="button" class="btn" :disabled="kbSaving" @click="saveKbBinding">
+          {{ kbSaving ? "保存中…" : "保存知识库绑定" }}
+        </button>
+      </section>
       <section v-else class="card detail">
         <h2>展示属性</h2>
         <p class="hint muted">您不是该实例的租用提交人，仅可查看。</p>
@@ -142,11 +184,19 @@ const inst = ref(null);
 const loading = ref(true);
 const error = ref("");
 const saving = ref(false);
+const kbSaving = ref(false);
+const skillProfiles = ref([]);
+const allCollections = ref([]);
+const kbBinding = ref({});
 const draft = reactive({
   display_name: "",
   display_bio: "",
   test_agent_backend: "autoglm",
   device_platform: "android",
+});
+const kbDraft = reactive({
+  skill_profile_id: null,
+  collection_ids: [],
 });
 
 const canEdit = computed(() => {
@@ -182,6 +232,38 @@ function applyDraft() {
   draft.device_platform = r.device_platform || "android";
 }
 
+async function loadKbBinding() {
+  if (!inst.value) return;
+  try {
+    const { data: ctx } = await client.get(
+      `/api/knowledge/robot-instances/${inst.value.id}/knowledge-binding`,
+    );
+    kbBinding.value = ctx;
+    kbDraft.skill_profile_id = ctx.skill_profile_id ?? null;
+    kbDraft.collection_ids = [...(ctx.knowledge_collection_ids || [])];
+    const { data: prof } = await client.get("/api/knowledge/skill-profiles", {
+      params: { catalog_robot_id: inst.value.catalog_robot_id },
+    });
+    skillProfiles.value = prof.items || [];
+    const { data: projects } = await client.get("/api/projects");
+    const cols = [];
+    for (const p of projects || []) {
+      try {
+        const { data: cList } = await client.get(`/api/knowledge/projects/${p.id}/collections`);
+        for (const c of cList || []) {
+          cols.push({ ...c, project_id: p.id });
+        }
+      } catch {
+        /* ignore unreadable project */
+      }
+    }
+    allCollections.value = cols;
+  } catch (e) {
+    /* non-fatal */
+    console.warn("loadKbBinding", e);
+  }
+}
+
 async function load() {
   const raw = route.params.instanceId;
   const id = Number(Array.isArray(raw) ? raw[0] : raw);
@@ -198,11 +280,31 @@ async function load() {
     const { data } = await client.get(`/api/robot-instances/${id}`);
     inst.value = data;
     applyDraft();
+    await loadKbBinding();
   } catch (e) {
     error.value = formatApiError(e);
     inst.value = null;
   } finally {
     loading.value = false;
+  }
+}
+
+async function saveKbBinding() {
+  if (!inst.value) return;
+  kbSaving.value = true;
+  error.value = "";
+  try {
+    const ids = (kbDraft.collection_ids || []).map((x) => Number(x)).filter((n) => n > 0);
+    await client.patch(`/api/knowledge/robot-instances/${inst.value.id}/knowledge-binding`, {
+      skill_profile_id: kbDraft.skill_profile_id || null,
+      knowledge_collection_ids: ids,
+      rag_policy_override: {},
+    });
+    await loadKbBinding();
+  } catch (e) {
+    error.value = formatApiError(e);
+  } finally {
+    kbSaving.value = false;
   }
 }
 
@@ -395,6 +497,34 @@ watch(
 .field select.select-full {
   width: 100%;
   max-width: 100%;
+}
+
+.kb-coll-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+.kb-coll-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.kb-coll-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.35rem 0;
+  cursor: pointer;
+  font-size: 0.92rem;
+}
+.kb-coll-item input {
+  margin-top: 0.2rem;
 }
 
 .banner.err {

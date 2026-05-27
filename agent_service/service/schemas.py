@@ -22,6 +22,8 @@ class GenerateCaseDraftRequest(BaseModel):
     kb_snippets: list[str] | None = None
     project_id: int | None = None
     owner_scope_ids: str | None = None
+    robot_instance_id: int | None = None
+    rag_mode: str | None = None
 
 
 class CaseStepBody(BaseModel):
@@ -39,6 +41,7 @@ class GenerateCaseDraftResponse(BaseModel):
     case_format: str = "structured"
     model: str = ""
     similar_case_ids: list[int] | None = None
+    rag_trace: list[dict[str, Any]] | None = None
 
 
 class CaseGenConfigResponse(BaseModel):
@@ -93,6 +96,7 @@ class ExploreRunRequest(BaseModel):
     scroll_max_passes: int = 5
     run_id: int | None = None
     robot_instance_id: int | None = None
+    project_id: int | None = None
 
 
 # ── midscene task ─────────────────────────────────────────

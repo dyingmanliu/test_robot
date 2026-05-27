@@ -530,6 +530,15 @@
           <textarea v-model="dialog.task_text" rows="4"></textarea>
         </label>
         <p class="muted small">保存时至少需要「执行说明」或一条有效步骤。</p>
+        <div v-if="dialog.ragTrace.length" class="rag-trace">
+          <h4>知识库引用（Agentic RAG）</h4>
+          <ul>
+            <li v-for="(tr, i) in dialog.ragTrace" :key="i">
+              <strong>#{{ tr.call_index }} {{ tr.tool }}</strong> — {{ tr.query }}
+              <span v-if="tr.hits?.length" class="muted small">（{{ tr.hits.length }} 条命中）</span>
+            </li>
+          </ul>
+        </div>
         <p v-if="dialog.error" class="err">{{ dialog.error }}</p>
         <div class="modal-actions">
           <button type="button" class="btn ghost" :disabled="dialog.saving" @click="dialog.open = false">
@@ -993,6 +1002,7 @@ const dialog = reactive({
   steps: [],
   error: "",
   saving: false,
+  ragTrace: [],
 });
 
 const genDialog = reactive({
@@ -1273,6 +1283,7 @@ function applyDraftToDialog(draft) {
   dialog.task_text = draft.task_text || "";
   dialog.preconditions = draft.preconditions || "";
   dialog.priority = draft.priority || "P2";
+  dialog.ragTrace = draft.generation_meta?.rag_trace || draft.rag_trace || [];
   const st = Array.isArray(draft.steps) ? draft.steps : [];
   dialog.steps = st.length
     ? st.map((x) => ({
@@ -2573,6 +2584,22 @@ textarea {
   max-width: 720px;
   max-height: 90vh;
   overflow-y: auto;
+}
+
+.rag-trace {
+  margin: 0.75rem 0;
+  padding: 0.65rem 0.85rem;
+  background: #f8fafc;
+  border-radius: 6px;
+  font-size: 0.88rem;
+}
+.rag-trace h4 {
+  margin: 0 0 0.35rem;
+  font-size: 0.92rem;
+}
+.rag-trace ul {
+  margin: 0;
+  padding-left: 1.2rem;
 }
 
 .format-field {

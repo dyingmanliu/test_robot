@@ -23,6 +23,7 @@
 | 阶段 | 做什么 | 谁参与 | 典型页面 / API |
 |------|--------|--------|------------------|
 | 1. 项目准备 | 维护被测应用、测试目标等上下文，便于生成与 KB 检索 | 项目空间 | `/api/projects` |
+| 1b. 知识库建设 | 上传规范/策略/页面模型等 → 解析索引 →（规范类）平台审核 → 参与检索 | 项目成员 + **platform_admin** | `/projects/:id/knowledge`；审核 `/knowledge/review` |
 | 2. 用例生成 | 一句话描述 → LLM 产出草稿 → 人工核对 → **保存入库** | **测试分析**机器人实例（商城「测试分析」目录；**不连手机**） | 测试用例页「创建用例 → **自动生成**」；`POST /api/test-cases/generate`（仅草稿）、`POST /api/test-cases`（持久化） |
 | 2b. 功能点分析 | 选已安装/上传 App → 真机界面遍历 → 产出 GIIC 功能树 → 编辑 → **确认保存多版本** | **测试分析**机器人实例（**须连手机**；与用例生成、功能点分析任务互斥） | 项目空间「功能点分析」；`/api/projects/{id}/feature-analysis`；详见 [`ARCHITECTURE.md`](./ARCHITECTURE.md) §4.6 |
 | 3. 执行准备 | 租用并启动 **测试执行** 实例，选择 **AutoGLM 或 Midscene** 技术路线并配置默认平台 | **功能执行**等商城目录（实例即测试执行机器人） | 「我的机器人」；`PATCH /api/robot-instances/...` |
@@ -42,11 +43,87 @@ Web 后端（:8000）经 HTTP 调用 **agent_service**（:8100）；分析/执�
 
 - **时序图（Mermaid）**：[`ARCHITECTURE.md`](./ARCHITECTURE.md) §1.3.1  
 - **逐步说明**：[`agent_service/langchain_platform/README.md`](./agent_service/langchain_platform/README.md)  
-- **KB**：Web `case_kb` 预检索 → `kb_snippets`；agent 在 snippets 为空时可经 `WebCaseKbRetriever` 调 `GET /api/internal/knowledge/cases/search`（`WEB_SERVICE_TOKEN`，两端 `.env` 须一致）
+- **Agentic RAG 知识库**：项目知识库 UI（`/projects/:id/knowledge`）、平台管理员审核（`/knowledge/review`）、机器人 KB+Skill 绑定；**MySQL 元数据 + Qdrant 向量** + DashScope embedding；索引/检索流程见下文 **「Agentic RAG 知识库」** 与 [`ARCHITECTURE.md`](./ARCHITECTURE.md) §4.8。
+- **KB（兼容）**：Web `case_kb` 预检索 → `kb_snippets`；`POST /api/internal/knowledge/query` 为主入口，`/api/internal/knowledge/cases/search` 为 LIKE 降级。
+
+---
+
+## Agentic RAG 知识库（索引 · 检索 · 审核）
+
+### 业务流（用户视角）
+
+```
+创建知识集合 → 上传文件 / 结构化录入
+       ↓
+  后台自动索引（parse → chunk → embed）
+       ↓
+  ┌─ 测试规范/策略（上传）→ 待审核 → 平台管理员通过 → 写入向量库 → 已发布
+  └─ 其他类型（页面模型等）→ 直接已发布
+       ↓
+  检索测试 / Agent Tool（query_knowledge）→ 语义命中 active 切片
+```
+
+- **谁可以做什么**：项目成员管理集合与文档；**仅 `platform_admin`** 可在「后台管理 → 知识库审核」通过/驳回规范类文档。
+- **何时能检索**：文档状态为 **已发布**，且切片 `embedding_status=indexed`（Qdrant 有向量）。待审核文档已解析但未入向量库，**不参与检索**。
+- **机器人绑定**：在「我的机器人」为实例选择知识集合 + Skill；Agent 仅检索绑定集合内的 active 文档。
+
+### 技术栈
+
+| 组件 | 选型 | 说明 |
+|------|------|------|
+| 元数据 | MySQL 8 | `knowledge_collections` / `knowledge_documents` / `knowledge_chunks` / `skill_profiles` / `robot_instance_bindings` |
+| 向量 | **Qdrant** | `qdrant-client`；集合 `tcm_knowledge_chunks`；Dashboard `http://127.0.0.1:6333/dashboard` |
+| Embedding | **DashScope `text-embedding-v3`** | OpenAI 兼容 HTTP（`openai` SDK）；`KB_EMBEDDING_*`；Key 未设时回退 `DASHSCOPE_API_KEY` / `MIDSCENE_MODEL_API_KEY` |
+| 文档解析 | python-docx / pymupdf / openpyxl / xlrd | TXT·MD·PDF·DOCX·XLSX·HTML·CSV·JSON；单文件 ≤50MB |
+| 文本切片 | 自研 `chunkers._split_by_size` | ~800 字/块，按段落/句号边界；**无 NLTK 运行时依赖** |
+| 索引编排 | `index/pipeline.py` | `ThreadPoolExecutor` 异步；parse → chunk → embed → Qdrant upsert |
+| 检索 | `query/service.py` | query embedding → Qdrant 过滤检索 → MySQL 取 snippet |
+| Agent 侧 | LangGraph Tool + Internal API | `POST /api/internal/knowledge/query`（Bearer `WEB_SERVICE_TOKEN`） |
+| 兼容 RAG | `case_kb` + LIKE | `/api/internal/knowledge/cases/search` 语义失败时降级 |
+
+> **说明**：`requirements.txt` 中含 `llama-index-*` 包，当前生产路径为自研 `app/knowledge/` 模块（`qdrant_store` + DashScope embedding），非 LlamaIndex QueryEngine 运行时。
+
+### 支持的上传格式
+
+TXT、MD、MARKDOWN、MDX、PDF、HTML、HTM、XLSX、XLS、DOCX、CSV、JSON（单文件 ≤ 50MB）。解析实现见 `app/knowledge/ingestion/parsers.py`。
+
+### 常用 API
+
+| 能力 | 方法 / 路径 |
+|------|-------------|
+| 集合 CRUD | `GET/POST/PATCH/DELETE /api/knowledge/projects/{id}/collections` |
+| 上传文档 | `POST …/documents/upload` |
+| 结构化录入 | `POST …/documents/structured` |
+| 删除文档（含向量） | `DELETE …/documents/{doc_id}` |
+| 重建索引 | `POST /api/knowledge/documents/{doc_id}/reindex` |
+| 检索测试 | `GET …/projects/{id}/search?q=…` |
+| 审核队列 / 审核 | `GET /api/knowledge/review-queue`、`POST …/documents/{id}/review` |
+| Agent 语义检索 | `POST /api/internal/knowledge/query` |
+| 机器人 KB 绑定 | `PATCH /api/knowledge/robot-instances/{id}/knowledge-binding` |
+
+深度架构、状态机与排查见 [`ARCHITECTURE.md`](./ARCHITECTURE.md) **§4.8**。
 
 ---
 
 ## 系统模块一览
+
+### 技术栈总览（仓库级）
+
+| 层次 | 技术 |
+|------|------|
+| 前端 | Vue 3、Vite 6、Pinia、Vue Router、Axios（JavaScript） |
+| Web API | FastAPI、Uvicorn、SQLAlchemy 2、Pydantic v2、PyMySQL |
+| Agent | LangChain Core 1.4.x、LangGraph 1.2.x、langchain-openai 1.2.x |
+| 关系库 | MySQL 8（Docker Compose） |
+| 向量库 | **Qdrant**（Docker Compose；`qdrant-client`） |
+| Embedding | **DashScope text-embedding-v3**（OpenAI 兼容；`KB_EMBEDDING_*`） |
+| 文档解析 | python-docx、pymupdf、openpyxl、xlrd |
+| 设备 | ADB（Android）、HDC（HarmonyOS） |
+| 视觉执行 | Midscene.js（Node ≥18） |
+| LLM 执行 | AutoGLM-Phone（智谱 OpenAI 兼容） |
+| 可选追踪 | LangSmith |
+
+本地基础设施：`docker compose up -d mysql qdrant`。架构细节见 [`ARCHITECTURE.md`](./ARCHITECTURE.md) §2、§4.8。
 
 ### 1. 功能测试机器人（`agent_service/func_agent/`）— 统一业务域
 
@@ -127,7 +204,16 @@ CASE_GEN_TIMEOUT_SEC=120
 
 修改 `agent_service/.env` 后需**重启 agent_service** 生效。
 
-### 1f. MAI-UI 技术路线（`mai_ui_tech/`）
+### 1f. Agentic RAG 知识库（`web/backend/app/knowledge/`）
+
+- **定位**：项目级可检索知识（测试规范、策略、页面模型、用例同步等），为用例生成 / 功能分析 / 测试执行提供 **Agentic RAG** 上下文。
+- **存储**：MySQL 存文档与切片正文；Qdrant 存向量；上传文件在 `KB_FILE_STORAGE`（默认 `web/backend/data/knowledge`）。
+- **索引**：`index/pipeline.py` — 异步 parse → chunk → DashScope embed → Qdrant upsert。
+- **检索**：`query/service.py` — query 向量 + Qdrant 过滤 + MySQL snippet。
+- **审核**：上传的 **standard / strategy** 须 `platform_admin` 审核通过后才会 embed 入向量库（详见 ARCHITECTURE §4.8.3）。
+- **前端**：`ProjectKnowledgeView.vue`（集合、文档列表、上传、检索测试）、`KnowledgeReviewView.vue`（审核）。
+
+### 1g. MAI-UI 技术路线（`mai_ui_tech/`）
 
 - **定位**：GUI Grounding 技术能力（截图 + 文本 -> 坐标），作为独立技术路线模块维护。
 - **入口**：Web 侧能力封装在 `web/backend/app/services/mai_ui_service.py`，页面在 `/mai-ui`。
@@ -146,7 +232,11 @@ CASE_GEN_TIMEOUT_SEC=120
 | **已连接设备** | `/api/devices/connected` | 按平台枚举本机 ADB/HDC 在线设备（供用例页「目标终端」） |
 | **APP 功能清单探索** | `/api/app-explore` | 顶栏全局探索（与项目无关）；Midscene 遍历；`GET /installed-apps`；`POST /runs` 需 `bundle_id`；完成后导出 Excel |
 | **项目功能点分析** | `/api/projects/{id}/feature-analysis` | 测试分析实例 + 真机；`POST …/runs`（`traverse_mode`、`max_screens`、`max_depth`、`fair_share_per_root` 等）；实时 `step_log` / 投屏；`POST …/runs/{id}/confirm` 保存确认树（**成功 / 已取消 / 失败且已有功能点**均可）；多版本 `project_feature_trees` |
-| **知识库检索（用例）** | `/api/knowledge/cases/search` | 关键词检索扁平文本（可对接 Agent/RAG）；支持 `project_id` 与租户隔离 |
+| **知识库检索（用例）** | `/api/knowledge/cases/search` | 语义检索优先，无向量时回退 LIKE |
+| **项目知识库** | `/api/knowledge/projects/{id}/collections` 等 | 集合/文档 CRUD、上传（多格式 ≤50MB）、结构化录入、检索测试、删除、重建索引 |
+| **Internal Agentic RAG** | `POST /api/internal/knowledge/query` | Bearer `WEB_SERVICE_TOKEN`；LangGraph Tool 主入口 |
+| **机器人 KB 绑定** | `PATCH /api/knowledge/robot-instances/{id}/knowledge-binding` | 绑定 knowledge_collections + skill_profile |
+| **知识库审核** | `/api/knowledge/review-queue`、`POST …/documents/{id}/review` | 仅 `platform_admin`；通过后触发向量索引 |
 | **RBAC 管理** | `/api/admin` | 平台管理员：用户列表、角色分配、角色字典 |
 | **数据看板** | `/api/dashboard` | 按角色返回全平台或租户范围的统计（含项目数、用例数、执行数） |
 | **机器人商城与计费** | `/api/marketplace`、`/api/billing` | 登录用户：`GET /marketplace/robots` 获取四大数字机器人目录（档案、能力、按时长/按次计价）；`POST /billing/preorders` 生成预订单并返回前端支付路径；`GET /billing/preorders/{id}` 供收银台拉取待支付单 |
@@ -174,6 +264,8 @@ CASE_GEN_TIMEOUT_SEC=120
 | **用户与角色** | 仅 `platform_admin`：分配用户 RBAC 角色 |
 | **功能清单探索** | `/app-explore` | 选择 APP ID（bundleName）、Midscene 机器人实例；实时步骤日志与功能树预览；下载 Excel |
 | **项目功能点分析** | `/projects/:projectId/feature-analysis` | 选测试分析实例与 App；配置遍历策略（默认 **混合**）、最大界面数/深度、Tab 公平分配；分析中功能树 + 投屏；取消或中断后可确认保存已采集树；「功能树记录」查看历史版本 |
+| **项目知识库** | `/projects/:projectId/knowledge` | 左侧知识集合；文档列表（状态、重建索引、删除）；上传/结构化录入；检索测试 |
+| **知识库审核** | `/knowledge/review` | 仅 `platform_admin`；审核测试规范/策略上传文档 |
 
 构建与开发依赖：[`web/frontend/package.json`](./web/frontend/package.json)。
 
@@ -209,8 +301,8 @@ CASE_GEN_TIMEOUT_SEC=120
 仓库根目录 [`docker-compose.yml`](./docker-compose.yml) 提供本地 MySQL 8（utf8mb4、InnoDB）：
 
 ```bash
-# 仓库根目录
-docker compose up -d mysql
+# 仓库根目录（知识库检索还需 Qdrant，建议一并启动）
+docker compose up -d mysql qdrant
 ```
 
 在 `web/backend/.env` 中配置（与 compose 默认账号一致）：
@@ -245,6 +337,47 @@ docker compose exec mysql mysql -u tcm -ptcm tcm
 若执行 `mysql -u root -proot` 报 `Can't connect through socket '/tmp/mysql.sock'`，是因为客户端在找**本机安装的 MySQL**，而实际服务在 Docker 映射的 `127.0.0.1:3306`。Navicat、DBeaver、TablePlus 等 GUI 同样填 **Host=127.0.0.1、Port=3306**。
 
 查看容器状态：`docker compose ps`；数据卷持久化见 `docker-compose.yml` 中 `tcm_mysql_data`。
+
+### 0b. 向量库（Qdrant）
+
+知识库向量索引由 Qdrant 承载（与 MySQL 元数据分离）。仓库根目录 `docker-compose.yml`：
+
+```bash
+# 仓库根目录（可与 mysql 一并启动）
+docker compose up -d qdrant
+# 或：docker compose up -d mysql qdrant
+```
+
+在 `web/backend/.env` 中配置（见 [`.env.example`](./.env.example)）：
+
+```bash
+QDRANT_URL=http://127.0.0.1:6333
+QDRANT_COLLECTION=tcm_knowledge_chunks
+```
+
+**Web 管理界面（Dashboard）**
+
+| 项 | 地址 |
+|----|------|
+| **Dashboard（推荐）** | [http://127.0.0.1:6333/dashboard](http://127.0.0.1:6333/dashboard) |
+| REST API 根路径 | `http://127.0.0.1:6333/`（返回版本 JSON，用于健康检查） |
+| gRPC | `127.0.0.1:6334`（本应用经 HTTP 访问，一般无需浏览器打开） |
+
+浏览器打开 Dashboard 后可查看集合 `tcm_knowledge_chunks`（默认名，与 `QDRANT_COLLECTION` 一致）、向量点 payload（`chunk_id`、`doc_type`、`project_id` 等）。文档经 Web 后端 ingest 后写入该集合；**仅 `status=active` 且已 indexed 的切片**参与检索（规范类须先通过知识库审核）。
+
+**索引与检索配置**（`web/backend/.env`）：
+
+```bash
+KB_EMBEDDING_API_KEY=sk-...          # 或 DASHSCOPE_API_KEY
+KB_EMBEDDING_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+KB_EMBEDDING_MODEL=text-embedding-v3
+KB_FILE_STORAGE=web/backend/data/knowledge
+RAG_DEFAULT_MODE=agentic
+```
+
+完整流程与状态机见 [`ARCHITECTURE.md`](./ARCHITECTURE.md) §4.8。
+
+数据卷：`tcm_qdrant_data`（见 `docker-compose.yml`）。
 
 ### 1. Web 后端（FastAPI）
 
@@ -324,12 +457,15 @@ npm run task -- "打开设置并进入关于本机"                        # 鸿
 | 前端（Vite） | 5173 | 浏览器访问 |
 | 后端（Uvicorn） | 8000 | 前端 dev 通过代理访问 `/api/*` |
 | Agent Service | 8100 | agent_service Web 服务；web 后端通过 HTTP 调用 |
+| MySQL | 3306 | `docker compose up -d mysql` |
+| Qdrant HTTP / Dashboard | 6333 | API：`http://127.0.0.1:6333`；界面：`http://127.0.0.1:6333/dashboard` |
+| Qdrant gRPC | 6334 | 可选；应用默认用 HTTP |
 
 ---
 
 ## 相关文档
 
-- [ARCHITECTURE.md](./ARCHITECTURE.md)：架构、目录、请求/执行链路、数据库与排障要点。
+- [ARCHITECTURE.md](./ARCHITECTURE.md)：架构、目录、请求/执行链路、数据库与排障要点；**知识库索引/检索**见 §4.8，**技术栈**见 §2。
 - [autoglm_phone_tech/README.md](./autoglm_phone_tech/README.md)：AutoGLM 双平台设备层与 CLI。
 - [midscene_tech/README.md](./midscene_tech/README.md)：Midscene 视觉自动化。
 - [Open-AutoGLM](https://github.com/zai-org/Open-AutoGLM)：上游 Phone Agent 参考实现。

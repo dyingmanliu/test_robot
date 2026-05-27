@@ -151,10 +151,12 @@ def on_startup() -> None:
     bootstrap_rbac()
     from app.database import SessionLocal
     from app.services.feature_analysis_guard import reconcile_stale_feature_analysis_on_startup
+    from app.services.knowledge_bootstrap import ensure_skill_profiles
     from app.services.robot_run_guard import reconcile_stale_runs_on_startup
 
     db = SessionLocal()
     try:
+        ensure_skill_profiles(db)
         n = reconcile_stale_runs_on_startup(db)
         if n:
             _startup_log.info("已清理残留执行任务 %s 条", n)

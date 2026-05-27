@@ -638,6 +638,9 @@ def confirm_feature_tree(
     db.add(tree)
     db.commit()
     db.refresh(tree)
+    from app.services.knowledge_sync import sync_feature_tree_to_knowledge
+
+    sync_feature_tree_to_knowledge(db, tree)
     return _feature_tree_out(tree, run)
 
 

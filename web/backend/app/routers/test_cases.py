@@ -41,6 +41,7 @@ from app.services.app_explore_service import (
 from app.services.robot_run_guard import instance_available_for_run
 from app.services.run_report import resolve_report_file
 from app.services.case_kb import upsert_case_kb
+from app.services.knowledge_sync import sync_test_case_to_knowledge
 from app.services.run_metrics import count_recognition_steps
 from app.test_case_io import revision_to_out, steps_to_json, test_case_to_out, test_run_to_out
 
@@ -168,6 +169,7 @@ def generate_case_from_prompt(
         generation_meta=CaseGenerateMetaOut(
             model=draft.model,
             similar_case_ids=draft.similar_case_ids or [],
+            rag_trace=draft.rag_trace or [],
         ),
     )
 
@@ -195,6 +197,7 @@ def create_case(
     db.refresh(tc)
     _append_revision_snapshot(db, tc)
     upsert_case_kb(db, tc)
+    sync_test_case_to_knowledge(db, tc)
     db.commit()
     db.refresh(tc)
     return test_case_to_out(tc)
@@ -235,6 +238,7 @@ async def import_cases_file(
             db.flush()
             _append_revision_snapshot(db, tc)
             upsert_case_kb(db, tc)
+            sync_test_case_to_knowledge(db, tc)
             created += 1
         except Exception as e:
             errors.append(f"第{i}行：{e}")
@@ -408,6 +412,7 @@ def update_case(
     db.refresh(tc)
     _append_revision_snapshot(db, tc)
     upsert_case_kb(db, tc)
+    sync_test_case_to_knowledge(db, tc)
     db.commit()
     db.refresh(tc)
     return test_case_to_out(tc)

@@ -38,6 +38,7 @@ async def submit_explore(req: ExploreRunRequest):
             scroll_max_passes=req.scroll_max_passes,
             run_id=req.run_id,
             robot_instance_id=req.robot_instance_id,
+            project_id=req.project_id,
         )
 
         def on_machine_line(obj: dict[str, Any]) -> None:

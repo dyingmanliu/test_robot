@@ -209,6 +209,7 @@ def execute_feature_analysis_run(db: Session, run_id: int) -> None:
         "scroll_max_passes": int(getattr(run, "scroll_max_passes", 5) or 5),
         "run_id": run_id,
         "robot_instance_id": run.robot_instance_id,
+        "project_id": run.project_id,
     }
 
     task_id: str | None = None

@@ -84,6 +84,7 @@
               <router-link to="/admin/companies" class="nav-dd-item" @click="closeAllDetails">公司与共享</router-link>
               <router-link to="/admin/rental-orders" class="nav-dd-item" @click="closeAllDetails">租用审批</router-link>
               <router-link to="/admin/users" class="nav-dd-item" @click="closeAllDetails">用户与角色</router-link>
+              <router-link to="/knowledge/review" class="nav-dd-item" @click="closeAllDetails">知识库审核</router-link>
               <router-link to="/admin/robot-instances" class="nav-dd-item" @click="closeAllDetails">机器人实例</router-link>
             </div>
           </details>
@@ -181,9 +182,11 @@ const marketplaceMenuActive = computed(
     route.path.startsWith("/my-robots") ||
     route.path === "/my-rental-applications",
 );
-const monitorMenuActive = computed(() => route.path === "/monitor" || route.path === "/dashboard");
+const monitorMenuActive = computed(
+  () => route.path === "/monitor" || route.path === "/dashboard",
+);
 const adminMenuActive = computed(
-  () => route.path.startsWith("/admin"),
+  () => route.path.startsWith("/admin") || route.path === "/knowledge/review",
 );
 
 /** 路由变化时收起下拉，避免上一页展开的菜单残留 */

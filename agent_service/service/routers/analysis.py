@@ -40,6 +40,8 @@ async def generate_case_draft(req: GenerateCaseDraftRequest):
             kb_snippets=req.kb_snippets,
             project_id=req.project_id,
             owner_scope_ids=req.owner_scope_ids,
+            robot_instance_id=req.robot_instance_id,
+            rag_mode=req.rag_mode,
         )
     except AnalysisAgentError as e:
         raise HTTPException(status_code=422, detail=str(e))
@@ -56,4 +58,5 @@ async def generate_case_draft(req: GenerateCaseDraftRequest):
         case_format=getattr(draft, "case_format", "structured") or "structured",
         model=draft.model,
         similar_case_ids=draft.similar_case_ids,
+        rag_trace=getattr(agent, "rag_trace", None),
     )

@@ -44,6 +44,8 @@ def generate_case_draft(
     *,
     project_id: int | None = None,
     owner_scope_ids: str | None = None,
+    robot_instance_id: int | None = None,
+    rag_mode: str | None = None,
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "project": project,
@@ -54,6 +56,10 @@ def generate_case_draft(
         payload["project_id"] = project_id
     if owner_scope_ids:
         payload["owner_scope_ids"] = owner_scope_ids
+    if robot_instance_id is not None:
+        payload["robot_instance_id"] = robot_instance_id
+    if rag_mode:
+        payload["rag_mode"] = rag_mode
     with httpx.Client(timeout=SHORT_TIMEOUT) as client:
         resp = client.post(
             f"{_base()}/api/agent/analysis/generate-case-draft",

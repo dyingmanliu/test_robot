@@ -8,9 +8,11 @@ Web 后端（:8000）经 HTTP 调用 agent_service（:8100）；本包不直接�
 
 | 链路 | Web 入口 | agent_service HTTP | 本包入口 |
 |------|----------|-------------------|----------|
-| 用例生成 | `POST /api/test-cases/generate` | `POST /api/agent/analysis/generate-case-draft` | `CaseGenChain` |
-| 功能点分析 | `POST /api/projects/{id}/feature-analysis/runs` | `POST /api/agent/explore/run` + SSE | `ExploreOrchestratorGraph` |
-| 测试执行 | `POST /api/test-cases/{id}/run` | `POST /api/agent/func-agent/dispatch` + SSE | `FuncDispatchGraph` |
+| 用例生成 | `POST /api/test-cases/generate` | `POST /api/agent/analysis/generate-case-draft` | `CaseGenAgenticGraph`（默认）/ `CaseGenChain`（passive） |
+| 功能点分析 | `POST /api/projects/{id}/feature-analysis/runs` | `POST /api/agent/explore/run` + SSE | `ExploreOrchestratorGraph`（含 `prefetch_kb`） |
+| 测试执行 | `POST /api/test-cases/{id}/run` | `POST /api/agent/func-agent/dispatch` + SSE | `FuncDispatchGraph`（含 prefetch + AutoGLM Recovery RAG） |
+
+**Agentic RAG Tools**（`tools/knowledge_query.py`）经 HTTP 调 Web `POST /api/internal/knowledge/query`；scope（`robot_instance_id` / `project_id`）由 graph state 注入，LLM 不可改 collection。
 
 ---
 

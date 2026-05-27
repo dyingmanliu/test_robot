@@ -58,6 +58,11 @@
             :to="{ name: 'projectFeatureAnalysisHistory', params: { projectId: p.id } }"
             >功能树记录</router-link
           >
+          <router-link
+            class="btn link"
+            :to="{ name: 'projectKnowledge', params: { projectId: p.id } }"
+            >知识库</router-link
+          >
         </div>
       </article>
       <p v-if="!list.length" class="muted empty">暂无项目，点击「新建项目空间」创建。</p>

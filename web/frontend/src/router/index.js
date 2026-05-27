@@ -29,6 +29,8 @@ import AppExploreView from "@/views/AppExploreView.vue";
 import ProjectFeatureAnalysisView from "@/views/ProjectFeatureAnalysisView.vue";
 import ProjectFeatureAnalysisHistoryView from "@/views/ProjectFeatureAnalysisHistoryView.vue";
 import ProjectFeatureTreeDetailView from "@/views/ProjectFeatureTreeDetailView.vue";
+import ProjectKnowledgeView from "@/views/ProjectKnowledgeView.vue";
+import KnowledgeReviewView from "@/views/KnowledgeReviewView.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -95,6 +97,18 @@ const router = createRouter({
       name: "projectFeatureTreeDetail",
       component: ProjectFeatureTreeDetailView,
       meta: { requiresAuth: true },
+    },
+    {
+      path: "/projects/:projectId/knowledge",
+      name: "projectKnowledge",
+      component: ProjectKnowledgeView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/knowledge/review",
+      name: "knowledgeReview",
+      component: KnowledgeReviewView,
+      meta: { requiresAuth: true, roles: ["platform_admin"] },
     },
     {
       path: "/dashboard",

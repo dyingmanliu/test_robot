@@ -23,7 +23,12 @@ from app.services.company_scope import (
     enterprise_colleague_user_ids,
 )
 
-from app.services.agent_service_client import AgentServiceError, generate_case_draft as _agent_generate, get_case_gen_config
+from app.knowledge.config import rag_default_mode
+from app.services.agent_service_client import (
+    AgentServiceError,
+    generate_case_draft as _agent_generate,
+    get_case_gen_config,
+)
 
 
 class AnalysisAgentError(Exception):
@@ -95,6 +100,7 @@ class GeneratedCaseDraft:
         self.priority = draft.get("priority", "P2")
         self.model = draft.get("model", "")
         self.similar_case_ids = draft.get("similar_case_ids")
+        self.rag_trace = draft.get("rag_trace")
 
 
 def generate_case_draft(
@@ -117,7 +123,8 @@ def generate_case_draft(
 
     kb_snippets: list[str] = []
     similar_ids: list[int] = []
-    if _kb_enabled:
+    rag_mode = rag_default_mode()
+    if _kb_enabled and rag_mode != "agentic":
         kb_snippets, similar_ids = _fetch_kb_examples(
             db, project=project, user=user, prompt=prompt, limit=_kb_limit,
         )
@@ -144,9 +151,11 @@ def generate_case_draft(
             draft_dict = _agent_generate(
                 project=_project_context(project),
                 prompt=prompt,
-                kb_snippets=kb_snippets,
+                kb_snippets=kb_snippets if rag_mode != "agentic" else None,
                 project_id=project.id,
                 owner_scope_ids=owner_scope_str,
+                robot_instance_id=robot_instance.id,
+                rag_mode=rag_mode,
             )
     except RuntimeError as e:
         if str(e) == "analysis_instance_busy":
@@ -162,6 +171,8 @@ def generate_case_draft(
         draft_dict["similar_case_ids"] = agent_similar
     else:
         draft_dict["similar_case_ids"] = similar_ids or None
+    if draft_dict.get("rag_trace") is None:
+        draft_dict["rag_trace"] = []
     log.info(
         "用例生成完成 project_id=%s title=%r steps=%s model=%s",
         project.id,

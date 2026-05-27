@@ -232,6 +232,20 @@ def execute_test_run(db: Session, run_id: int) -> None:
                 ),
             )
             return
+        if kind == "rag":
+            phase = str(obj.get("phase") or "rag")
+            kb = str(obj.get("kb_context") or "")[:800]
+            append_step_log(
+                0,
+                StepResult(
+                    success=True,
+                    finished=False,
+                    action={"agent": "midscene", "kind": "rag", "phase": phase},
+                    thinking=kb,
+                    message=f"知识库检索 ({phase})",
+                ),
+            )
+            return
         if kind != "step":
             return
         raw_step = obj.get("step")
@@ -279,6 +293,7 @@ def execute_test_run(db: Session, run_id: int) -> None:
         "run_id": run_id,
         "case_id": case.id,
         "robot_instance_id": run.robot_instance_id,
+        "project_id": case.project_id,
         "agent_backend": backend,
         "device_platform": platform,
         "device_id": device_id,

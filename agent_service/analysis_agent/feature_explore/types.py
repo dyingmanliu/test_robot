@@ -23,13 +23,16 @@ class ExploreDispatch:
     scroll_max_passes: int = 5
     run_id: int | None = None
     robot_instance_id: int | None = None
+    project_id: int | None = None
+    kb_context: str = ""
 
     def to_midscene_payload(self) -> dict[str, Any]:
-        return {
+        payload = {
             "version": 1,
             "execution_mode": "explore",
             "run_id": self.run_id,
             "robot_instance_id": self.robot_instance_id,
+            "project_id": self.project_id,
             "agent_backend": "midscene",
             "device_platform": self.device_platform,
             "device_id": self.device_id or "",
@@ -43,6 +46,9 @@ class ExploreDispatch:
             "scroll_reveal_menus": self.scroll_reveal_menus,
             "scroll_max_passes": self.scroll_max_passes,
         }
+        if self.kb_context.strip():
+            payload["kb_context"] = self.kb_context
+        return payload
 
 
 @dataclass

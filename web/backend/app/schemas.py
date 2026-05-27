@@ -233,6 +233,7 @@ class TestCaseGenerateIn(BaseModel):
 class CaseGenerateMetaOut(BaseModel):
     model: str = ""
     similar_case_ids: list[int] = Field(default_factory=list)
+    rag_trace: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class TestCaseGenerateOut(BaseModel):

@@ -410,3 +410,107 @@ class ProjectFeatureTree(Base):
     confirmed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
+
+class KnowledgeCollection(Base):
+    """项目知识库集合（规范、策略、页面模型等）。"""
+
+    __tablename__ = "knowledge_collections"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), index=True)
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(256))
+    description: Mapped[str] = mapped_column(LongText, default="")
+    app_bundle_id: Mapped[str] = mapped_column(String(256), default="")
+    status: Mapped[str] = mapped_column(String(32), default="active", index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class KnowledgeDocument(Base):
+    """知识库文档（上传、结构化录入、Agent/DB 同步）。"""
+
+    __tablename__ = "knowledge_documents"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    collection_id: Mapped[int] = mapped_column(
+        ForeignKey("knowledge_collections.id", ondelete="CASCADE"), index=True
+    )
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), index=True)
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    doc_type: Mapped[str] = mapped_column(String(32), index=True)
+    source_type: Mapped[str] = mapped_column(String(32), default="upload")
+    title: Mapped[str] = mapped_column(String(512))
+    status: Mapped[str] = mapped_column(String(32), default="draft", index=True)
+    file_path: Mapped[Optional[str]] = mapped_column(LongText, nullable=True)
+    structured_json: Mapped[str] = mapped_column(LongText, default="{}")
+    source_ref: Mapped[Optional[str]] = mapped_column(String(128), nullable=True, index=True)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    review_note: Mapped[str] = mapped_column(LongText, default="")
+    reviewed_by: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    reviewed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class KnowledgeChunk(Base):
+    """检索切片（Qdrant 向量与 MySQL 原文对应）。"""
+
+    __tablename__ = "knowledge_chunks"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    document_id: Mapped[int] = mapped_column(
+        ForeignKey("knowledge_documents.id", ondelete="CASCADE"), index=True
+    )
+    chunk_index: Mapped[int] = mapped_column(Integer, default=0)
+    content: Mapped[str] = mapped_column(LongText, default="")
+    section_path: Mapped[str] = mapped_column(String(512), default="")
+    qdrant_point_id: Mapped[Optional[str]] = mapped_column(String(128), nullable=True, index=True)
+    embedding_status: Mapped[str] = mapped_column(String(32), default="pending")
+    metadata_json: Mapped[str] = mapped_column(LongText, default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class ProjectKnowledgeSettings(Base):
+    """项目级知识库与 RAG 策略。"""
+
+    __tablename__ = "project_knowledge_settings"
+
+    project_id: Mapped[int] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), primary_key=True
+    )
+    active_feature_tree_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("project_feature_trees.id", ondelete="SET NULL"), nullable=True
+    )
+    rag_policy_json: Mapped[str] = mapped_column(LongText, default="{}")
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class SkillProfile(Base):
+    """Skill 配置模板（按 catalog_robot_id）。"""
+
+    __tablename__ = "skill_profiles"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    catalog_robot_id: Mapped[str] = mapped_column(String(64), index=True)
+    name: Mapped[str] = mapped_column(String(128))
+    skill_names_json: Mapped[str] = mapped_column(LongText, default="[]")
+    is_default: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class RobotInstanceBinding(Base):
+    """机器人实例绑定的知识库集合与 Skill 配置。"""
+
+    __tablename__ = "robot_instance_bindings"
+
+    robot_instance_id: Mapped[int] = mapped_column(
+        ForeignKey("robot_instances.id", ondelete="CASCADE"), primary_key=True
+    )
+    skill_profile_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("skill_profiles.id", ondelete="SET NULL"), nullable=True
+    )
+    knowledge_collection_ids_json: Mapped[str] = mapped_column(LongText, default="[]")
+    rag_policy_override_json: Mapped[str] = mapped_column(LongText, default="{}")
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+

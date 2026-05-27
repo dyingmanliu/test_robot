@@ -22,6 +22,13 @@
         >
           执行历史
         </router-link>
+        <router-link
+          v-if="projectId"
+          class="btn"
+          :to="{ name: 'projectKnowledge', params: { projectId } }"
+        >
+          知识库
+        </router-link>
         <router-link to="/projects" class="btn ghost">所有项目</router-link>
       </div>
     </header>

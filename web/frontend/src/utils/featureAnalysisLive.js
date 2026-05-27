@@ -57,6 +57,16 @@ function formatExploreEvent(obj) {
       tone: "feature",
     };
   }
+  if (kind === "rag") {
+    const phase = obj.phase || "prefetch";
+    const kb = obj.kb_context || "";
+    return {
+      kind,
+      title: `知识库检索 · ${phase}`,
+      body: kb.slice(0, 1200) || "（无命中摘要）",
+      tone: "page",
+    };
+  }
   if (kind === "step") {
     const phase = obj.phase || "start";
     const task = obj.task || "";

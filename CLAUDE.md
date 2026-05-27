@@ -10,6 +10,8 @@ Mobile device test automation platform with a Web UI (Vue + FastAPI). **Digital 
 
 Test cases use a **structured format only** (steps JSON + task text). Midscene execution uses natural language mode; AutoGLM uses the same task text. YAML format has been removed from the web layer. Key env vars: `PHONE_AGENT_TIMEOUT_SEC` (default 120), `DEVICE_SCREEN_MAX_WIDTH` (default 720), `DEVICE_SCREEN_JPEG_QUALITY` (default 75). Device discovery has a 3s TTL cache. `MIDSCENE_REPLANNING_CYCLE_LIMIT` and `MIDSCENE_STEP_TIMEOUT_SEC` are injected by agent_service runtime (defaults 100/180).
 
+**Agentic RAG knowledge base** (Web `:8000`): MySQL metadata + **Qdrant** vectors + DashScope `text-embedding-v3` embedding; ingest/query in `web/backend/app/knowledge/`. Standard/strategy uploads require **platform_admin** review before vectors are written. Agent calls `POST /api/internal/knowledge/query` via LangGraph Tools. Local: `docker compose up -d mysql qdrant`. See `ARCHITECTURE.md` §4.8.
+
 ## Development Commands
 
 ### Web Backend (FastAPI / Python)
@@ -18,10 +20,12 @@ cd web/backend
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
-# MySQL (recommended): from repo root
-docker compose up -d mysql
+# MySQL + Qdrant (recommended): from repo root
+docker compose up -d mysql qdrant
 # Configure web/backend/.env:
 # DATABASE_URL=mysql+pymysql://tcm:tcm@127.0.0.1:3306/tcm?charset=utf8mb4
+# QDRANT_URL=http://127.0.0.1:6333
+# KB_EMBEDDING_API_KEY=...  (DashScope / 百炼)
 
 PYTHONPATH=. uvicorn app.main:app --host 127.0.0.1 --port 8000 --log-level info
 ```
@@ -72,8 +76,10 @@ python -m agent_service.func_agent.cli --device-type hdc "task for HarmonyOS"
 | Service | Port | Config | Notes |
 |---------|------|--------|-------|
 | Frontend (Vite) | 5173 | — | dev proxy /api → :8000 |
-| Web Backend (FastAPI) | 8000 | `web/backend/.env` | DB, JWT, admin; calls agent_service via HTTP |
+| Web Backend (FastAPI) | 8000 | `web/backend/.env` | DB, JWT, admin, **knowledge ingest/query**; calls agent_service via HTTP |
 | Agent Service (FastAPI) | 8100 | `agent_service/.env` | LLM, device execution; SSE for long tasks |
+| Qdrant | 6333 | `QDRANT_URL` in web `.env` | Vector store for knowledge base; Dashboard at :6333/dashboard |
+| MySQL | 3306 | `DATABASE_URL` | Relational metadata + chunk text |
 
 ### Agent Service HTTP API
 
@@ -126,9 +132,10 @@ midscene_tech/                # Test execution · Midscene route (visual-driven 
   src/cli.ts                  #   CLI + --web-dispatch mode
   src/agent.ts                #   MidsceneTestAgent
   src/yaml_runner.ts          #   YAML test case runner
-docker-compose.yml             # Local MySQL 8 (docker compose up -d mysql)
+docker-compose.yml             # Local MySQL 8 + Qdrant (docker compose up -d mysql qdrant)
 web/
   backend/app/
+    knowledge/                # Agentic RAG: ingestion, index/pipeline, query/service
     main.py                   # FastAPI app, loads .env from web/backend/
     models.py                 # SQLAlchemy ORM (LongText → LONGTEXT on MySQL)
     database.py               # DATABASE_URL, MySQL engine, ensure_schema() migrations
@@ -151,7 +158,8 @@ web/
 
 ### Key Architectural Details
 
-- **Database**: **MySQL 8** via required `DATABASE_URL` / `TCM_DATABASE_URL` (PyMySQL). Local: `docker compose up -d mysql` at repo root. External CLI: `mysql -h 127.0.0.1 -P 3306 -u tcm -ptcm tcm` (must use TCP host; bare `mysql -u root` fails with socket error). Large text columns use `LongText` (MySQL `LONGTEXT`). No Alembic — schema changes use `database.ensure_schema()`. Health: `GET /api/health` returns `database: mysql`.
+- **Database**: **MySQL 8** via required `DATABASE_URL` / `TCM_DATABASE_URL` (PyMySQL). Local: `docker compose up -d mysql qdrant`. External CLI: `mysql -h 127.0.0.1 -P 3306 -u tcm -ptcm tcm` (must use TCP host; bare `mysql -u root` fails with socket error). Large text columns use `LongText` (MySQL `LONGTEXT`). No Alembic — schema changes use `database.ensure_schema()`. Health: `GET /api/health` returns `database: mysql`.
+- **Knowledge base**: **Qdrant** (`QDRANT_URL`, default `:6333`) for vectors; MySQL for `knowledge_*` tables. Embedding via DashScope `text-embedding-v3` (`KB_EMBEDDING_*`). Ingest in `web/backend/app/knowledge/index/pipeline.py`; search via `knowledge_search()`. Only `active` + `embedding_status=indexed` chunks are retrievable. Standard/strategy uploads need platform_admin review before embedding.
 - **Auth**: JWT (python-jose) + bcrypt. Three roles: `platform_admin`, `tse`, `enterprise`.
 - **Multi-tenancy**: Projects/test cases scoped by `owner_id`. Company-level sharing via `Company.share_projects_cases_internally`.
 - **Environment**: Split per service: `web/backend/.env` (DB, JWT, logging, admin, AGENT_SERVICE_URL) and `agent_service/.env` (LLM keys, model config, CASE_GEN_*, PHONE_AGENT_*, MIDSCENE_*). Each service loads its own `.env`. See `.env.example` for full reference.
@@ -166,6 +174,7 @@ web/
 | Frontend | 5173 | Vite dev server |
 | Backend | 8000 | Uvicorn/FastAPI |
 | Agent Service | 8100 | agent_service Web 服务 |
+| Qdrant | 6333 | 知识库向量；Dashboard http://127.0.0.1:6333/dashboard |
 | API docs | 8000/docs | OpenAPI/Swagger |
 | Agent docs | 8100/docs | agent_service OpenAPI/Swagger |
 | Health | 8000/api/health | Web backend |

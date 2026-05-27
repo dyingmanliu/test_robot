@@ -2,12 +2,13 @@
 
 本文档描述本仓库的技术架构与目录约定，供初级工程师维护代码时查阅。
 
-**近期架构要点（2025）**
+**近期架构要点（2025–2026）**
 
-- **三进程**：Vue (:5173) → Web 后端 (:8000) → **agent_service** (:8100)；长任务经 **HTTP POST + SSE**，取消经 **DELETE**。
+- **三进程 + 向量库**：Vue (:5173) → Web 后端 (:8000) → **agent_service** (:8100)；**MySQL 8** + **Qdrant**（:6333）双存储；长任务经 **HTTP POST + SSE**，取消经 **DELETE**。
 - **LangChain 1.x**：测试分析编排与用例生成、功能测试执行调度均在 `agent_service/langchain_platform/`（`langchain-core` 1.4.x、`langgraph` 1.2.x）；`analysis_agent` / `func_agent` 为薄门面。
 - **用例格式**：仅 **structured**（`steps_json` + `task_text`）；Midscene 执行走 **natural** 模式，Web 层不再使用 YAML。
-- **KB**：Web `case_kb` 预检索 + 可选 agent `WebCaseKbRetriever` → `GET /api/internal/knowledge/cases/search`（`WEB_SERVICE_TOKEN`）。
+- **Agentic RAG 知识库**：MySQL 元数据 + **Qdrant** 向量 + ingest/query（`web/backend/app/knowledge/`）+ LangGraph **Tool**；规范类文档须平台管理员审核后入向量库。详见 **§4.8**。
+- **KB（兼容）**：Web `case_kb` 预检索 + `GET /api/internal/knowledge/cases/search`（语义检索优先，LIKE 降级）。
 - **日志**：Web 与 agent_service 共用 `LOG_LEVEL` / `LOG_FORMAT` 风格（毫秒时间戳 + 模块 + 文件行号）；agent 见 `agent_service/service/logging_config.py`。
 
 ## 1. 系统定位
@@ -329,10 +330,11 @@ flowchart TB
 | 进程 | 端口 | 主要技术 | 职责 |
 |------|------|----------|------|
 | 前端 | 5173 | Vue 3、Vite 6、Pinia、Vue Router、Axios | UI、JWT 存 localStorage、轮询 / SSE 消费由后端代理 |
-| Web 后端 | 8000 | FastAPI、Uvicorn、SQLAlchemy 2、Pydantic v2、PyMySQL | 认证、多租户、ORM、编排 agent_service、设备发现/投屏 |
-| agent_service | 8100 | FastAPI、Uvicorn、**LangChain 1.x**、LangGraph、OpenAI SDK 2.x | LLM 用例生成、探索/执行编排、SSE 任务、设备执行 |
+| Web 后端 | 8000 | FastAPI、Uvicorn、SQLAlchemy 2、Pydantic v2、PyMySQL、**qdrant-client**、OpenAI SDK | 认证、多租户、ORM、**知识库 ingest/query**、编排 agent_service、设备发现/投屏 |
+| agent_service | 8100 | FastAPI、Uvicorn、**LangChain 1.x**、LangGraph、OpenAI SDK 2.x | LLM 用例生成、探索/执行编排、SSE 任务、设备执行、**Agentic RAG Tool** |
 | Midscene CLI | 子进程 | Node ≥18、`@midscene/android` / `@midscene/harmony` | 视觉 `aiAct`、explore 遍历（由 agent 拉起） |
-| MySQL | 3306 | MySQL 8（Docker Compose） | 持久化 |
+| MySQL | 3306 | MySQL 8（Docker Compose） | 关系型持久化（含知识库元数据与切片正文） |
+| Qdrant | 6333 / 6334 | Qdrant（Docker Compose） | 向量索引与语义检索；Dashboard `http://127.0.0.1:6333/dashboard` |
 
 Web 后端**不**直接 `import` agent 包；仅 HTTP（`agent_service_client.py`）。配置拆分：`web/backend/.env` 与 `agent_service/.env`（无仓库根 `.env`）。
 
@@ -350,7 +352,12 @@ Web 后端**不**直接 `import` agent 包；仅 HTTP（`agent_service_client.py
 | 数据库 | MySQL 8 | `DATABASE_URL` / `TCM_DATABASE_URL` |
 | **Agent 编排** | **LangChain Core 1.4.x**、**LangGraph 1.2.x**、**langchain-openai 1.2.x** | 仅 `agent_service` |
 | LLM 调用 | `ChatOpenAI`（用例生成）、OpenAI 兼容 SDK 2.x（AutoGLM 等） | `CASE_GEN_*` / `BIGMODEL_*` |
-| RAG | Web `case_kb`（MySQL LIKE）+ `WebCaseKbRetriever`（httpx → internal API） | 双路径可并存 |
+| **Agentic RAG（主）** | Web `app/knowledge/` + LangGraph Tool（`query_knowledge` 等） | MySQL 元数据 + Qdrant 向量；`POST /api/internal/knowledge/query` |
+| **KB（兼容）** | Web `case_kb`（MySQL LIKE）+ `WebCaseKbRetriever` | 用例语义检索失败时 LIKE 降级 |
+| **向量库** | **Qdrant**（`qdrant-client`） | 集合 `tcm_knowledge_chunks`；Cosine；payload 过滤 `status=active` |
+| **Embedding** | DashScope **`text-embedding-v3`**（OpenAI 兼容 HTTP） | `KB_EMBEDDING_*`；Key 回退 `DASHSCOPE_API_KEY` / `MIDSCENE_MODEL_API_KEY` |
+| **文档解析** | `python-docx`、`pymupdf`、`openpyxl`、`xlrd`、HTML/CSV/JSON 自研 | 上传 ≤50MB；切片为自研 `_split_by_size`（**不依赖 NLTK**） |
+| **RAG 编排** | LangGraph + `skill_profiles` + `robot_instance_bindings` | `RAG_DEFAULT_MODE=agentic`；scope 按机器人绑定集合 |
 | 图像 | Pillow | 截图缩放（`DEVICE_SCREEN_*`） |
 | 设备 | ADB、HDC | Android / HarmonyOS |
 | 视觉自动化 | Midscene.js | TypeScript；`execution_mode`: `natural` / `explore` |
@@ -362,7 +369,7 @@ Web 后端**不**直接 `import` agent 包；仅 HTTP（`agent_service_client.py
 
 | 包路径 | 文件 | 说明 |
 |--------|------|------|
-| Web 后端 | `web/backend/requirements.txt` | FastAPI、SQLAlchemy、PyMySQL、httpx 等 |
+| Web 后端 | `web/backend/requirements.txt` | FastAPI、SQLAlchemy、PyMySQL、httpx、**qdrant-client**、**openai**、**python-docx**、**pymupdf**、**openpyxl**、**xlrd** 等；`llama-index-*` 在依赖中保留，**运行时 ingest/query 使用自研轻量实现**（`qdrant_store.py` + `embeddings.py`） |
 | agent_service | `agent_service/requirements.txt` | FastAPI + **LangChain 1.x** + `openai>=2.26` |
 | Midscene | `midscene_tech/package.json` | 视觉执行与 explore |
 | AutoGLM 资源 | 根目录 `requirements.txt` | 与 autoglm 设备层共用（CLI） |
@@ -418,7 +425,7 @@ autoglm-phone-test-agent/          # 仓库根目录
 │       ├── serve_grounding_mlx.sh
 │       └── run_cli.sh
 ├── requirements.txt
-├── docker-compose.yml             # 本地 MySQL 8（docker compose up -d mysql）
+├── docker-compose.yml             # 本地 MySQL 8 + Qdrant（docker compose up -d mysql qdrant）
 └── web/
     ├── frontend/                  # Vue + Vite
     │   ├── src/
@@ -443,14 +450,24 @@ autoglm-phone-test-agent/          # 仓库根目录
         │   │   ├── agent_service_client.py  # HTTP/SSE 客户端（:8100）
         │   │   ├── feature_analysis_bridge.py  # Web 适配 → explore SSE
         │   │   ├── case_agent_text.py   # structured → 执行用自然语言（含虚拟键盘提示）
-        │   │   ├── case_kb.py           # 用例 KB 扁平检索（RAG 参考）
+        │   │   ├── case_kb.py           # 用例 KB 扁平检索（RAG 兼容降级）
+        │   │   ├── knowledge_document.py # 单文档删除（向量+文件）
+        │   │   ├── knowledge_collection.py # 集合删除
+        │   │   ├── knowledge_sync.py    # 功能树 confirm → ingest
+        │   │   ├── robot_agent_context.py # 机器人 KB scope 解析
         │   │   ├── device_platform.py   # 平台/终端解析（实例默认 + 本次覆盖）
         │   │   ├── device_discovery.py  # adb devices / hdc list targets（3s TTL 缓存）
         │   │   └── device_screen.py     # 投屏：ADB / HDC
+        │   ├── knowledge/               # Agentic RAG：ingest / index / query（§4.8）
+        │   │   ├── config.py
+        │   │   ├── ingestion/           # parsers, chunkers, upload_types
+        │   │   ├── index/               # pipeline, embeddings, qdrant_store
+        │   │   └── query/               # knowledge_search, engine
         │   └── routers/
         │       ├── auth.py
         │       ├── test_cases.py
-        │       ├── internal_knowledge.py  # GET /api/internal/knowledge/cases/search（Bearer）
+        │       ├── knowledge.py         # 项目知识库 CRUD / 上传 / 检索 / 审核
+        │       ├── internal_knowledge.py  # Internal RAG：query / cases/search / agent-context
         │       ├── project_feature_analysis.py  # 项目功能点分析 runs / confirm
         │       ├── robot_instances.py
         │       ├── devices.py           # GET /devices/connected
@@ -530,6 +547,8 @@ flowchart TB
 | Vite 开发服务器 | 5173 | 浏览器访问前端 |
 | Uvicorn（FastAPI） | 8000 | Web 后端；浏览器通常不直连，`/api` 由 Vite **proxy** 到 8000 |
 | Agent Service（FastAPI） | 8100 | agent_service Web 服务；web 后端通过 HTTP 调用，SSE 推流长任务 |
+| MySQL 8 | 3306 | `docker compose up -d mysql` |
+| Qdrant | 6333（HTTP + Dashboard）、6334（gRPC） | 向量库；**Web UI**：`http://127.0.0.1:6333/dashboard`；集合默认 `tcm_knowledge_chunks` |
 
 前端 Axios 使用 `VITE_API_BASE`（可为空）。开发时常为空，请求走同源 `/api`，由 Vite 转发到后端。
 
@@ -637,6 +656,194 @@ sequenceDiagram
 
 agent 启动：`python -m agent_service.service`（`access_log=False`，避免与 `agent_service.http` 重复）。
 
+### 4.8 Agentic RAG 知识库：索引、检索与业务流
+
+项目知识库采用 **MySQL 元数据 + Qdrant 向量** 双存储；索引与检索均在 **Web 后端**（`:8000`）完成，agent_service 经 **Internal API** 调用语义检索，LangGraph **Tool**（`query_knowledge` 等）按机器人绑定的集合与 Skill 过滤 scope。
+
+#### 4.8.1 业务定位与页面
+
+| 角色 / 页面 | 路径 | 能力 |
+|-------------|------|------|
+| 项目成员 | `/projects/:id/knowledge`（`ProjectKnowledgeView.vue`） | 管理**知识集合**；上传/结构化录入文档；文档列表（状态、重建索引、删除）；**检索测试** |
+| 平台管理员 | `/knowledge/review`（`KnowledgeReviewView.vue`） | 审核上传的**测试规范 / 测试策略**（`platform_admin` 专属） |
+| 机器人配置 | 我的机器人详情 | 绑定 `knowledge_collections` + `skill_profile`（控制 Agent 可用 Tool 与 RAG scope） |
+
+**业务要点**
+
+- 知识按**项目**隔离；集合用于分组（如「验证集」「功能树分析知识集」）。
+- **仅 `status=active` 且向量已写入 Qdrant 的切片**参与语义检索（检索测试、Internal API、Agent Tool 均如此）。
+- 上传的 **standard / strategy** 类文档须**平台管理员审核通过**后才写入向量库；其他类型（页面模型、术语表等）解析后直接发布并索引。
+- 用例（`doc_type=case`）、功能树（`feature_tree`）可由 DB 同步自动入库，走同一 ingest 流水线。
+
+#### 4.8.2 技术架构
+
+```mermaid
+flowchart TB
+  subgraph ui["Web 前端"]
+    PKV["ProjectKnowledgeView\n集合 / 上传 / 检索测试"]
+    KRV["KnowledgeReviewView\n规范审核"]
+  end
+
+  subgraph web["Web 后端 app/knowledge/"]
+    Router["routers/knowledge.py"]
+    Ingest["ingestion/\nparsers · chunkers · upload_types"]
+    Pipe["index/pipeline.py\nparse → chunk → embed → Qdrant"]
+    Query["query/service.py\nknowledge_search"]
+    Emb["index/embeddings.py\nDashScope text-embedding-v3"]
+    Qdrant["index/qdrant_store.py"]
+  end
+
+  subgraph store["存储"]
+    MySQL[("MySQL\nknowledge_* 表")]
+    QD[("Qdrant\ntcm_knowledge_chunks")]
+    FS["本地文件\nKB_FILE_STORAGE"]
+  end
+
+  subgraph agent["agent_service"]
+    Tool["langchain_platform/tools\nquery_knowledge 等"]
+    Graph["CaseGen / Explore / FuncDispatch Graph"]
+  end
+
+  PKV --> Router
+  KRV --> Router
+  Router --> Ingest --> Pipe
+  Pipe --> Emb
+  Pipe --> MySQL
+  Pipe --> QD
+  Pipe --> FS
+  Router --> Query
+  Query --> Emb
+  Query --> QD
+  Query --> MySQL
+  Graph --> Tool
+  Tool -->|"POST /api/internal/knowledge/query\nBearer WEB_SERVICE_TOKEN"| Query
+```
+
+| 层次 | 路径 | 说明 |
+|------|------|------|
+| 配置 | `app/knowledge/config.py` | `QDRANT_*`、`KB_EMBEDDING_*`、`KB_FILE_STORAGE`、`RAG_DEFAULT_MODE` |
+| 解析 | `app/knowledge/ingestion/parsers.py` | TXT/MD/PDF/DOCX/XLSX/HTML/JSON 等；DOCX 含段落 + 表格 |
+| 切片 | `app/knowledge/ingestion/chunkers.py` | 按 `doc_type` 分块（~800 字，无 NLTK 依赖） |
+| 索引 | `app/knowledge/index/pipeline.py` | 异步 `ThreadPoolExecutor`；`schedule_ingest(document_id)` |
+| 向量 | `app/knowledge/index/embeddings.py` | OpenAI 兼容 HTTP → DashScope `text-embedding-v3` |
+| 检索 | `app/knowledge/query/service.py` | query embedding → Qdrant 过滤检索 → MySQL 取 snippet |
+| 服务 | `app/services/knowledge_document.py` | 单文档删除（Qdrant + 文件 + ORM） |
+| 服务 | `app/services/knowledge_collection.py` | 集合删除（级联文档与向量） |
+| Internal | `app/routers/internal_knowledge.py` | agent 专用；Bearer `WEB_SERVICE_TOKEN` |
+
+#### 4.8.3 文档状态机（业务处理）
+
+```
+上传/录入 → pending_parse → parsing → …
+                              │
+         ┌────────────────────┼────────────────────┐
+         ▼                    ▼                    ▼
+   pending_review          active               draft
+ （规范/策略待审）      （已发布可检索）      （解析失败/空内容）
+         │                    │
+    驳回 rejected        重建索引 / 删除
+         │
+    修改后 submit-review → pending_review
+```
+
+| 状态 | 含义 | 是否参与检索 |
+|------|------|--------------|
+| `pending_parse` | 已创建，等待后台 ingest | 否 |
+| `parsing` | 索引任务进行中 | 否 |
+| `pending_review` | 已解析切片，等待平台管理员审核（**standard/strategy 上传**） | 否（仅 MySQL 有文本，Qdrant 无向量） |
+| `active` | 已发布；向量索引完成（或无需审核的类型） | **是** |
+| `draft` | 解析失败或内容为空 | 否 |
+| `rejected` | 审核驳回 | 否 |
+| `archived` | 已归档 | 否 |
+
+**审核门禁（standard / strategy + upload）**
+
+1. 首次 ingest：`was_published=False` → 只 **parse + chunk**，chunk 标记 `embedding_status=parsed`，文档 → `pending_review`。
+2. 平台管理员 `POST /api/knowledge/documents/{id}/review`（`approve=true`）→ `status=active` → 再次 `schedule_ingest`。
+3. 二次 ingest：`was_published=True` → **embed + upsert Qdrant**，文档保持 `active`。
+
+非规范类（如 `page_model`、`glossary`）首次 ingest 即 embed 并置 `active`。
+
+#### 4.8.4 索引流水线（技术处理）
+
+`run_ingest_document(db, document_id)`（`pipeline.py`）步骤：
+
+1. **门禁**：`pending_review` / `rejected` / `archived` 不跑；`parsing` 超过 2 分钟视为僵死任务可重跑。
+2. **解析**：`parse_document_content()` — 文件路径或 `structured_json`；用例/功能树走 DB 同步源。
+3. **清旧索引**：删除旧 `knowledge_chunks` 及对应 Qdrant point。
+4. **切片**：`chunk_text()` → `(section_path, content)` 列表。
+5. **向量化**（当 `indexable=True`）：DashScope embedding → `upsert_point`；payload 含 `chunk_id`、`document_id`、`collection_id`、`project_id`、`doc_type`、`status=active`。
+6. **落库**：chunk 的 `embedding_status` 为 `indexed` | `parsed` | `failed`。
+7. **异常**：任一步骤未捕获异常 → 回滚并置 `pending_parse`；避免永久卡在 `parsing`。
+
+触发 ingest 的入口：上传/结构化录入、`reindex`、审核通过、用例保存同步（`sync_case_document`）、功能树确认（`knowledge_sync`）。
+
+#### 4.8.5 检索流水线
+
+**浏览器检索测试**：`GET /api/knowledge/projects/{project_id}/search?q=…&collection_id=…`
+
+**Agent 主入口**：`POST /api/internal/knowledge/query`（body 含 `robot_instance_id` 时按 `robot_instance_bindings` 限定 `collection_ids` 与 `rag_policy`）
+
+**兼容用例 KB**：`GET /api/internal/knowledge/cases/search` — 先对 `doc_type=case` 做语义检索，无结果时降级 `case_kb` MySQL LIKE。
+
+检索步骤（`knowledge_search`）：
+
+1. 对 query 做 embedding（与索引同一模型）。
+2. Qdrant `query_points`，过滤 `status=active`，可选 `collection_id` / `project_id` / `doc_type`。
+3. 用 payload 中 `chunk_id` 回表 `knowledge_chunks` 取正文 snippet（前 600 字）。
+
+#### 4.8.6 Agentic RAG 接入（三条业务链）
+
+| 业务链 | 预取 / Tool | 说明 |
+|--------|-------------|------|
+| 用例生成 | `CaseGenAgenticGraph` + `query_knowledge` | Web `case_generation.py` 传 `robot_instance_id`；`rag_trace` 可观测 |
+| 功能点分析 | `ExploreOrchestratorGraph.prefetch_kb_context` | 功能树 confirm 触发 ingest |
+| 测试执行 | `FuncDispatchGraph` prefetch + Recovery RAG | `executor` payload 含 `project_id` / `kb_context` |
+
+机器人 scope：`GET /api/internal/robots/{id}/agent-context` 返回绑定的集合 ID、Skill、`rag_policy` 合并结果。
+
+默认 `RAG_DEFAULT_MODE=agentic`；`skill_profiles` 按 `catalog_robot_id` 配置可用 Tool 列表。
+
+#### 4.8.7 主要 API（用户 JWT）
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET/POST/PATCH/DELETE | `/api/knowledge/projects/{id}/collections` | 集合 CRUD |
+| GET | `/api/knowledge/projects/{id}/documents` | 文档列表（可按集合、类型筛选） |
+| POST | `…/documents/upload` |  multipart 上传（≤50MB） |
+| POST | `…/documents/structured` | 结构化 JSON 录入 |
+| POST | `…/documents/{doc_id}/submit-review` | 草稿/驳回 → 待审核 |
+| DELETE | `…/documents/{doc_id}` | 删除文档 + 向量 + 文件 |
+| POST | `/api/knowledge/documents/{doc_id}/reindex` | 排队重建索引（`active` / `draft` / `pending_parse`） |
+| GET | `/api/knowledge/projects/{id}/search` | 项目内检索测试 |
+| GET | `/api/knowledge/review-queue` | 待审核队列（`platform_admin`） |
+| POST | `/api/knowledge/documents/{doc_id}/review` | 审核通过/驳回 |
+| PATCH | `/api/knowledge/robot-instances/{id}/knowledge-binding` | 机器人 KB + Skill 绑定 |
+
+#### 4.8.8 环境变量（Web `web/backend/.env`）
+
+| 变量 | 默认 / 说明 |
+|------|-------------|
+| `QDRANT_URL` | `http://127.0.0.1:6333` |
+| `QDRANT_COLLECTION` | `tcm_knowledge_chunks` |
+| `KB_EMBEDDING_API_KEY` | 回退 `MIDSCENE_MODEL_API_KEY` / `DASHSCOPE_API_KEY` |
+| `KB_EMBEDDING_BASE_URL` | `https://dashscope.aliyuncs.com/compatible-mode/v1` |
+| `KB_EMBEDDING_MODEL` | `text-embedding-v3` |
+| `KB_FILE_STORAGE` | `web/backend/data/knowledge` |
+| `KB_INGEST_WORKERS` | 索引线程池（实现为 pipeline 内 `max_workers=2`） |
+| `RAG_DEFAULT_MODE` | `agentic` |
+| `WEB_SERVICE_TOKEN` | 与 agent_service 相同，供 Internal API |
+
+#### 4.8.9 排查清单
+
+| 现象 | 可能原因 | 处理 |
+|------|----------|------|
+| 一直「索引中」 | ingest 异常未回滚（已修复 NLTK/异常处理） | 等 2 分钟后刷新或点「重建索引」 |
+| 检索结果与文档不符 | 规范类未审核，或审核后未 embed（已修复 `was_published` 逻辑） | 后台 **知识库审核** 通过；文档列表 **重建索引** |
+| 检索无结果 | 仅 1～2 篇 active 文档、embedding 失败、Qdrant 未启动 | 查 Qdrant Dashboard；看 chunk `embedding_status`；确认 `KB_EMBEDDING_*` |
+| Embedding 400 `Arrearage` | DashScope / 百炼账户欠费停服 | 充值阿里云或更换有效 `KB_EMBEDDING_API_KEY`；重启后端后对文档 **重建索引** |
+| Agent 未用到 KB | 机器人未绑定集合 / Skill 未含 `query_knowledge` | 我的机器人 → KB 绑定 |
+
 ## 5. 数据存储
 
 - **数据库（MySQL 8）**  
@@ -646,12 +853,24 @@ agent 启动：`python -m agent_service.service`（`access_log=False`，避免�
   - 连接使用 `pool_pre_ping`、`pool_recycle` 与 session `time_zone=+00:00`。  
   - **外部连接（CLI / GUI）**：本地 MySQL 在 Docker 中，映射 **`127.0.0.1:3306`**。须指定 `-h 127.0.0.1`，勿用默认 socket（否则会报 `/tmp/mysql.sock`）。应用账号 `tcm`/`tcm`，库 `tcm`；root 为 `root`/`root`（见 `docker-compose.yml`）。示例：`mysql -h 127.0.0.1 -P 3306 -u tcm -ptcm tcm`；或 `docker compose exec mysql mysql -u tcm -ptcm tcm`。
 
+- **向量库（Qdrant）**  
+  - 本地：`docker compose up -d qdrant`（`docker-compose.yml`）。数据卷 `tcm_qdrant_data`。  
+  - **Web 管理界面**：**http://127.0.0.1:6333/dashboard**（浏览器打开，可浏览集合、点、payload）。REST 根路径 `http://127.0.0.1:6333/` 用于健康检查。  
+  - 应用配置（`web/backend/.env`）：`QDRANT_URL`（默认 `http://127.0.0.1:6333`）、`QDRANT_COLLECTION`（默认 `tcm_knowledge_chunks`）。索引与检索实现见 `web/backend/app/knowledge/index/qdrant_store.py`。  
+  - 元数据（文档、集合、切片正文）在 **MySQL**；向量与检索过滤字段（`chunk_id`、`doc_type`、`status` 等）在 **Qdrant**。
+
 - **表（逻辑）**  
   - `users`：账号与密码哈希、RBAC `role` 等。  
   - `projects`：项目空间（被测应用、测试目标），多租户按 `owner_id`。  
   - `test_cases`：归属 `project_id`；标题、执行说明、前置条件、`steps_json`（步骤与预期）、`task_text`、`priority`、`revision_no`。  
   - `test_case_revisions`：每次保存的快照（版本管理）。  
-  - `case_kb_documents`：检索用扁平文本（标题/步骤/说明聚合），供 `/api/knowledge/cases/search` 与 RAG。  
+  - `case_kb_documents`：检索用扁平文本（标题/步骤/说明聚合），供 `/api/knowledge/cases/search` 与 RAG（**兼容降级路径**）。
+  - `knowledge_collections`：项目知识集合（名称、描述、归属项目）。
+  - `knowledge_documents`：知识文档（类型、来源、状态、文件路径、审核字段）；`status` 见 §4.8.3。
+  - `knowledge_chunks`：切片正文 + `qdrant_point_id` + `embedding_status`（`indexed` / `parsed` / `failed`）。
+  - `project_knowledge_settings`：项目级 RAG 策略 JSON。
+  - `skill_profiles`：按 `catalog_robot_id` 的 Skill 模板（可用 Tool 列表）。
+  - `robot_instance_bindings`：实例绑定的 `knowledge_collection_ids` + `skill_profile_id` + RAG 覆盖策略。  
   - `robot_instances`：租用实例化后的数字机器人；`instance_code`（DR-xxxxxx）、`test_agent_backend`、`device_platform`（**默认**平台）、`catalog_robot_id` 等。  
   - `test_runs`：`robot_instance_id`、`device_platform` / `device_id`（**本次**执行实际使用）、`pending` / `running` / `success` / `failed` / `cancelled`、`step_log`、`report_path`（Midscene HTML）、`output_message`、`error_trace`。  
   - `project_reports`：项目维度测试报告摘要（供看板「最新报告」）。  
@@ -687,6 +906,10 @@ agent 启动：`python -m agent_service.service`（`access_log=False`，避免�
 | `DEVICE_SCREEN_MAX_WIDTH` | 投屏缩略图最大宽度 |
 | `KAFKA_*` | 功能测试下发（可选） |
 | `TCM_APP_UPLOAD_DIR` / `TCM_APP_UPLOAD_MAX_MB` | App 安装包上传 |
+| `QDRANT_URL` / `QDRANT_COLLECTION` | Qdrant 向量库（§4.8、§5） |
+| `KB_EMBEDDING_API_KEY` / `KB_EMBEDDING_BASE_URL` / `KB_EMBEDDING_MODEL` | 知识库 embedding（DashScope 兼容模式） |
+| `KB_FILE_STORAGE` | 知识库上传文件目录 |
+| `RAG_DEFAULT_MODE` | `agentic`（默认）或 passive 兼容模式 |
 
 ### Agent Service（`agent_service/.env`）
 
@@ -739,7 +962,8 @@ agent 启动：`python -m agent_service.service`（`access_log=False`，避免�
 8. **数据库**：MySQL 8；`DATABASE_URL` 必填；无 Alembic，列迁移在 `database.ensure_schema()`。  
 9. **排查执行失败**：确认实例 **技术路线（autoglm/midscene）**、用例页 **平台+终端**；`adb devices` / `hdc list targets`；看 agent 日志 `agent_service.func_agent` 与 `step_log`；Midscene 报告见 `report_path`。  
 10. **排查 AI 生成失败**：`CASE_GEN_*`、`WEB_SERVICE_TOKEN`（Retriever）；Web `POST /api/test-cases/generate` 或 agent `POST /api/agent/analysis/generate-case-draft`；`CaseGenChain` 对非法 JSON 自动重试一轮。  
+11. **排查知识库索引/检索**：§4.8.9；确认 Qdrant（`docker compose up -d qdrant`）、`KB_EMBEDDING_*`、文档 `status=active` 与 chunk `embedding_status=indexed`；规范类须 **知识库审核** 通过后再检索。
 
 ## 8. 一句话小结
 
-**Vue 3 + Web FastAPI + agent_service（LangChain 1.x）+ MySQL 8**：Web 管租户与持久化，agent 管 LLM/图编排与设备执行（HTTP+SSE）。**测试分析**走 `CaseGenChain` / `ExploreOrchestratorGraph`；**测试执行**走 `FuncDispatchGraph`（AutoGLM 同进程或 Midscene 子进程）。用例仅 **structured**；KB 可 Web 预检索或 agent Retriever。详见 §1.3.1、§2、§4.7。
+**Vue 3 + Web FastAPI + agent_service（LangChain 1.x）+ MySQL 8 + Qdrant**：Web 管租户、知识库 ingest/query 与持久化，agent 管 LLM/图编排与设备执行（HTTP+SSE）。**测试分析**走 `CaseGenChain` / `ExploreOrchestratorGraph`；**测试执行**走 `FuncDispatchGraph`（AutoGLM 同进程或 Midscene 子进程）。用例仅 **structured**；**Agentic RAG** 经 Internal API + Tool 注入三条业务链。详见 §1.3.1、§4.8、§2、§4.7。
