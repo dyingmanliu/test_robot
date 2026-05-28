@@ -21,6 +21,12 @@ def is_instance_generating(robot_instance_id: int) -> bool:
         return robot_instance_id in _generating_ids
 
 
+def reset_generation_locks_on_startup() -> None:
+    """进程重启后清空内存占用标记（无存活 worker 时）。"""
+    with _guard:
+        _generating_ids.clear()
+
+
 @contextmanager
 def analysis_generation_lock(robot_instance_id: int) -> Iterator[None]:
     with _guard:

@@ -56,6 +56,28 @@ def _message_chars(messages: list[Any]) -> tuple[int, int, str]:
     return sys_chars, user_chars, "，".join(labels)
 
 
+def _coerce_token_count(val: Any) -> int | None:
+    """兼容 OpenAI / DashScope 等网关的多种 usage 字段形态。"""
+    if val is None or isinstance(val, bool):
+        return None
+    if isinstance(val, int):
+        return val
+    if isinstance(val, float):
+        return int(val)
+    if isinstance(val, str):
+        s = val.strip()
+        if s.isdigit():
+            return int(s)
+        return None
+    if isinstance(val, dict):
+        for key in ("total_tokens", "total", "value", "tokens"):
+            if key in val:
+                n = _coerce_token_count(val[key])
+                if n is not None:
+                    return n
+    return None
+
+
 def _token_usage_from_response(resp: Any) -> dict[str, Any]:
     meta = getattr(resp, "response_metadata", None) or {}
     usage = dict(meta.get("token_usage") or meta.get("usage") or {})
@@ -67,9 +89,19 @@ def _token_usage_from_response(resp: Any) -> dict[str, Any]:
             ("total_tokens", "total_tokens"),
         ):
             val = getattr(um, src_key, None)
-            if val is not None and dst_key not in usage:
-                usage[dst_key] = val
-    return {k: int(v) for k, v in usage.items() if v is not None}
+            if val is None or dst_key in usage:
+                continue
+            n = _coerce_token_count(val)
+            if n is not None:
+                usage[dst_key] = n
+    out: dict[str, Any] = {}
+    for key, val in usage.items():
+        if val is None:
+            continue
+        n = _coerce_token_count(val)
+        if n is not None:
+            out[key] = n
+    return out
 
 
 def emit_llm_request(
@@ -110,7 +142,10 @@ def emit_llm_response(
     attempt: int = 1,
 ) -> None:
     raw = str(getattr(resp, "content", "") or "").strip()
-    usage = _token_usage_from_response(resp)
+    try:
+        usage = _token_usage_from_response(resp)
+    except Exception:
+        usage = {}
     parts = [f"{len(raw)} 字", f"{elapsed_ms:.0f}ms"]
     if usage.get("total_tokens") is not None:
         parts.append(f"tokens {usage['total_tokens']}")

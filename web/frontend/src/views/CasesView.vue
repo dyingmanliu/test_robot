@@ -486,7 +486,13 @@
             </span>
           </div>
           <div ref="genLogScrollRef" class="gen-exec-log-scroll">
-            <p v-if="!genDialog.stepLog" class="muted log-empty">已提交，等待 agent 响应…</p>
+            <p v-if="!genDialog.stepLog" class="muted log-empty">
+              {{
+                genDialog.jobId
+                  ? "已提交，等待 agent 响应…"
+                  : "正在连接后端并创建任务…"
+              }}
+            </p>
             <div v-else class="gen-log-steps">
               <div
                 v-for="(e, idx) in genDialogLogEntries"
@@ -1389,11 +1395,15 @@ async function submitGenerate() {
   genDialog.stepLog = "";
   genPollAbort = false;
   try {
-    const { data: submitted } = await client.post("/api/test-cases/generate", {
-      project_id: selectedProjectId.value,
-      robot_instance_id: selectedAnalysisRobotInstanceId.value,
-      prompt,
-    });
+    const { data: submitted } = await client.post(
+      "/api/test-cases/generate",
+      {
+        project_id: selectedProjectId.value,
+        robot_instance_id: selectedAnalysisRobotInstanceId.value,
+        prompt,
+      },
+      { timeout: 30000 },
+    );
     const jobId = submitted.job_id;
     genDialog.jobId = jobId;
     genDialog.progressMessage = "已提交，正在生成…";

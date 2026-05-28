@@ -150,9 +150,12 @@ def on_startup() -> None:
     ensure_projects_bootstrap()
     bootstrap_rbac()
     from app.database import SessionLocal
+    from app.services.analysis_instance_guard import reset_generation_locks_on_startup
     from app.services.feature_analysis_guard import reconcile_stale_feature_analysis_on_startup
     from app.services.knowledge_bootstrap import ensure_skill_profiles
     from app.services.robot_run_guard import reconcile_stale_runs_on_startup
+
+    reset_generation_locks_on_startup()
 
     db = SessionLocal()
     try:

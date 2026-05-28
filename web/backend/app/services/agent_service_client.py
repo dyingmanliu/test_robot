@@ -180,8 +180,11 @@ def stream_midscene_events(task_id: str) -> Iterator[tuple[str, dict[str, Any]]]
 
 
 def _stream_events(url: str) -> Iterator[tuple[str, dict[str, Any]]]:
-    """同步阻塞式 SSE 流读取，逐事件 yield。"""
-    with httpx.Client(timeout=httpx.Timeout(connect=5.0, read=None, write=30.0, pool=5.0)) as client:
+    """同步阻塞式 SSE 流读取，逐事件 yield（read 上限与 CASE_GEN_TIMEOUT_SEC 对齐）。"""
+    read_sec = float(os.getenv("CASE_GEN_SSE_READ_TIMEOUT_SEC", "600"))
+    with httpx.Client(
+        timeout=httpx.Timeout(connect=5.0, read=read_sec, write=30.0, pool=5.0)
+    ) as client:
         with client.stream("GET", url) as resp:
             _raise_for_status(resp)
             buffer = ""

@@ -215,8 +215,16 @@ def _generate_draft(
     similar_ids: list[int] = []
     for tr in state.get("rag_trace") or []:
         for hit in tr.get("hits") or []:
-            if hit.get("doc_type") == "case" and hit.get("document_id"):
-                similar_ids.append(int(hit["document_id"]))
+            if hit.get("doc_type") != "case":
+                continue
+            raw_id = hit.get("document_id")
+            doc_id: int | None = None
+            if isinstance(raw_id, int):
+                doc_id = raw_id
+            elif isinstance(raw_id, str) and raw_id.strip().isdigit():
+                doc_id = int(raw_id.strip())
+            if doc_id is not None:
+                similar_ids.append(doc_id)
     if similar_ids:
         draft.similar_case_ids = similar_ids[:10]
     return {"draft": draft}
