@@ -1259,6 +1259,7 @@ function openCreate() {
   dialog.preconditions = "";
   dialog.priority = "P2";
   dialog.steps = [{ description: "", expected: "" }];
+  dialog.ragTrace = [];
   dialog.error = "";
   dialog.saving = false;
 }
@@ -1353,6 +1354,7 @@ function openEdit(c) {
         expected: x.expected || "",
       }))
     : [{ description: "", expected: "" }];
+  dialog.ragTrace = [];
   dialog.error = "";
   dialog.saving = false;
 }

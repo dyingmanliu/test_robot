@@ -5,9 +5,20 @@ from __future__ import annotations
 import os
 from typing import Literal
 
+import httpx
 from langchain_openai import ChatOpenAI
 
 ModelProfile = Literal["case_gen", "autoglm"]
+
+
+def _http_trust_env() -> bool:
+    """默认不读系统 HTTP_PROXY，避免 Cursor/本机代理拦截 LLM 请求（403）。"""
+    return os.getenv("CASE_GEN_HTTP_TRUST_ENV", "").strip().lower() in ("1", "true", "yes")
+
+
+def _httpx_client(timeout_sec: float) -> httpx.Client:
+    timeout = httpx.Timeout(timeout_sec, connect=min(30.0, timeout_sec))
+    return httpx.Client(trust_env=_http_trust_env(), timeout=timeout)
 
 
 def _case_gen_credentials() -> tuple[str, str, str]:
@@ -51,4 +62,5 @@ def get_chat_model(
         max_tokens=max_tokens or 4096,
         timeout=to,
         max_retries=2,
+        http_client=_httpx_client(to),
     )
