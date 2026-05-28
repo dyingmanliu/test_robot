@@ -1,0 +1,56 @@
+---
+description: Python 命令必须使用 .venv 虚拟环境
+globs:
+alwaysApply: true
+---
+
+# Python 虚拟环境规则
+
+**强制要求**: 所有 Python 命令必须使用项目的 `.venv` 虚拟环境，禁止使用系统 Python。
+
+## 正确用法
+
+```bash
+# ✅ 正确：使用 .venv 的 Python
+.venv/bin/python -m agent_service.service
+.venv/bin/pip install -r requirements.txt
+
+# ✅ 正确：激活虚拟环境后运行
+source .venv/bin/activate
+python -m agent_service.service
+```
+
+## 错误用法
+
+```bash
+# ❌ 错误：使用系统 Python
+python -m agent_service.service
+python3 -m agent_service.service
+
+# ❌ 错误：使用系统 pip
+pip install -r requirements.txt
+pip3 install -r requirements.txt
+```
+
+## 服务启动示例
+
+### Agent Service
+
+```bash
+cd agent_service
+PYTHONPATH=/Users/qiunian/Documents/test/test-robots .venv/bin/python -m agent_service.service
+```
+
+### Web Backend
+
+```bash
+cd web/backend
+source .venv/bin/activate
+PYTHONPATH=. uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
+## 原因
+
+- 系统 Python 缺少项目依赖包，会导致 `ModuleNotFoundError`
+- 虚拟环境确保依赖隔离和版本一致性
+- 每个服务（agent_service、web/backend）都有独立的 `.venv`
