@@ -90,9 +90,9 @@ Web 将租用的**数字机器人实例**按商城 **功能定位（`catalog_rob
 | LLM 输出 | 始终结构化（标题、前置条件、步骤 JSON、执行说明、优先级） |
 | 上下文 | `Project.name`、`tested_app_name`、`test_objective` + 用户 `prompt` |
 | RAG | Web 侧 `case_kb.search_cases_kb` → `kb_snippets`；agent 侧可选 `WebCaseKbRetriever`（§1.3.1） |
-| 执行衔接 | structured → `case_agent_text.build_agent_task_text()`（AutoGLM / Midscene natural） |
+| 执行衔接 | structured → `build_agent_task_text()`；Midscene 拆步 → `build_midscene_tech_steps()` → `agent_steps` |
 
-**注意**：用例已统一为结构化格式（不再支持 YAML）。所有用例通过 `steps_json` + `task_text` 描述步骤，Midscene 执行使用 natural 模式自动转换。
+**注意**：用例已统一为结构化格式（不再支持 YAML）。所有用例通过 `steps_json` + `task_text` 描述步骤，Midscene 执行使用 natural 模式自动转换。存在结构化步骤时，**`task_text`（执行说明）仅并入 `agent_task` 上下文，不单独作为 `agent_steps` 一步**，避免 Midscene 将说明性文字再执行一遍（如重复新建联系人）。
 
 **配置**：`agent_service/.env` 的 `CASE_GEN_*`；KB Retriever 另需 `WEB_SERVICE_TOKEN`（与 `web/backend/.env` 一致）。详见 §6。
 

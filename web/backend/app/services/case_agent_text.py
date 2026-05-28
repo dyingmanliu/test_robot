@@ -105,7 +105,11 @@ def build_midscene_tech_steps(
     steps_json: str,
     min_steps: int = 2,
 ) -> list[str] | None:
-    """将结构化用例拆为 Midscene 逐步 aiAct 列表；步骤数不足时返回 None（走单段 agent_task）。"""
+    """将结构化用例拆为 Midscene 逐步 aiAct 列表；步骤数不足时返回 None（走单段 agent_task）。
+
+    已有结构化步骤时，``task_text``（执行说明）不单独成步，仅由 ``build_agent_task_text`` 写入
+    ``agent_task`` 供单段模式或日志参考，避免 Midscene 将「执行说明」再执行一遍而引入无关操作。
+    """
     steps = parse_steps_json(steps_json)
     lines: list[str] = []
     pre = _sanitize_midscene_instruction(preconditions)
@@ -131,11 +135,8 @@ def build_midscene_tech_steps(
                 part = f"【前置条件】{pre}\n{part}"
             lines.append(part)
     tt = (task_text or "").strip()
-    if tt:
-        if lines:
-            lines.append(f"【执行说明】{tt}")
-        else:
-            lines.append(tt)
+    if tt and not lines:
+        lines.append(tt)
     if len(lines) < min_steps:
         return None
     return lines
