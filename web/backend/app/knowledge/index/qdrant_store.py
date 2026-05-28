@@ -54,6 +54,7 @@ def search_vectors(
     collection_ids: list[int] | None = None,
     project_id: int | None = None,
     doc_types: list[str] | None = None,
+    min_score: float = 0.0,
 ) -> list[dict[str, Any]]:
     ensure_collection(len(query_vector))
     client = get_qdrant_client()
@@ -81,6 +82,7 @@ def search_vectors(
         query=query_vector,
         query_filter=flt,
         limit=limit,
+        score_threshold=min_score if min_score > 0 else None,
         with_payload=True,
     )
     points = resp.points or []

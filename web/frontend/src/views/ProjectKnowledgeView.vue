@@ -301,10 +301,12 @@
               <p v-if="lastSearchQuery" class="hint small search-meta">
                 检索词：<strong>{{ lastSearchQuery }}</strong>
                 <span v-if="searchDone"> · 命中 {{ searchResults.length }} 条</span>
+                <span v-if="searchMinScore != null"> · 最低相似度 ≥ {{ formatScore(searchMinScore) }}</span>
                 <span v-if="searchLatencyMs != null"> · {{ searchLatencyMs }} ms</span>
               </p>
               <p v-if="searchDone && !searchResults.length" class="hint small warn">
                 未命中结果。请确认文档为「已发布」、Embedding 与 Qdrant 正常；可在文档列表点「重建索引」后重试。
+                <span v-if="searchMinScore != null"> 当前已启用最低相似度 {{ formatScore(searchMinScore) }}，可在 web/backend/.env 调整 KB_SEARCH_MIN_SCORE。</span>
               </p>
               <div v-if="searchResults.length" class="hits">
                 <article v-for="h in searchResults" :key="`${h.chunk_id}-${lastSearchQuery}`" class="hit">
@@ -460,6 +462,7 @@ const searchDone = ref(false);
 const searching = ref(false);
 const lastSearchQuery = ref("");
 const searchLatencyMs = ref(null);
+const searchMinScore = ref(null);
 const uploading = ref(false);
 const structSaving = ref(false);
 const collSaving = ref(false);
@@ -549,6 +552,7 @@ function resetSearchState() {
   searching.value = false;
   lastSearchQuery.value = "";
   searchLatencyMs.value = null;
+  searchMinScore.value = null;
 }
 
 function formatScore(score) {
@@ -826,6 +830,7 @@ async function runSearch() {
   searchResults.value = [];
   lastSearchQuery.value = q;
   searchLatencyMs.value = null;
+  searchMinScore.value = null;
   error.value = "";
   try {
     const params = { q, limit: 10 };
@@ -833,6 +838,7 @@ async function runSearch() {
     const { data } = await client.get(`/api/knowledge/projects/${projectId.value}/search`, { params });
     searchResults.value = data.items || [];
     searchLatencyMs.value = data.latency_ms ?? null;
+    searchMinScore.value = data.min_score ?? null;
     if (data.error) {
       error.value = String(data.error);
     }

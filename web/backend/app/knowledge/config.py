@@ -47,6 +47,18 @@ def rag_default_mode() -> str:
     return (os.getenv("RAG_DEFAULT_MODE") or "agentic").strip().lower()
 
 
+def kb_search_min_score() -> float:
+    """语义检索最低相似度（余弦，0~1）；默认 0.6，设为 0 可关闭过滤。"""
+    raw = (os.getenv("KB_SEARCH_MIN_SCORE") or "").strip()
+    if not raw:
+        return 0.6
+    try:
+        value = float(raw)
+    except ValueError:
+        return 0.6
+    return max(0.0, min(1.0, value))
+
+
 DEFAULT_RAG_POLICY = {
     "max_calls": 5,
     "limit": 5,

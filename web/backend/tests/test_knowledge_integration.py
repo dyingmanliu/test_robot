@@ -60,6 +60,20 @@ class KnowledgeUnitTest(unittest.TestCase):
         self.assertEqual(len(result["items"]), 1)
         self.assertIn("登录", result["items"][0]["snippet"])
 
+    @patch.object(query_service, "kb_search_min_score", return_value=0.6)
+    @patch.object(query_service, "get_embed_model")
+    @patch("app.knowledge.query.service.search_vectors", return_value=[])
+    def test_knowledge_search_respects_min_score(
+        self, mock_search, mock_embed, _mock_min_score
+    ) -> None:
+        mock_embed.return_value = MagicMock(get_text_embedding=lambda _q: [0.0] * 4)
+        db = MagicMock()
+        result = query_service.knowledge_search(db, query="联系人", project_id=3, limit=10)
+        mock_search.assert_called_once()
+        self.assertEqual(mock_search.call_args.kwargs["min_score"], 0.6)
+        self.assertEqual(result["items"], [])
+        self.assertEqual(result["min_score"], 0.6)
+
 
 if __name__ == "__main__":
     unittest.main()
