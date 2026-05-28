@@ -35,6 +35,40 @@ export const DOC_STATUS_CLASS = {
   archived: "status--archived",
 };
 
+export const COLLECTION_STATUS_LABELS = {
+  active: "可用",
+};
+
+/** 侧边栏 / 标题区展示顺序（需关注的排前） */
+export const DOC_STATUS_SUMMARY_ORDER = [
+  "parsing",
+  "pending_parse",
+  "pending_review",
+  "draft",
+  "rejected",
+  "active",
+  "archived",
+];
+
+export function collectionStatusLabel(status) {
+  return COLLECTION_STATUS_LABELS[status] || status || "—";
+}
+
+export function collectionStatusClass(status) {
+  return status === "active" ? "status--active" : "status--default";
+}
+
+/** @param {Record<string, number> | null | undefined} counts */
+export function docStatusSummaryItems(counts) {
+  const src = counts || {};
+  return DOC_STATUS_SUMMARY_ORDER.filter((s) => (src[s] || 0) > 0).map((s) => ({
+    status: s,
+    label: docStatusLabel(s),
+    class: docStatusClass(s),
+    count: src[s],
+  }));
+}
+
 export function docTypeLabel(type) {
   return DOC_TYPE_LABELS[type] || type || "—";
 }

@@ -10,6 +10,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from pydantic import BaseModel, Field
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -60,6 +61,7 @@ class CollectionOut(BaseModel):
     description: str
     app_bundle_id: str
     status: str
+    doc_status_counts: dict[str, int] = Field(default_factory=dict)
 
 
 class DocumentOut(BaseModel):
@@ -106,7 +108,32 @@ def _can_review(user: User) -> bool:
     return user.role == ROLE_PLATFORM_ADMIN
 
 
-def _collection_out(row: KnowledgeCollection) -> CollectionOut:
+def _doc_status_counts_by_collection(
+    db: Session, collection_ids: list[int]
+) -> dict[int, dict[str, int]]:
+    if not collection_ids:
+        return {}
+    rows = (
+        db.query(
+            KnowledgeDocument.collection_id,
+            KnowledgeDocument.status,
+            func.count(),
+        )
+        .filter(KnowledgeDocument.collection_id.in_(collection_ids))
+        .group_by(KnowledgeDocument.collection_id, KnowledgeDocument.status)
+        .all()
+    )
+    out: dict[int, dict[str, int]] = {}
+    for cid, st, cnt in rows:
+        out.setdefault(int(cid), {})[str(st)] = int(cnt)
+    return out
+
+
+def _collection_out(
+    row: KnowledgeCollection,
+    *,
+    doc_status_counts: dict[str, int] | None = None,
+) -> CollectionOut:
     return CollectionOut(
         id=row.id,
         project_id=row.project_id,
@@ -114,6 +141,7 @@ def _collection_out(row: KnowledgeCollection) -> CollectionOut:
         description=row.description or "",
         app_bundle_id=row.app_bundle_id or "",
         status=row.status,
+        doc_status_counts=doc_status_counts or {},
     )
 
 
@@ -175,7 +203,8 @@ def list_collections(
         .order_by(KnowledgeCollection.id.desc())
         .all()
     )
-    return [_collection_out(r) for r in rows]
+    counts_map = _doc_status_counts_by_collection(db, [r.id for r in rows])
+    return [_collection_out(r, doc_status_counts=counts_map.get(r.id, {})) for r in rows]
 
 
 @router.post("/projects/{project_id}/collections", response_model=CollectionOut)
@@ -399,13 +428,15 @@ def review_document(
         raise HTTPException(status_code=404, detail="文档不存在")
     if body.approve:
         doc.status = "active"
-        schedule_ingest(doc.id)
     else:
         doc.status = "rejected"
     doc.review_note = body.note
     doc.reviewed_by = user.id
     doc.reviewed_at = datetime.utcnow()
     db.commit()
+    if body.approve:
+        # 须在 commit 之后再调度：后台线程用新 Session，未提交时仍为 pending_review 会直接跳过索引
+        schedule_ingest(doc.id)
     return {"id": doc.id, "status": doc.status}
 
 

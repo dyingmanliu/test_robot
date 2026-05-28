@@ -40,6 +40,25 @@
               >
                 <span class="coll-name">{{ c.name }}</span>
                 <span v-if="c.description" class="coll-desc">{{ c.description }}</span>
+                <span class="coll-status-icons" aria-label="文档状态概览">
+                  <span
+                    class="status-chip status-chip--mini"
+                    :class="collectionStatusClass(c.status)"
+                    :title="`集合：${collectionStatusLabel(c.status)}`"
+                  >
+                    <span class="status-dot" aria-hidden="true"></span>
+                  </span>
+                  <span
+                    v-for="item in docStatusSummaryItems(c.doc_status_counts)"
+                    :key="`${c.id}-${item.status}`"
+                    class="status-chip status-chip--mini"
+                    :class="item.class"
+                    :title="`${item.label} ${item.count}`"
+                  >
+                    <span class="status-dot" aria-hidden="true"></span>
+                    <span class="status-chip-count">{{ item.count }}</span>
+                  </span>
+                </span>
               </button>
             </li>
           </ul>
@@ -61,8 +80,36 @@
           <template v-else>
             <div class="main-head card">
               <div>
-                <h2>{{ selectedCollection?.name }}</h2>
+                <div class="main-head-title-row">
+                  <h2>{{ selectedCollection?.name }}</h2>
+                  <span
+                    v-if="selectedCollection"
+                    class="status-chip"
+                    :class="collectionStatusClass(selectedCollection.status)"
+                    :title="`集合状态：${collectionStatusLabel(selectedCollection.status)}`"
+                  >
+                    <span class="status-dot" aria-hidden="true"></span>
+                    {{ collectionStatusLabel(selectedCollection.status) }}
+                  </span>
+                </div>
                 <p v-if="selectedCollection?.description" class="muted small">{{ selectedCollection.description }}</p>
+                <div
+                  v-if="selectedCollectionDocSummary.length"
+                  class="coll-doc-summary"
+                  aria-label="文档状态统计"
+                >
+                  <span
+                    v-for="item in selectedCollectionDocSummary"
+                    :key="item.status"
+                    class="status-chip"
+                    :class="item.class"
+                    :title="`${item.label} ${item.count} 篇`"
+                  >
+                    <span class="status-dot" aria-hidden="true"></span>
+                    {{ item.label }}
+                    <span class="status-chip-count">{{ item.count }}</span>
+                  </span>
+                </div>
               </div>
               <div class="main-head-actions">
                 <button type="button" class="kb-toolbar-btn" @click="openEditDialog">编辑</button>
@@ -134,6 +181,7 @@
                     <div class="doc-meta">
                       <span class="type-tag">{{ docTypeLabel(d.doc_type) }}</span>
                       <span class="status-tag" :class="docStatusClass(d.status)">
+                        <span class="status-dot" aria-hidden="true"></span>
                         {{ docStatusLabel(d.status) }}
                       </span>
                       <span v-if="d.updated_at" class="doc-time muted small">
@@ -428,8 +476,11 @@ import client, { formatApiError } from "@/api/client";
 import { useAuthStore } from "@/stores/auth";
 import {
   DOC_TYPE_LABELS,
+  collectionStatusClass,
+  collectionStatusLabel,
   docStatusClass,
   docStatusLabel,
+  docStatusSummaryItems,
   docTypeLabel,
   canReindex,
   reindexBlockHint,
@@ -503,6 +554,14 @@ const deleteDocDialog = reactive({ open: false, id: null, title: "", err: "" });
 const selectedCollection = computed(() =>
   collections.value.find((c) => c.id === selectedCollectionId.value) || null,
 );
+
+const selectedCollectionDocSummary = computed(() =>
+  docStatusSummaryItems(selectedCollection.value?.doc_status_counts),
+);
+
+async function refreshKnowledgeDocs() {
+  await Promise.all([loadDocuments(), loadCollections()]);
+}
 
 function formatTime(iso) {
   try {
@@ -623,7 +682,7 @@ async function saveCollection() {
     activeTab.value = "add";
     addMode.value = "upload";
     msg.value = "集合已创建，可开始上传文档";
-    await loadDocuments();
+    await refreshKnowledgeDocs();
   } catch (e) {
     collDialog.err = formatApiError(e);
   } finally {
@@ -656,7 +715,7 @@ async function confirmDeleteCollection() {
     await loadCollections();
     if (collections.value.length) {
       selectedCollectionId.value = collections.value[0].id;
-      await loadDocuments();
+      await refreshKnowledgeDocs();
     }
   } catch (e) {
     deleteDialog.err = formatApiError(e);
@@ -747,7 +806,7 @@ async function submitUpload() {
     clearUploadFile();
     upload.title = "";
     activeTab.value = "docs";
-    await loadDocuments();
+    await refreshKnowledgeDocs();
   } catch (e) {
     error.value = formatApiError(e);
   } finally {
@@ -769,7 +828,7 @@ async function submitStructured() {
     });
     msg.value = "结构化文档已保存";
     activeTab.value = "docs";
-    await loadDocuments();
+    await refreshKnowledgeDocs();
   } catch (e) {
     error.value = formatApiError(e);
   } finally {
@@ -781,7 +840,7 @@ async function submitDocReview(docId) {
   try {
     await client.post(`/api/knowledge/projects/${projectId.value}/documents/${docId}/submit-review`);
     msg.value = "已提交审核";
-    await loadDocuments();
+    await refreshKnowledgeDocs();
   } catch (e) {
     error.value = formatApiError(e);
   }
@@ -814,7 +873,7 @@ async function confirmDeleteDocument() {
     );
     deleteDocDialog.open = false;
     msg.value = "文档及索引已删除";
-    await loadDocuments();
+    await refreshKnowledgeDocs();
   } catch (e) {
     deleteDocDialog.err = formatApiError(e);
   } finally {
@@ -961,6 +1020,13 @@ onMounted(bootstrap);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.coll-status-icons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.35rem;
+}
 .sidebar-empty {
   text-align: center;
   padding: 1.25rem 0.5rem;
@@ -996,6 +1062,19 @@ onMounted(bootstrap);
 .main-head h2 {
   margin: 0;
   font-size: 1.05rem;
+}
+.main-head-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.coll-doc-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.45rem;
 }
 .main-head-actions {
   display: flex;
@@ -1472,12 +1551,44 @@ onMounted(bootstrap);
 .status-tag {
   display: inline-flex;
   align-items: center;
+  gap: 0.3rem;
   height: 24px;
   padding: 0 0.5rem;
   font-size: 0.72rem;
   font-weight: 500;
   border-radius: 999px;
   box-sizing: border-box;
+}
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: currentColor;
+}
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  height: 24px;
+  padding: 0 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  border-radius: 999px;
+  box-sizing: border-box;
+}
+.status-chip--mini {
+  height: 18px;
+  padding: 0 0.35rem;
+  font-size: 0.65rem;
+}
+.status-chip--mini .status-dot {
+  width: 6px;
+  height: 6px;
+}
+.status-chip-count {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
 }
 .doc-time {
   display: inline-flex;
