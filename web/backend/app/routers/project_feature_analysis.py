@@ -159,10 +159,31 @@ def _sync_run_app_display_name(
         db.add(run)
 
 
+_VERSION_LABEL_MAX_LEN = 64
+
+
+def _app_slug_for_version_label(run: ProjectFeatureAnalysisRun) -> str:
+    """用于版本标签的应用短名（展示名优先，否则 bundle 末段）。"""
+    raw = (run.app_display_name or "").strip()
+    if not raw:
+        bundle = (run.bundle_id or "").strip()
+        raw = bundle.rsplit(".", 1)[-1] if bundle and "." in bundle else (bundle or "app")
+    raw = re.sub(r"[\s/\\]+", "-", raw)
+    raw = re.sub(r"[^\w.+\-]+", "", raw, flags=re.UNICODE)
+    return (raw or "app")[:32]
+
+
 def _max_v_label_number(labels: list[str | None]) -> int:
     max_n = 0
     for lbl in labels:
-        mm = re.match(r"^v(\d+)$", (lbl or "").strip(), re.IGNORECASE)
+        s = (lbl or "").strip()
+        if not s:
+            continue
+        mm = re.match(r"^v(\d+)$", s, re.IGNORECASE)
+        if mm:
+            max_n = max(max_n, int(mm.group(1)))
+            continue
+        mm = re.search(r"-v(\d+)$", s, re.IGNORECASE)
         if mm:
             max_n = max(max_n, int(mm.group(1)))
     return max_n
@@ -193,9 +214,11 @@ def _version_labels_for_same_app(
 def _default_version_label_for_app(
     db: Session, project_id: int, run: ProjectFeatureAnalysisRun
 ) -> str:
-    """新确认保存的默认版本：该应用下已有 vN 的最大值 +1，无记录则为 v1。"""
+    """新确认保存的默认版本：{应用名}-vN，N 为同应用已有 v 序号最大值 +1。"""
     labels = _version_labels_for_same_app(db, project_id, run)
-    return f"v{_max_v_label_number(labels) + 1}"
+    slug = _app_slug_for_version_label(run)
+    n = _max_v_label_number(labels) + 1
+    return f"{slug}-v{n}"[:_VERSION_LABEL_MAX_LEN]
 
 
 def _next_version_label(
@@ -205,11 +228,18 @@ def _next_version_label(
     *,
     run: ProjectFeatureAnalysisRun | None = None,
 ) -> str:
-    """编辑保存时递增：v1 → v2；非 vN 格式则按同应用已有 v 序号 +1。"""
+    """编辑保存时递增：联系人-v1 → 联系人-v2；旧版 v1 在有 run 时升为 {应用}-v2。"""
     cur = (current or "").strip()
+    m = re.match(r"^(.+)-v(\d+)$", cur, re.IGNORECASE)
+    if m:
+        return f"{m.group(1)}-v{int(m.group(2)) + 1}"[:_VERSION_LABEL_MAX_LEN]
     m = re.match(r"^v(\d+)$", cur, re.IGNORECASE)
     if m:
-        return f"v{int(m.group(1)) + 1}"
+        n = int(m.group(1)) + 1
+        if run is not None:
+            slug = _app_slug_for_version_label(run)
+            return f"{slug}-v{n}"[:_VERSION_LABEL_MAX_LEN]
+        return f"v{n}"
     if run is not None:
         return _default_version_label_for_app(db, project_id, run)
     rows = (

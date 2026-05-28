@@ -10,6 +10,8 @@
 - **Agentic RAG 知识库**：MySQL 元数据 + **Qdrant** 向量 + ingest/query（`web/backend/app/knowledge/`）+ LangGraph **Tool**；规范类文档须平台管理员审核后入向量库。详见 **§4.8**。
 - **KB（兼容）**：Web `case_kb` 预检索 + `GET /api/internal/knowledge/cases/search`（语义检索优先，LIKE 降级）。
 - **日志**：Web 与 agent_service 共用 `LOG_LEVEL` / `LOG_FORMAT` 风格（毫秒时间戳 + 模块 + 文件行号）；agent 见 `agent_service/service/logging_config.py`。
+- **用例生成（异步）**：Web `POST /api/test-cases/generate` 返回 **202 + `job_id`**，内存 Job（`case_generation_jobs`）消费 agent **202 + SSE**；前端轮询 `GET …/generate/{job_id}` 展示 `step_log`（含 KB/LLM 明细）。避免长耗时同步 HTTP 超时。
+- **功能树版本命名**：确认保存时 `version_label` 默认 **`{应用名}-vN`**（同应用下兼容旧版纯 `vN` 序号）；同步知识库时旧版纯 `vN` 标题会补应用名便于检索。
 
 ## 1. 系统定位
 
@@ -84,8 +86,8 @@ Web 将租用的**数字机器人实例**按商城 **功能定位（`catalog_rob
 | 项 | 说明 |
 |----|------|
 | 包 | `agent_service/analysis_agent/`（门面）+ `langchain_platform/`（实现） |
-| Web 适配 | `app/services/case_generation.py`（KB + ORM → HTTP → agent_service） |
-| 生成路由 | `POST /api/test-cases/generate`（`TestCaseGenerateIn` → `TestCaseGenerateOut`） |
+| Web 适配 | `case_generation.py`（预检 + KB）+ `case_generation_jobs.py`（Job + SSE 消费） |
+| 生成路由 | `POST /api/test-cases/generate`（**202** `job_id`）；`GET …/generate/{job_id}` 轮询；成功体 `TestCaseGenerateOut` |
 | 持久化 | 上述接口**不写库**；用户在前端编辑后 `POST /api/test-cases` 保存 |
 | LLM 输出 | 始终结构化（标题、前置条件、步骤 JSON、执行说明、优先级） |
 | 上下文 | `Project.name`、`tested_app_name`、`test_objective` + 用户 `prompt` |
@@ -125,39 +127,36 @@ Web 将租用的**数字机器人实例**按商城 **功能定位（`catalog_rob
 sequenceDiagram
   participant UI as CasesView
   participant API as test_cases_router
+  participant Jobs as case_generation_jobs
   participant Gen as case_generation
   participant KB as case_kb
   participant Client as agent_service_client
   participant Router as analysis_router
   participant AA as AnalysisAgent
-  participant Chain as CaseGenChain
-  participant Ret as WebCaseKbRetriever
-  participant IntKB as internal_knowledge_API
+  participant Graph as CaseGenAgenticGraph
   participant LLM as ChatOpenAI_CASE_GEN
 
   UI->>API: POST /api/test-cases/generate
-  API->>Gen: generate_case_draft
-  Gen->>KB: search_cases_kb（租户 scope）
-  KB-->>Gen: kb_snippets, similar_case_ids
-  Gen->>Client: POST /api/agent/analysis/generate-case-draft
-  Note over Gen,Client: project_id, owner_scope_ids, kb_snippets
-  Client->>Router: GenerateCaseDraftRequest
-  Router->>AA: generate_case_draft
-  AA->>Chain: generate
-  alt kb_snippets 为空且 CASE_GEN_USE_KB
-    Chain->>Ret: invoke(prompt)
-    Ret->>IntKB: GET /api/internal/knowledge/cases/search
-    IntKB-->>Ret: items（Bearer WEB_SERVICE_TOKEN）
-    Ret-->>Chain: Documents
+  API->>Jobs: start_case_generation_job（后台线程）
+  API-->>UI: 202 job_id
+  Jobs->>Gen: 预检实例 / 项目权限
+  Jobs->>KB: search_cases_kb（可选）
+  Jobs->>Client: POST …/generate-case-draft
+  Client->>Router: 202 task_id
+  Jobs->>Client: GET …/generate-case-draft/{id}/stream（SSE）
+  Router->>AA: generate_case_draft（on_progress）
+  AA->>Graph: invoke（Agentic RAG / passive 链）
+  Graph->>LLM: chat
+  LLM-->>Graph: JSON
+  Router-->>Client: SSE progress / done
+  Client-->>Jobs: 追加 step_log
+  loop 轮询约 1.5–2s
+    UI->>API: GET /api/test-cases/generate/{job_id}
+    API-->>UI: status, progress_message, step_log
   end
-  Chain->>LLM: invoke messages
-  LLM-->>Chain: JSON text
-  Chain-->>AA: CaseDraft
-  AA-->>Router: response
-  Router-->>Client: JSON
-  Client-->>Gen: draft + similar_case_ids
-  Gen-->>API: TestCaseGenerateOut
-  API-->>UI: 预填编辑弹窗
+  Jobs-->>API: draft（success）
+  API-->>UI: TestCaseGenerateOut → 预填编辑弹窗
+  UI->>API: POST /api/test-cases（用户确认后写库）
 ```
 
 #### 功能点分析调用链
@@ -228,13 +227,13 @@ sequenceDiagram
 | `AutoglmExecGraph` | 步进循环 `PhoneTestAgent` | 同进程 ADB/HDC | `step` |
 | `MidsceneExecGraph` | 调 `midscene_dispatch` | Node 子进程 `--web-dispatch` | `line` / `usage` / `done` |
 
-任务生命周期（三条长任务共用）：`task_manager` 内存注册 → POST 返回 `task_id` → GET `…/stream` 推 SSE → DELETE 取消（杀子进程 / 中断图执行）。Web 侧 `executor` / `feature_analysis_bridge` 消费 SSE 写库 `step_log`。
+任务生命周期（**四条**长任务共用 agent `task_manager`）：POST 返回 `task_id` → GET `…/stream` 推 SSE → DELETE 取消（杀子进程 / 中断图执行）。Web 侧 `executor` / `feature_analysis_bridge` / **`case_generation_jobs`** 消费 SSE，分别写 `test_runs.step_log`、分析 `step_log`、Job 内存 `step_log`。
 
 #### agent_service HTTP API（Web 消费）
 
 | 能力 | 提交 | 流式 | 取消 |
 |------|------|------|------|
-| 用例生成 | `POST /api/agent/analysis/generate-case-draft`（同步） | — | — |
+| 用例生成 | `POST /api/agent/analysis/generate-case-draft` | `GET …/generate-case-draft/{id}/stream`（`progress` / `done` / `error`） | `DELETE …/generate-case-draft/{id}` |
 | 功能点分析 | `POST /api/agent/explore/run` | `GET …/explore/run/{id}/stream` | `DELETE …/explore/run/{id}` |
 | 测试执行 | `POST /api/agent/func-agent/dispatch` | `GET …/func-agent/dispatch/{id}/stream` | `DELETE …/func-agent/dispatch/{id}` |
 | 健康检查 | `GET /api/agent/health` | — | — |
@@ -560,7 +559,7 @@ agent_service 由 web 后端通过 `app/services/agent_service_client.py`（HTTP
 1. 浏览器 → `POST /api/auth/login`（或 register）→ 返回 JWT。  
 2. 前端 `localStorage` 存 token，后续请求 `Authorization: Bearer ...`。  
 3. 用例列表 → `GET /api/test-cases`。
-3b. **AI 生成草稿** → `POST /api/test-cases/generate`；`case_generation` → HTTP `POST /api/agent/analysis/generate-case-draft` → `AnalysisAgent` → `CaseGenChain`（§1.3.1）；**不写库**直至 `POST /api/test-cases`。须**测试分析**实例；与功能点分析、用例执行**互斥**（见 §1.4）。
+3b. **AI 生成草稿** → `POST /api/test-cases/generate`（**202 + `job_id`**）→ `case_generation_jobs` 后台线程：`case_kb` 预检索 → HTTP `POST /api/agent/analysis/generate-case-draft`（202）+ SSE → `AnalysisAgent` → `CaseGenAgenticGraph` / `CaseGenChain`（§1.3.1）；前端轮询 `GET /api/test-cases/generate/{job_id}`（`step_log`、`draft`）；可选 `DELETE …/generate/{job_id}` 取消。**不写库**直至 `POST /api/test-cases`。须**测试分析**实例；与功能点分析、用例执行**互斥**（见 §1.4）。
 3c. **功能点分析** → `POST /api/projects/{id}/feature-analysis/runs`；`feature_analysis_bridge` → HTTP submit/SSE → `FeatureExploreAgent` → `ExploreOrchestratorGraph` → Midscene `explore`；轮询 `GET …/runs/{id}`；结束后 `POST …/confirm` → `project_feature_trees`。详见 §1.3.1、§4.6。
 4. 执行 → `POST /api/test-cases/{id}/run`：请求体含 `robot_instance_id`，可选 `device_platform`、`device_id`；创建 `TestRun` 后**异步**在线程池执行 `executor.execute_test_run`。  
 5. 执行前枚举设备 → `GET /api/devices/connected?platform=…`（用例页「目标终端」下拉）。  
@@ -636,6 +635,8 @@ sequenceDiagram
 | `fair_share_per_root` | `0` 关闭；`-1` 按 `max_screens ÷ 一级 Tab 数` 为每分支分配界面预算；正数为每分支固定上限 |
 
 **确认保存**：`POST …/runs/{run_id}/confirm` 在任务状态为 `success` / `cancelled` / `failed` 且 `feature_json` 含功能点时均可提交；异常中断时 bridge 会尽量 `finalize` 已采集数据。前端工作台可编辑后写入 `project_feature_trees`。
+
+**版本标签（`version_label`）**：请求体可空；默认由 `project_feature_analysis._default_version_label_for_app` 生成 **`{应用展示名或 bundle 末段}-vN`**（`N` 为同项目、同应用下已有 `v*` / `*-v*` 标签的最大序号 +1，兼容历史纯 `v5` 格式）。编辑另存为新版本时 `_next_version_label` 递增（如 `联系人-v5` → `联系人-v6`）。确认后 `knowledge_sync.sync_feature_tree_to_knowledge` 写入 `doc_type=feature_tree`：标题优先用 `version_label`；若仍为纯 `vN` 则展示为 `{应用名}-vN`。
 
 **与顶栏「功能清单探索」**：后者无项目归属、表 `app_explore_runs`；项目内入口为项目卡片「功能点分析」。
 
@@ -801,7 +802,7 @@ flowchart TB
 | 业务链 | 预取 / Tool | 说明 |
 |--------|-------------|------|
 | 用例生成 | `CaseGenAgenticGraph` + `query_knowledge` | Web `case_generation.py` 传 `robot_instance_id`；`rag_trace` 可观测 |
-| 功能点分析 | `ExploreOrchestratorGraph.prefetch_kb_context` | 功能树 confirm 触发 ingest |
+| 功能点分析 | `ExploreOrchestratorGraph.prefetch_kb_context` | 功能树 confirm → `knowledge_sync`（`version_label` / 应用名标题）→ ingest |
 | 测试执行 | `FuncDispatchGraph` prefetch + Recovery RAG | `executor` payload 含 `project_id` / `kb_context` |
 
 机器人 scope：`GET /api/internal/robots/{id}/agent-context` 返回绑定的集合 ID、Skill、`rag_policy` 合并结果。
@@ -909,7 +910,8 @@ run_ingest_document → chunk_text + build_embed_text → Qdrant
   - `project_app_artifacts`：项目内上传的安装包路径；`test_case_sets` / `test_case_set_items`：用例集合；`functional_dispatch_tasks`：功能测试下发任务及 Kafka 投递状态快照。
   - `app_explore_runs`：顶栏「功能清单探索」（全局，与项目无关）。
   - `project_feature_analysis_runs`：项目内功能点分析任务（`traverse_mode`、`max_screens`、`max_depth`、`fair_share_per_root`、`feature_json`、`step_log` 等）。
-  - `project_feature_trees`：用户确认后的功能树多版本（`tree_json`、`version_label`、`confirmed_at`）。
+  - `project_feature_trees`：用户确认后的功能树多版本（`tree_json`、`version_label` 默认 `{app}-vN`、`confirmed_at`）；确认后同步知识库 `feature_tree` 文档。
+  - **用例生成 Job（内存）**：`case_generation_jobs` 模块内 `_jobs` 字典（非 MySQL 表），TTL 约 1h；字段含 `status`、`progress_message`、`step_log`、`draft`。
 
 ## 6. 外部依赖与环境变量
 
@@ -992,7 +994,7 @@ run_ingest_document → chunk_text + build_embed_text → Qdrant
 7. **改测试分析业务类型**：同上 + `web/backend/app/services/case_generation.py`、`feature_analysis_bridge.py`。  
 8. **数据库**：MySQL 8；`DATABASE_URL` 必填；无 Alembic，列迁移在 `database.ensure_schema()`。  
 9. **排查执行失败**：确认实例 **技术路线（autoglm/midscene）**、用例页 **平台+终端**；`adb devices` / `hdc list targets`；看 agent 日志 `agent_service.func_agent` 与 `step_log`；Midscene 报告见 `report_path`。  
-10. **排查 AI 生成失败**：`CASE_GEN_*`、`WEB_SERVICE_TOKEN`（Retriever）；Web `POST /api/test-cases/generate` 或 agent `POST /api/agent/analysis/generate-case-draft`；`CaseGenChain` 对非法 JSON 自动重试一轮。  
+10. **排查 AI 生成失败**：`CASE_GEN_*`、`WEB_SERVICE_TOKEN`（Retriever）；Web `POST /api/test-cases/generate` → 轮询 `GET …/generate/{job_id}` 看 `step_log` / `detail`；agent `GET …/generate-case-draft/{task_id}` 与 SSE；确认 agent_service 可达且未 120s 网关超时（Web 已异步，长任务在 Job + SSE）。`CaseGenChain` 对非法 JSON 自动重试一轮。  
 11. **排查知识库索引/检索**：§4.8.10；确认 Qdrant、`KB_EMBEDDING_*`、索引参数 §4.8.9；文档 `status=active` 且 chunk `indexed`；规范类须 **知识库审核** 通过后再检索。
 
 ## 8. 一句话小结

@@ -24,7 +24,7 @@
 |------|--------|--------|------------------|
 | 1. 项目准备 | 维护被测应用、测试目标等上下文，便于生成与 KB 检索 | 项目空间 | `/api/projects` |
 | 1b. 知识库建设 | 上传规范/策略/页面模型等 → 解析索引 →（规范类）平台审核 → 参与检索 | 项目成员 + **platform_admin** | `/projects/:id/knowledge`；审核 `/knowledge/review` |
-| 2. 用例生成 | 一句话描述 → LLM 产出草稿 → 人工核对 → **保存入库** | **测试分析**机器人实例（商城「测试分析」目录；**不连手机**） | 测试用例页「创建用例 → **自动生成**」；`POST /api/test-cases/generate`（仅草稿）、`POST /api/test-cases`（持久化） |
+| 2. 用例生成 | 一句话描述 → LLM 产出草稿 → 人工核对 → **保存入库** | **测试分析**机器人实例（商城「测试分析」目录；**不连手机**） | 测试用例页「创建用例 → **自动生成**」；`POST /api/test-cases/generate`（**202** 异步 Job + 执行过程日志）、`POST /api/test-cases`（持久化） |
 | 2b. 功能点分析 | 选已安装/上传 App → 真机界面遍历 → 产出 GIIC 功能树 → 编辑 → **确认保存多版本** | **测试分析**机器人实例（**须连手机**；与用例生成、功能点分析任务互斥） | 项目空间「功能点分析」；`/api/projects/{id}/feature-analysis`；详见 [`ARCHITECTURE.md`](./ARCHITECTURE.md) §4.6 |
 | 3. 执行准备 | 租用并启动 **测试执行** 实例，选择 **AutoGLM 或 Midscene** 技术路线并配置默认平台 | **功能执行**等商城目录（实例即测试执行机器人） | 「我的机器人」；`PATCH /api/robot-instances/...` |
 | 4. 真机执行 | 选用例 → 选测试执行实例与（可选）本次 Android/鸿蒙 + 目标终端 → 发起运行 → 看日志 / 投屏 / 报告 | 测试执行实例 + ADB/HDC | 测试用例页「执行测试」；`POST /api/test-cases/{id}/run`、`GET /api/test-cases/runs/{id}` |
@@ -37,7 +37,7 @@ Web 后端（:8000）经 HTTP 调用 **agent_service**（:8100）；分析/执�
 
 | 业务 | Web 入口 | agent_service | LangChain 实现 |
 |------|----------|---------------|----------------|
-| 用例生成 | `POST /api/test-cases/generate` | `POST /api/agent/analysis/generate-case-draft` | `CaseGenChain` |
+| 用例生成 | `POST /api/test-cases/generate` → **202** + 轮询 `GET …/generate/{job_id}` | `POST …/generate-case-draft` → **202** + SSE | `CaseGenAgenticGraph`（默认）/ `CaseGenChain` |
 | 功能点分析 | `POST …/feature-analysis/runs` + SSE | `POST /api/agent/explore/run` + stream | `ExploreOrchestratorGraph` |
 | 测试执行 | `POST /api/test-cases/{id}/run` + SSE | `POST /api/agent/func-agent/dispatch` + stream | `FuncDispatchGraph` → AutoGLM / Midscene |
 
@@ -189,11 +189,13 @@ TXT、MD、MARKDOWN、MDX、PDF、HTML、HTM、XLSX、XLS、DOCX、CSV、JSON（
 
 - **职责**：根据项目上下文与用户一句话，调用大模型生成 **structured** 用例草稿（`title` / `preconditions` / `steps` / `task_text` / `priority`）。所有用例统一为结构化格式，Midscene 执行使用 natural 模式自动转换。
 - **包**：[`agent_service/analysis_agent/`](./agent_service/analysis_agent/)（门面）+ [`agent_service/langchain_platform/`](./agent_service/langchain_platform/)（`CaseGenChain` / `ExploreOrchestratorGraph` 实现）。
-- **Web 适配**：`web/backend/app/services/case_generation.py` 组装 ORM / KB，通过 HTTP 调用 agent_service 的 `POST /api/agent/analysis/generate-case-draft`。
-- **入口**：测试用例页 **「创建用例」→「自动生成」**（须选择已租用的 **测试分析** 机器人实例）→ 预览编辑 → `POST /api/test-cases` 保存。
+- **Web 适配**：`case_generation.py`（预检 + KB）+ **`case_generation_jobs.py`**（内存 Job、消费 agent SSE、写 `step_log`）。
+- **入口**：测试用例页 **「创建用例」→「自动生成」**（须选择已租用的 **测试分析** 机器人实例）→ 轮询时展示 **执行过程**（含 KB 检索、LLM 请求/响应摘要）→ 预览编辑 → `POST /api/test-cases` 保存。
 - **与测试执行配合**：保存后的用例与手动编写的用例相同，在列表中选中后用 **测试执行** 类机器人发起 `POST /api/test-cases/{id}/run`；生成与执行使用**不同**的 `robot_instance_id`。完整步骤见上文 **「端到端工作流」** 与架构文档 §1.0、§1.4。
-- **API**（均不写库）：
-  - `POST /api/test-cases/generate` — 请求体 `project_id`、`robot_instance_id`（`catalog_robot_id=test_analysis`）、`prompt`
+- **API**（生成阶段不写库）：
+  - `POST /api/test-cases/generate` — 202 + `job_id`；请求体 `project_id`、`robot_instance_id`（`catalog_robot_id=test_analysis`）、`prompt`
+  - `GET /api/test-cases/generate/{job_id}` — `status`（`running` / `success` / `failed` / `cancelled`）、`progress_message`、`step_log`、成功时 `draft`
+  - `DELETE /api/test-cases/generate/{job_id}` — 取消进行中的生成
 - **与执行 Agent 分离**：不连手机；真机执行由 **测试执行机器人** 通过 HTTP 提交到 agent_service，在 `executor.py` 中按 **AutoGLM / Midscene** 技术路线路由。
 
 **环境变量（`agent_service/.env`）**
@@ -244,11 +246,11 @@ CASE_GEN_TIMEOUT_SEC=120
 | **项目空间** | `/api/projects` | 项目 CRUD；绑定被测应用与测试目标；多租户按 `owner_id` 隔离；`/projects/{id}/dashboard` 聚合执行次数、报告摘要、活跃机器人、缺陷趋势；`/reports`、`/task-summary` 等 |
 | **功能测试下发** | `/api/projects/{id}/app-packages`、`case-sets`、`functional-dispatches` | 上传 APK/AAB；维护用例集；`/functional-dispatches` POST 组装载荷写入 Kafka（未配置 `KAFKA_BOOTSTRAP_SERVERS` 时仅落库 `queued_local`）；`/api/device-pools` 设备池占位目录 |
 | **数据聚合服务（进程内）** | `app/services/project_dashboard.py` | 从执行记录、`project_reports`、`defects` 等表组装项目看板 JSON（后续可拆独立数据服务） |
-| **测试用例与执行** | `/api/test-cases` | 结构化用例（`steps_json` + `task_text`）；**测试分析**：`POST /generate` → LangChain 草稿；**测试执行**：`POST /{id}/run` → `executor` → agent_service SSE；`test_runs` 记录本次平台与终端 |
+| **测试用例与执行** | `/api/test-cases` | 结构化用例（`steps_json` + `task_text`）；**测试分析**：`POST /generate`（202 Job）→ 轮询草稿 + `step_log`；**测试执行**：`POST /{id}/run` → `executor` → agent_service SSE；`test_runs` 记录本次平台与终端 |
 | **Internal KB（服务间）** | `/api/internal/knowledge/cases/search` | Bearer `WEB_SERVICE_TOKEN`；供 agent `WebCaseKbRetriever`，不面向浏览器 |
 | **已连接设备** | `/api/devices/connected` | 按平台枚举本机 ADB/HDC 在线设备（供用例页「目标终端」） |
 | **APP 功能清单探索** | `/api/app-explore` | 顶栏全局探索（与项目无关）；Midscene 遍历；`GET /installed-apps`；`POST /runs` 需 `bundle_id`；完成后导出 Excel |
-| **项目功能点分析** | `/api/projects/{id}/feature-analysis` | 测试分析实例 + 真机；`POST …/runs`（`traverse_mode`、`max_screens`、`max_depth`、`fair_share_per_root` 等）；实时 `step_log` / 投屏；`POST …/runs/{id}/confirm` 保存确认树（**成功 / 已取消 / 失败且已有功能点**均可）；多版本 `project_feature_trees` |
+| **项目功能点分析** | `/api/projects/{id}/feature-analysis` | 测试分析实例 + 真机；`POST …/runs`（`traverse_mode`、`max_screens`、`max_depth`、`fair_share_per_root` 等）；实时 `step_log` / 投屏；`POST …/runs/{id}/confirm` 保存确认树（**成功 / 已取消 / 失败且已有功能点**均可）；多版本 `project_feature_trees`（默认版本标签 **`{应用名}-vN`**，同步知识库 `feature_tree` 文档） |
 | **知识库检索（用例）** | `/api/knowledge/cases/search` | 语义检索优先，无向量时回退 LIKE |
 | **项目知识库** | `/api/knowledge/projects/{id}/collections` 等 | 集合/文档 CRUD、上传（多格式 ≤50MB、可选文档级 `chunk_policy_json`）、项目/文档索引设置、检索测试、删除、重建索引 |
 | **Internal Agentic RAG** | `POST /api/internal/knowledge/query` | Bearer `WEB_SERVICE_TOKEN`；LangGraph Tool 主入口 |
@@ -272,7 +274,7 @@ CASE_GEN_TIMEOUT_SEC=120
 |------|------|
 | **登录 / 注册** | 手机号或邮箱；请求可走 API 网关（`VITE_API_BASE`） |
 | **项目空间** | 创建/编辑项目；「项目看板」展示度量；「功能测试任务」向导：上传/选用安装包 → 用例集（自建或 AI 占位草稿）→ 设备池 → 下发至 Kafka 队列 |
-| **测试用例** | 结构化步骤 + 执行说明；**AI 生成**（测试分析实例）→ 编辑后保存；保存后用 **功能执行** 实例发起运行；执行前选机器人、**本次平台**（Android/鸿蒙）、**目标终端**；步骤日志与报告；多任务并行时工作台 Tab 区分进行中 / 已结束 |
+| **测试用例** | 结构化步骤 + 执行说明；**AI 生成**（测试分析实例，异步 Job + **执行过程** 面板）→ 编辑后保存；保存后用 **功能执行** 实例发起运行；执行前选机器人、**本次平台**（Android/鸿蒙）、**目标终端**；步骤日志与报告；多任务并行时工作台 Tab 区分进行中 / 已结束 |
 | **我的机器人** | 查看实例编号；配置 **执行引擎** 与 **默认执行设备**（平台）；运行中 **测试执行** 实例点 **执行详情** → `/runs/:runId/live`；**测试分析** 实例功能点分析进行中点 **分析详情** → `/projects/:id/feature-analysis?runId=`（步骤日志 + 投屏）；用例页可临时覆盖 |
 | **个人中心** | 昵称、头像 URL、公司及改密 |
 | **机器人商城** | `/marketplace`：四大数字机器人（测试分析 / 功能执行 / 专项执行 / 质量评估）卡片；「立即租用」选择按时长或按次数后在计费模块生成预订单，并跳转 `/payment` |
@@ -280,7 +282,7 @@ CASE_GEN_TIMEOUT_SEC=120
 | **运行监控大屏** | `/monitor`：仅 `platform_admin` / `tse`；WebSocket 实时指标；本地 **localhost** 开发时默认 **直连 `127.0.0.1:8000` WS**（不经 Vite，避免与 HMR WebSocket 冲突）；详见 `web/frontend/.env.example`（`VITE_WS_DIRECT` / `VITE_WS_HOST`） |
 | **用户与角色** | 仅 `platform_admin`：分配用户 RBAC 角色 |
 | **功能清单探索** | `/app-explore` | 选择 APP ID（bundleName）、Midscene 机器人实例；实时步骤日志与功能树预览；下载 Excel |
-| **项目功能点分析** | `/projects/:projectId/feature-analysis` | 选测试分析实例与 App；配置遍历策略（默认 **混合**）、最大界面数/深度、Tab 公平分配；分析中功能树 + 投屏；取消或中断后可确认保存已采集树；「功能树记录」查看历史版本 |
+| **项目功能点分析** | `/projects/:projectId/feature-analysis` | 选测试分析实例与 App；配置遍历策略（默认 **混合**）、最大界面数/深度、Tab 公平分配；分析中功能树 + 投屏；取消或中断后可确认保存已采集树（版本标签默认 **应用名-vN**）；「功能树记录」查看历史版本 |
 | **项目知识库** | `/projects/:projectId/knowledge` | 左侧集合 + **项目索引设置**；文档列表（**自定义索引** 标签、索引设置弹窗、重建索引）；上传（**高级索引选项**）；检索测试 |
 | **知识库审核** | `/knowledge/review` | 仅 `platform_admin`；审核测试规范/策略上传文档 |
 

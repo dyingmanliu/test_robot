@@ -38,6 +38,6 @@ ProjectFeatureAnalysisView
 
 ## 确认保存
 
-由 Web API `POST …/runs/{id}/confirm` 完成，不在本包内写 `project_feature_trees`。任务状态为 `success`、`cancelled` 或 `failed` 且含功能点即可确认。
+由 Web API `POST …/runs/{id}/confirm` 完成，不在本包内写 `project_feature_trees`。任务状态为 `success`、`cancelled` 或 `failed` 且含功能点即可确认。`version_label` 可选，默认 **`{应用名}-vN`**；确认后 Web `knowledge_sync` 写入知识库 `doc_type=feature_tree`。
 
 详见根目录 [`ARCHITECTURE.md`](../../../ARCHITECTURE.md) §4.6。

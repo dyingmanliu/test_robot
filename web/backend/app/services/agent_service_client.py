@@ -37,7 +37,7 @@ def _raise_for_status(resp: httpx.Response) -> None:
 # ── 同步短任务 ────────────────────────────────────────────
 
 
-def generate_case_draft(
+def _case_gen_payload(
     project: dict[str, Any],
     prompt: str,
     kb_snippets: list[str] | None = None,
@@ -60,11 +60,44 @@ def generate_case_draft(
         payload["robot_instance_id"] = robot_instance_id
     if rag_mode:
         payload["rag_mode"] = rag_mode
-    with httpx.Client(timeout=SHORT_TIMEOUT) as client:
+    return payload
+
+
+def submit_case_gen_generate(
+    project: dict[str, Any],
+    prompt: str,
+    kb_snippets: list[str] | None = None,
+    *,
+    project_id: int | None = None,
+    owner_scope_ids: str | None = None,
+    robot_instance_id: int | None = None,
+    rag_mode: str | None = None,
+) -> str:
+    payload = _case_gen_payload(
+        project,
+        prompt,
+        kb_snippets,
+        project_id=project_id,
+        owner_scope_ids=owner_scope_ids,
+        robot_instance_id=robot_instance_id,
+        rag_mode=rag_mode,
+    )
+    with httpx.Client(timeout=SUBMIT_TIMEOUT) as client:
         resp = client.post(
             f"{_base()}/api/agent/analysis/generate-case-draft",
             json=payload,
         )
+        _raise_for_status(resp)
+        return resp.json()["task_id"]
+
+
+def stream_case_gen_events(task_id: str) -> Iterator[tuple[str, dict[str, Any]]]:
+    return _stream_events(f"{_base()}/api/agent/analysis/generate-case-draft/{task_id}/stream")
+
+
+def get_case_gen_task(task_id: str) -> dict[str, Any]:
+    with httpx.Client(timeout=SHORT_TIMEOUT) as client:
+        resp = client.get(f"{_base()}/api/agent/analysis/generate-case-draft/{task_id}")
         _raise_for_status(resp)
         return resp.json()
 
@@ -167,6 +200,7 @@ def cancel_task(task_type: str, task_id: str) -> None:
         "func-agent": f"/api/agent/func-agent/dispatch/{task_id}",
         "explore": f"/api/agent/explore/run/{task_id}",
         "midscene": f"/api/agent/midscene/task/{task_id}",
+        "case-gen": f"/api/agent/analysis/generate-case-draft/{task_id}",
     }
     url = url_map.get(task_type)
     if url is None:

@@ -350,7 +350,7 @@
         {{ run?.feature_count ?? 0 }} 项功能点确认保存（可编辑后保存）。
       </p>
       <div v-if="canSaveFeatureTree" class="confirm-row">
-        <input v-model="confirmLabel" class="ver-input" placeholder="版本标签（可选，默认 vN）" />
+        <input v-model="confirmLabel" class="ver-input" placeholder="版本标签（可选，默认 应用名-vN）" />
         <button type="button" class="btn primary" :disabled="confirming" @click="confirmTree">
           {{ confirming ? "保存中…" : "确认并保存功能树" }}
         </button>

@@ -12,24 +12,13 @@ from sqlalchemy.orm import Session
 from app.models import Project, RobotInstance, User
 from app.rbac import can_view_all_cases
 from app.schemas import CaseStepJson
-from app.services.analysis_instance_guard import (
-    analysis_generation_lock,
-    instance_available_for_generation,
-)
+from app.services.analysis_instance_guard import instance_available_for_generation
 from app.services.case_kb import search_cases_kb
 from app.services.company_scope import (
     can_use_robot_instance,
     company_shares_projects_cases,
     enterprise_colleague_user_ids,
 )
-
-from app.knowledge.config import rag_default_mode
-from app.services.agent_service_client import (
-    AgentServiceError,
-    generate_case_draft as _agent_generate,
-    get_case_gen_config,
-)
-
 
 class AnalysisAgentError(Exception):
     """用户可见的错误。"""
@@ -103,82 +92,33 @@ class GeneratedCaseDraft:
         self.rag_trace = draft.get("rag_trace")
 
 
-def generate_case_draft(
+def build_draft_from_agent_dict(draft: GeneratedCaseDraft) -> dict:
+    """序列化为 API 响应 dict。"""
+    from app.schemas import CaseGenerateMetaOut, CaseStepJson, TestCaseGenerateOut
+
+    return TestCaseGenerateOut(
+        title=draft.title,
+        task_text=draft.task_text,
+        preconditions=draft.preconditions,
+        steps=[CaseStepJson(order=s.order, description=s.description, expected=s.expected) for s in draft.steps],
+        priority=draft.priority,
+        generation_meta=CaseGenerateMetaOut(
+            model=draft.model,
+            similar_case_ids=draft.similar_case_ids or [],
+            rag_trace=draft.rag_trace or [],
+        ),
+    ).model_dump()
+
+
+def generate_case_draft_precheck(
     db: Session,
     *,
     project: Project,
     user: User,
     robot_instance: RobotInstance,
-    prompt: str,
-) -> GeneratedCaseDraft:
+) -> None:
     if not can_use_robot_instance(db, user, robot_instance):
         raise AnalysisAgentError("无权使用该测试分析机器人实例，或实例已停用")
     ok, msg = instance_available_for_generation(db, robot_instance)
     if not ok:
         raise AnalysisAgentError(msg)
-
-    config = get_case_gen_config()
-    _kb_enabled = config.get("kb_enabled", True)
-    _kb_limit = config.get("kb_limit", 3)
-
-    kb_snippets: list[str] = []
-    similar_ids: list[int] = []
-    rag_mode = rag_default_mode()
-    if _kb_enabled and rag_mode != "agentic":
-        kb_snippets, similar_ids = _fetch_kb_examples(
-            db, project=project, user=user, prompt=prompt, limit=_kb_limit,
-        )
-        log.info(
-            "用例生成 KB 检索 project_id=%s hits=%s",
-            project.id,
-            len(similar_ids),
-        )
-
-    log.info(
-        "调用 analysis_agent 生成用例 project_id=%s user_id=%s instance_id=%s prompt_len=%s",
-        project.id,
-        user.id,
-        robot_instance.id,
-        len((prompt or "").strip()),
-    )
-    scope = _kb_owner_scope(db, user)
-    owner_scope_str: str | None = None
-    if scope is not None:
-        owner_scope_str = ",".join(str(i) for i in scope)
-
-    try:
-        with analysis_generation_lock(robot_instance.id):
-            draft_dict = _agent_generate(
-                project=_project_context(project),
-                prompt=prompt,
-                kb_snippets=kb_snippets if rag_mode != "agentic" else None,
-                project_id=project.id,
-                owner_scope_ids=owner_scope_str,
-                robot_instance_id=robot_instance.id,
-                rag_mode=rag_mode,
-            )
-    except RuntimeError as e:
-        if str(e) == "analysis_instance_busy":
-            raise AnalysisAgentError(
-                "该测试分析机器人正在生成用例，请等待当前任务完成后再试"
-            ) from e
-        raise
-    except AgentServiceError as e:
-        raise AnalysisAgentError(str(e)) from e
-
-    agent_similar = draft_dict.get("similar_case_ids")
-    if agent_similar:
-        draft_dict["similar_case_ids"] = agent_similar
-    else:
-        draft_dict["similar_case_ids"] = similar_ids or None
-    if draft_dict.get("rag_trace") is None:
-        draft_dict["rag_trace"] = []
-    log.info(
-        "用例生成完成 project_id=%s title=%r steps=%s model=%s",
-        project.id,
-        draft_dict.get("title"),
-        len(draft_dict.get("steps", [])),
-        draft_dict.get("model"),
-    )
-    out = GeneratedCaseDraft(draft_dict)
-    return out

@@ -23,6 +23,7 @@ class KnowledgeToolContext:
     rag_calls: int = 0
     max_calls: int = 5
     rag_trace: list[dict[str, Any]] = field(default_factory=list)
+    on_progress: Callable[[dict[str, Any]], None] | None = None
 
 
 def _internal_headers() -> dict[str, str]:
@@ -70,6 +71,16 @@ def query_knowledge_http(
             "latency_ms": data.get("latency_ms"),
         }
     )
+    if ctx.on_progress is not None:
+        from agent_service.analysis_agent.progress import emit_kb_http_log
+
+        emit_kb_http_log(
+            ctx.on_progress,
+            query=query,
+            doc_types=doc_types,
+            data=data,
+            call_index=ctx.rag_calls,
+        )
     return data
 
 

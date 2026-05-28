@@ -247,6 +247,20 @@ class TestCaseGenerateOut(BaseModel):
     generation_meta: CaseGenerateMetaOut = Field(default_factory=CaseGenerateMetaOut)
 
 
+class TestCaseGenerateJobSubmittedOut(BaseModel):
+    job_id: str
+    status: str = "running"
+
+
+class TestCaseGenerateJobOut(BaseModel):
+    job_id: str
+    status: str
+    progress_message: str = ""
+    step_log: str = ""
+    draft: TestCaseGenerateOut | None = None
+    error: str | None = None
+
+
 class TestCaseCreate(BaseModel):
     project_id: int = Field(..., description="所属项目空间 ID")
     title: str = Field(..., min_length=1, max_length=256)

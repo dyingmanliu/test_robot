@@ -8,7 +8,7 @@ Web 后端（:8000）经 HTTP 调用 agent_service（:8100）；本包不直接�
 
 | 链路 | Web 入口 | agent_service HTTP | 本包入口 |
 |------|----------|-------------------|----------|
-| 用例生成 | `POST /api/test-cases/generate` | `POST /api/agent/analysis/generate-case-draft` | `CaseGenAgenticGraph`（默认）/ `CaseGenChain`（passive） |
+| 用例生成 | `POST /api/test-cases/generate` → 202 + 轮询 `GET …/generate/{job_id}` | `POST …/generate-case-draft` 202 + SSE | `CaseGenAgenticGraph`（默认）/ `CaseGenChain`（passive） |
 | 功能点分析 | `POST /api/projects/{id}/feature-analysis/runs` | `POST /api/agent/explore/run` + SSE | `ExploreOrchestratorGraph`（含 `prefetch_kb`） |
 | 测试执行 | `POST /api/test-cases/{id}/run` | `POST /api/agent/func-agent/dispatch` + SSE | `FuncDispatchGraph`（含 prefetch + AutoGLM Recovery RAG） |
 
@@ -20,21 +20,22 @@ Web 后端（:8000）经 HTTP 调用 agent_service（:8100）；本包不直接�
 
 ```
 Vue CasesView
-  → POST /api/test-cases/generate                    [web :8000]
-  → case_generation.generate_case_draft
-       ├─ case_kb.search_cases_kb（MySQL LIKE）      → kb_snippets[]
-       └─ agent_service_client.generate_case_draft
-            → POST /api/agent/analysis/generate-case-draft   [agent :8100]
-            → AnalysisAgent.generate_case_draft
-            → CaseGenChain.generate
-                 ├─（可选）WebCaseKbRetriever
-                 │    → GET /api/internal/knowledge/cases/search
-                 │         Authorization: Bearer WEB_SERVICE_TOKEN
-                 ├─ ChatOpenAI（CASE_GEN_*）
-                 ├─ parser.extract_json_object / draft_from_parsed
-                 └─ JSON 解析失败时重试一轮
-  ← TestCaseGenerateOut（不写库，用户确认后 POST /api/test-cases）
+  → POST /api/test-cases/generate（202 job_id）       [web :8000]
+  → case_generation_jobs（后台线程）
+       ├─ case_kb（passive 模式预检索）→ kb_snippets[]
+       ├─ submit_case_gen_generate → POST …/generate-case-draft（202）
+       └─ stream_case_gen_events（SSE）直到 done / error
+  → GET /api/test-cases/generate/{job_id} 轮询（约 1.5–2s）
+  ← status=success 时带 TestCaseGenerateOut draft
+       agent 内：AnalysisAgent → CaseGenAgenticGraph / CaseGenChain
+  用户确认后 POST /api/test-cases 写库
 ```
+
+**进度与可观测性**
+
+- agent SSE `event=progress`，`data.kind=case_gen_log`（阶段：KB 检索、图节点、LLM 请求/响应摘要等）；`analysis_agent/progress.py` 经 `on_progress` 回调推送。
+- Web Job 将 SSE 行追加到 `step_log`；前端 `CasesView` + `utils/caseGenLive.js` 展示「执行过程」面板。
+- 取消：Web `DELETE …/generate/{job_id}` → agent `DELETE …/generate-case-draft/{task_id}`。
 
 **KB 双路径（可并存）**
 
@@ -71,7 +72,8 @@ Vue ProjectFeatureAnalysisView
             → midscene_tech explore 子进程（JSONL stdout）
        ← 增量写 run.feature_json、step_log
   → GET /runs/{id} 轮询
-  → POST /runs/{id}/confirm → project_feature_trees
+  → POST /runs/{id}/confirm → project_feature_trees（version_label 默认 `{app}-vN`）
+       → knowledge_sync（feature_tree 文档标题；旧版纯 vN 补应用名）
 ```
 
 **LangGraph 不负责** Midscene 内视觉 `aiAct` 重规划循环，只负责编排、取消回调、树归一化。

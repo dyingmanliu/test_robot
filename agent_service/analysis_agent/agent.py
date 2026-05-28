@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import os
-
 from agent_service.analysis_agent.config import AnalysisAgentConfig, load_analysis_config
+from agent_service.analysis_agent.progress import CaseGenProgressFn
 from agent_service.analysis_agent.types import CaseDraft, ProjectContext
 from agent_service.langchain_platform.chains.case_generation import CaseGenChain
 from agent_service.langchain_platform.graphs.case_gen_agentic import run_case_gen_agentic
@@ -32,6 +32,7 @@ class AnalysisAgent:
         owner_scope_ids: str | None = None,
         robot_instance_id: int | None = None,
         rag_mode: str | None = None,
+        on_progress: CaseGenProgressFn | None = None,
     ) -> CaseDraft:
         mode = (rag_mode or os.getenv("RAG_DEFAULT_MODE") or "agentic").strip().lower()
         if mode == "agentic" or robot_instance_id is not None:
@@ -43,6 +44,7 @@ class AnalysisAgent:
                 owner_scope_ids=owner_scope_ids,
                 rag_mode=mode,
                 config=self.config,
+                on_progress=on_progress,
             )
             self._rag_trace = trace
             return draft
@@ -53,4 +55,5 @@ class AnalysisAgent:
             kb_snippets=kb_snippets,
             project_id=project_id,
             owner_scope_ids=owner_scope_ids,
+            on_progress=on_progress,
         )

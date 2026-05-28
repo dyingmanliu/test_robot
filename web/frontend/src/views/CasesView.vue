@@ -434,7 +434,7 @@
     <p v-if="importMsg" class="banner ok">{{ importMsg }}</p>
 
     <div v-if="genDialog.open" class="modal-overlay" @click.self="closeGenerate">
-      <div class="modal">
+      <div class="modal" :class="{ 'modal-wide': genDialog.loading }">
         <h3>自动生成用例</h3>
         <p class="muted small">
           须选择已租用的<strong>测试分析</strong>机器人实例；用一句话描述要测什么，由分析机器人生成草稿。保存前可在编辑页核对或切换格式。
@@ -478,7 +478,33 @@
             :disabled="genDialog.loading"
           ></textarea>
         </label>
-        <p v-if="genDialog.error" class="err">{{ genDialog.error }}</p>
+        <div v-if="genDialog.loading" class="gen-exec-log">
+          <div class="gen-exec-log-head">
+            <h4 class="gen-exec-log-title">执行过程</h4>
+            <span v-if="genDialog.progressMessage" class="gen-exec-log-status muted small">
+              {{ genDialog.progressMessage }}
+            </span>
+          </div>
+          <div ref="genLogScrollRef" class="gen-exec-log-scroll">
+            <p v-if="!genDialog.stepLog" class="muted log-empty">已提交，等待 agent 响应…</p>
+            <div v-else class="gen-log-steps">
+              <div
+                v-for="(e, idx) in genDialogLogEntries"
+                :key="idx"
+                class="gen-log-line"
+                :class="e.tone"
+              >
+                <div class="gen-log-line-head">
+                  <span class="gen-log-phase">{{ e.title }}</span>
+                  <span class="gen-log-msg">{{ e.body }}</span>
+                  <span v-if="e.meta" class="gen-log-meta">{{ e.meta }}</span>
+                </div>
+                <pre v-if="e.detail" class="gen-log-detail">{{ e.detail }}</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p v-else-if="genDialog.error" class="err">{{ genDialog.error }}</p>
         <div class="modal-actions">
           <button type="button" class="btn ghost" :disabled="genDialog.loading" @click="closeGenerate">
             取消
@@ -595,6 +621,7 @@ import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from
 import { storeToRefs } from "pinia";
 import { useRoute, useRouter } from "vue-router";
 import client, { formatApiError } from "@/api/client";
+import { parseCaseGenStepLog } from "@/utils/caseGenLive";
 import DeviceScreenMirror from "@/components/DeviceScreenMirror.vue";
 import {
   useActiveTestRunStore,
@@ -1010,7 +1037,26 @@ const genDialog = reactive({
   prompt: "",
   loading: false,
   error: "",
+  jobId: "",
+  progressMessage: "",
+  stepLog: "",
 });
+const genLogScrollRef = ref(null);
+const genDialogLogEntries = computed(() => parseCaseGenStepLog(genDialog.stepLog));
+let genPollAbort = false;
+
+watch(
+  () => genDialog.stepLog,
+  async () => {
+    await nextTick();
+    const el = genLogScrollRef.value;
+    if (el) el.scrollTop = el.scrollHeight;
+  },
+);
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 const createMenuOpen = ref(false);
 const createMenuRef = ref(null);
@@ -1271,10 +1317,25 @@ function openGenerate() {
   genDialog.prompt = "";
   genDialog.loading = false;
   genDialog.error = "";
+  genDialog.jobId = "";
+  genDialog.progressMessage = "";
+  genDialog.stepLog = "";
+  genPollAbort = false;
 }
 
-function closeGenerate() {
-  if (genDialog.loading) return;
+async function closeGenerate() {
+  if (genDialog.loading && genDialog.jobId) {
+    genPollAbort = true;
+    const jid = genDialog.jobId;
+    genDialog.loading = false;
+    genDialog.jobId = "";
+    genDialog.progressMessage = "";
+    try {
+      await client.delete(`/api/test-cases/generate/${jid}`);
+    } catch {
+      /* ignore */
+    }
+  }
   genDialog.open = false;
   genDialog.error = "";
 }
@@ -1324,18 +1385,52 @@ async function submitGenerate() {
     return;
   }
   genDialog.loading = true;
+  genDialog.progressMessage = "正在提交…";
+  genDialog.stepLog = "";
+  genPollAbort = false;
   try {
-    const { data } = await client.post("/api/test-cases/generate", {
+    const { data: submitted } = await client.post("/api/test-cases/generate", {
       project_id: selectedProjectId.value,
       robot_instance_id: selectedAnalysisRobotInstanceId.value,
       prompt,
     });
-    genDialog.open = false;
-    openCreateWithDraft(data);
+    const jobId = submitted.job_id;
+    genDialog.jobId = jobId;
+    genDialog.progressMessage = "已提交，正在生成…";
+    for (;;) {
+      if (genPollAbort) return;
+      await sleep(1500);
+      if (genPollAbort) return;
+      const { data: st } = await client.get(`/api/test-cases/generate/${jobId}`);
+      if (st.step_log) {
+        genDialog.stepLog = st.step_log;
+      }
+      if (st.progress_message) {
+        genDialog.progressMessage = st.progress_message;
+      }
+      if (st.status === "success" && st.draft) {
+        genDialog.open = false;
+        genDialog.jobId = "";
+        openCreateWithDraft(st.draft);
+        return;
+      }
+      if (st.status === "failed") {
+        genDialog.error = st.error || "用例生成失败";
+        return;
+      }
+      if (st.status === "cancelled") {
+        genDialog.error = st.error || "已取消";
+        return;
+      }
+    }
   } catch (e) {
     genDialog.error = formatApiError(e);
   } finally {
     genDialog.loading = false;
+    genDialog.jobId = "";
+    if (!genDialog.open) {
+      genDialog.progressMessage = "";
+    }
   }
 }
 
@@ -2347,6 +2442,102 @@ onUnmounted(() => {
 
 .busy-robot-line {
   margin: 0.25rem 0;
+}
+
+.gen-exec-log {
+  margin-top: 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 0.65rem 0.75rem;
+}
+
+.gen-exec-log-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.gen-exec-log-title {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.gen-exec-log-scroll {
+  max-height: 320px;
+  overflow-y: auto;
+  font-size: 0.8rem;
+}
+
+.gen-log-line {
+  padding: 0.4rem 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.gen-log-line-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
+  align-items: baseline;
+}
+
+.gen-log-line:last-child {
+  border-bottom: none;
+}
+
+.gen-log-phase {
+  font-weight: 600;
+  color: #475569;
+  min-width: 2.5rem;
+}
+
+.gen-log-line.step .gen-log-phase {
+  color: #0369a1;
+}
+
+.gen-log-line.feature .gen-log-phase,
+.gen-log-line.done .gen-log-phase {
+  color: #15803d;
+}
+
+.gen-log-line.error .gen-log-phase,
+.gen-log-line.llm_error .gen-log-phase {
+  color: #b91c1c;
+}
+
+.gen-log-line.llm .gen-log-phase,
+.gen-log-line.llm_response .gen-log-phase,
+.gen-log-line.llm_request .gen-log-phase {
+  color: #6d28d9;
+}
+
+.gen-log-msg {
+  flex: 1;
+  color: #1e293b;
+}
+
+.gen-log-detail {
+  margin: 0.35rem 0 0;
+  padding: 0.45rem 0.5rem;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 140px;
+  overflow-y: auto;
+  color: #334155;
+}
+
+.gen-log-meta {
+  color: #64748b;
+  font-size: 0.75rem;
 }
 
 .exec-console {

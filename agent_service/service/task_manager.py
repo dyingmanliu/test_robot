@@ -31,6 +31,8 @@ class TaskRecord:
     cancel_event: threading.Event = field(default_factory=threading.Event)
     created_at: datetime = field(default_factory=datetime.utcnow)
     finished_at: datetime | None = None
+    result: dict[str, Any] | None = None
+    error_detail: str | None = None
 
 
 class TaskManager:

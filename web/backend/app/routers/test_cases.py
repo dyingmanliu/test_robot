@@ -23,6 +23,8 @@ from app.schemas import (
     CaseStepJson,
     TestCaseCreate,
     TestCaseGenerateIn,
+    TestCaseGenerateJobOut,
+    TestCaseGenerateJobSubmittedOut,
     TestCaseGenerateOut,
     TestCaseOut,
     TestCaseRevisionOut,
@@ -31,7 +33,12 @@ from app.schemas import (
     TestRunOut,
     RunCaseBody,
 )
-from app.services.case_generation import CaseGeneratorError, generate_case_draft
+from app.services.case_generation import CaseGeneratorError
+from app.services.case_generation_jobs import (
+    cancel_case_generation_job,
+    get_job as get_case_generation_job,
+    start_case_generation_job,
+)
 from app.services.case_agent_text import parse_steps_json
 from app.services.case_import import parse_import_file, row_to_create
 from app.services.app_explore_service import (
@@ -130,27 +137,31 @@ def list_cases(
     return [test_case_to_out(tc) for tc in rows]
 
 
-@router.post("/generate", response_model=TestCaseGenerateOut)
-def generate_case_from_prompt(
+@router.post(
+    "/generate",
+    response_model=TestCaseGenerateJobSubmittedOut,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+def submit_generate_case_job(
     body: TestCaseGenerateIn,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
-) -> TestCaseGenerateOut:
-    """根据用户一句话生成用例草稿（不写库，供前端预览编辑后保存）。"""
+) -> TestCaseGenerateJobSubmittedOut:
+    """提交用例生成异步任务（不写库）。"""
     proj = _resolve_project_for_case(db, body.project_id, user)
     inst = db.query(RobotInstance).filter(RobotInstance.id == body.robot_instance_id).first()
     if inst is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="机器人实例不存在")
 
     log.info(
-        "API 用例生成 project_id=%s user_id=%s instance_id=%s prompt_len=%s",
+        "API 用例生成提交 project_id=%s user_id=%s instance_id=%s prompt_len=%s",
         body.project_id,
         user.id,
         body.robot_instance_id,
         len(body.prompt),
     )
     try:
-        draft = generate_case_draft(
+        job_id = start_case_generation_job(
             db,
             project=proj,
             user=user,
@@ -158,20 +169,39 @@ def generate_case_from_prompt(
             prompt=body.prompt,
         )
     except CaseGeneratorError as e:
-        log.warning("API 用例生成失败 project_id=%s: %s", body.project_id, e)
+        log.warning("API 用例生成提交失败 project_id=%s: %s", body.project_id, e)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
-    return TestCaseGenerateOut(
-        title=draft.title,
-        task_text=draft.task_text,
-        preconditions=draft.preconditions,
-        steps=draft.steps,
-        priority=draft.priority,
-        generation_meta=CaseGenerateMetaOut(
-            model=draft.model,
-            similar_case_ids=draft.similar_case_ids or [],
-            rag_trace=draft.rag_trace or [],
-        ),
+    return TestCaseGenerateJobSubmittedOut(job_id=job_id, status="running")
+
+
+@router.get("/generate/{job_id}", response_model=TestCaseGenerateJobOut)
+def get_generate_case_job(
+    job_id: str,
+    user: User = Depends(get_current_user),
+) -> TestCaseGenerateJobOut:
+    job = get_case_generation_job(job_id)
+    if job is None or job.user_id != user.id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="生成任务不存在")
+    draft_out: TestCaseGenerateOut | None = None
+    if job.draft:
+        draft_out = TestCaseGenerateOut.model_validate(job.draft)
+    return TestCaseGenerateJobOut(
+        job_id=job.job_id,
+        status=job.status,
+        progress_message=job.progress_message,
+        step_log=job.step_log or "",
+        draft=draft_out,
+        error=job.error,
     )
+
+
+@router.delete("/generate/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
+def cancel_generate_case_job(
+    job_id: str,
+    user: User = Depends(get_current_user),
+) -> None:
+    if not cancel_case_generation_job(job_id, user_id=user.id):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="任务不存在或无法取消")
 
 
 @router.post("", response_model=TestCaseOut)

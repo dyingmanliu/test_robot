@@ -17,6 +17,11 @@ from agent_service.analysis_agent.config import (
 )
 from agent_service.analysis_agent.errors import AnalysisAgentError
 from agent_service.analysis_agent.parser import draft_from_parsed, extract_json_object
+from agent_service.analysis_agent.progress import (
+    CaseGenProgressFn,
+    emit_case_gen_progress,
+    invoke_chat_with_progress,
+)
 from agent_service.analysis_agent.types import CaseDraft, ProjectContext
 from agent_service.langchain_platform.models import get_chat_model
 from agent_service.langchain_platform.tools.knowledge_query import (
@@ -46,24 +51,37 @@ def _rag_mode() -> str:
     return (os.getenv("RAG_DEFAULT_MODE") or "agentic").strip().lower()
 
 
-def _load_context(state: CaseGenAgenticState) -> dict[str, Any]:
+def _load_context(state: CaseGenAgenticState, on_progress: CaseGenProgressFn | None = None) -> dict[str, Any]:
+    emit_case_gen_progress(on_progress, phase="load_context", message="加载机器人知识库绑定与检索策略…")
     ctx = KnowledgeToolContext(
         robot_instance_id=state.get("robot_instance_id"),
         project_id=state.get("project_id"),
         owner_scope_ids=state.get("owner_scope_ids"),
         max_calls=5,
+        on_progress=on_progress,
     )
     agent_ctx = fetch_agent_context(ctx)
     if agent_ctx.get("rag_policy"):
         ctx.max_calls = int(agent_ctx["rag_policy"].get("max_calls", ctx.max_calls))
+    max_calls = ctx.max_calls
+    emit_case_gen_progress(
+        on_progress,
+        phase="load_context",
+        message=f"知识库检索上限：{max_calls} 次",
+        max_calls=max_calls,
+    )
     return {"tool_ctx": ctx, "rag_trace": []}
 
 
-def _agentic_retrieve(state: CaseGenAgenticState) -> dict[str, Any]:
+def _agentic_retrieve(
+    state: CaseGenAgenticState,
+    on_progress: CaseGenProgressFn | None = None,
+) -> dict[str, Any]:
     mode = (state.get("rag_mode") or _rag_mode()).lower()
     ctx = state["tool_ctx"]
     prompt = state["prompt"]
     if mode == "passive":
+        emit_case_gen_progress(on_progress, phase="retrieve", message="单次检索知识库（passive 模式）…")
         data = query_knowledge_http(
             query=prompt[:200],
             doc_types=["case", "standard", "strategy"],
@@ -71,32 +89,66 @@ def _agentic_retrieve(state: CaseGenAgenticState) -> dict[str, Any]:
             limit=3,
         )
         items = data.get("items") or []
+        emit_case_gen_progress(
+            on_progress,
+            phase="retrieve_done",
+            message=f"知识库检索完成，命中 {len(items)} 条",
+            hits=len(items),
+        )
         snippets = [f"【{it.get('title','')}】\n{it.get('snippet','')}" for it in items]
         return {"kb_context": "\n\n".join(snippets), "rag_trace": ctx.rag_trace}
 
-    # 多轮检索（避免 DeepSeek thinking 模型与 bind_tools 循环不兼容）
+    emit_case_gen_progress(on_progress, phase="retrieve", message="Agentic 多轮检索知识库…")
     _ = fetch_agent_context(ctx)
     plan_queries: list[tuple[str, list[str]]] = [
         (prompt[:200], ["standard", "strategy", "case"]),
         (f"页面与 UI {prompt[:120]}", ["page_model", "ui_element"]),
         (f"执行经验 {prompt[:120]}", ["execution_hint", "case"]),
     ]
-    for q, dtypes in plan_queries:
+    for idx, (q, dtypes) in enumerate(plan_queries, start=1):
         if ctx.rag_calls >= ctx.max_calls:
+            emit_case_gen_progress(
+                on_progress,
+                phase="retrieve",
+                message=f"已达检索上限（{ctx.max_calls} 次），停止继续检索",
+            )
             break
-        query_knowledge_http(query=q, doc_types=dtypes, ctx=ctx, limit=3)
-    summary = ""
+        emit_case_gen_progress(
+            on_progress,
+            phase="retrieve_query",
+            message=f"第 {idx} 轮：{q[:80]}{'…' if len(q) > 80 else ''}",
+            doc_types=",".join(dtypes),
+            round=idx,
+        )
+        data = query_knowledge_http(query=q, doc_types=dtypes, ctx=ctx, limit=3)
+        hits = len(data.get("items") or [])
+        emit_case_gen_progress(
+            on_progress,
+            phase="retrieve_query",
+            message=f"第 {idx} 轮完成，本轮命中 {hits} 条",
+            hits=hits,
+            round=idx,
+        )
     parts = []
     for tr in ctx.rag_trace:
         for hit in tr.get("hits") or []:
             parts.append(f"【{hit.get('doc_type','')} {hit.get('title','')}】\n{hit.get('snippet','')}")
     kb = "\n\n".join(parts)
-    if summary and summary.strip() != "检索完成":
-        kb = (kb + "\n\n【检索摘要】\n" + summary).strip()
+    emit_case_gen_progress(
+        on_progress,
+        phase="retrieve_done",
+        message=f"知识库检索完成，共 {len(parts)} 条片段，调用 {ctx.rag_calls} 次",
+        hits=len(parts),
+        rag_calls=ctx.rag_calls,
+    )
     return {"kb_context": kb, "rag_trace": ctx.rag_trace}
 
 
-def _generate_draft(state: CaseGenAgenticState, config: AnalysisAgentConfig) -> dict[str, Any]:
+def _generate_draft(
+    state: CaseGenAgenticState,
+    config: AnalysisAgentConfig,
+    on_progress: CaseGenProgressFn | None = None,
+) -> dict[str, Any]:
     project = state["project"]
     prompt = state["prompt"]
     kb = state.get("kb_context") or ""
@@ -124,16 +176,40 @@ def _generate_draft(state: CaseGenAgenticState, config: AnalysisAgentConfig) -> 
         SystemMessage(content=CASE_GENERATION_SYSTEM_PROMPT),
         HumanMessage(content=user_msg),
     ]
-    resp = llm.invoke(messages)
+    resp = invoke_chat_with_progress(
+        llm,
+        messages,
+        on_progress=on_progress,
+        model_name=config.model_name,
+        attempt=1,
+    )
     raw = str(resp.content or "").strip()
     try:
         draft = draft_from_parsed(extract_json_object(raw))
+        emit_case_gen_progress(
+            on_progress,
+            phase="parse",
+            message=f"已解析 JSON 草稿：{draft.title}（{len(draft.steps)} 步）",
+            title=draft.title,
+            steps=len(draft.steps),
+        )
     except AnalysisAgentError:
+        emit_case_gen_progress(
+            on_progress,
+            phase="llm_retry",
+            message="模型输出 JSON 无法解析，发起第 2 次补全请求…",
+        )
         fix = messages + [
             resp,
             HumanMessage(content="请仅输出符合要求的单个 JSON 对象，不要 markdown。"),
         ]
-        resp2 = llm.invoke(fix)
+        resp2 = invoke_chat_with_progress(
+            llm,
+            fix,
+            on_progress=on_progress,
+            model_name=config.model_name,
+            attempt=2,
+        )
         draft = draft_from_parsed(extract_json_object(str(resp2.content or "")))
     draft.model = config.model_name
     similar_ids: list[int] = []
@@ -146,15 +222,24 @@ def _generate_draft(state: CaseGenAgenticState, config: AnalysisAgentConfig) -> 
     return {"draft": draft}
 
 
-def build_case_gen_agentic_graph(config: AnalysisAgentConfig | None = None):
+def build_case_gen_agentic_graph(
+    config: AnalysisAgentConfig | None = None,
+    on_progress: CaseGenProgressFn | None = None,
+):
     cfg = config or load_analysis_config()
 
+    def load_node(state: CaseGenAgenticState) -> dict[str, Any]:
+        return _load_context(state, on_progress)
+
+    def retrieve_node(state: CaseGenAgenticState) -> dict[str, Any]:
+        return _agentic_retrieve(state, on_progress)
+
     def gen_node(state: CaseGenAgenticState) -> dict[str, Any]:
-        return _generate_draft(state, cfg)
+        return _generate_draft(state, cfg, on_progress)
 
     g = StateGraph(CaseGenAgenticState)
-    g.add_node("load_context", _load_context)
-    g.add_node("retrieve", _agentic_retrieve)
+    g.add_node("load_context", load_node)
+    g.add_node("retrieve", retrieve_node)
     g.add_node("generate", gen_node)
     g.set_entry_point("load_context")
     g.add_edge("load_context", "retrieve")
@@ -172,6 +257,7 @@ def run_case_gen_agentic(
     owner_scope_ids: str | None = None,
     rag_mode: str | None = None,
     config: AnalysisAgentConfig | None = None,
+    on_progress: CaseGenProgressFn | None = None,
 ) -> tuple[CaseDraft, list[dict[str, Any]]]:
     text = (prompt or "").strip()
     if not text:
@@ -181,7 +267,8 @@ def run_case_gen_agentic(
     cfg = config or load_analysis_config()
     if not cfg.api_key:
         raise AnalysisAgentError("未配置用例生成 API Key")
-    graph = build_case_gen_agentic_graph(cfg)
+    emit_case_gen_progress(on_progress, phase="start", message="开始用例生成编排…")
+    graph = build_case_gen_agentic_graph(cfg, on_progress)
     t0 = time.perf_counter()
     final = graph.invoke(
         {
@@ -197,6 +284,13 @@ def run_case_gen_agentic(
     if draft is None:
         raise AnalysisAgentError(final.get("error") or "用例生成失败")
     trace = final.get("rag_trace") or []
+    emit_case_gen_progress(
+        on_progress,
+        phase="done",
+        message=f"用例草稿已生成：{draft.title}",
+        title=draft.title,
+        steps=len(draft.steps),
+    )
     log.info(
         "Agentic 用例生成完成 title=%r rag_calls=%s elapsed=%.0fms",
         draft.title,

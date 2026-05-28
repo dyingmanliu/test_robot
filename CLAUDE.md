@@ -88,7 +88,10 @@ agent_service exposes REST + SSE endpoints consumed by the web backend:
 | Interface | Method | Purpose |
 |-----------|--------|---------|
 | `/api/agent/health` | GET | Health check |
-| `/api/agent/analysis/generate-case-draft` | POST | Case generation (sync) |
+| `/api/agent/analysis/generate-case-draft` | POST | Submit case generation (async, 202 + `task_id`) |
+| `/api/agent/analysis/generate-case-draft/{id}/stream` | GET | SSE: `progress` / `done` / `error` / `cancelled` |
+| `/api/agent/analysis/generate-case-draft/{id}` | GET | Task status + `draft` when done |
+| `/api/agent/analysis/generate-case-draft/{id}` | DELETE | Cancel generation |
 | `/api/agent/config/case-generation` | GET | KB config query |
 | `/api/agent/func-agent/dispatch` | POST | Submit test execution task (async) |
 | `/api/agent/func-agent/dispatch/{id}/stream` | GET | SSE stream: step/line/usage/done events |
@@ -144,7 +147,8 @@ web/
     routers/                  # API route modules
     services/                 # business logic
       agent_service_client.py # HTTP client for agent_service (replaces direct import)
-      case_generation.py      # Web bridge → agent_service HTTP (+ case_kb RAG)
+      case_generation.py      # Web bridge: precheck + case_kb RAG
+      case_generation_jobs.py # Async in-memory jobs → agent SSE → step_log
       routers/internal_knowledge.py  # Bearer WEB_SERVICE_TOKEN KB for agent retriever
       case_agent_text.py      # structured fields → agent task text
       case_kb.py              # case KB search for RAG
@@ -163,7 +167,7 @@ web/
 - **Auth**: JWT (python-jose) + bcrypt. Three roles: `platform_admin`, `tse`, `enterprise`.
 - **Multi-tenancy**: Projects/test cases scoped by `owner_id`. Company-level sharing via `Company.share_projects_cases_internally`.
 - **Environment**: Split per service: `web/backend/.env` (DB, JWT, logging, admin, AGENT_SERVICE_URL) and `agent_service/.env` (LLM keys, model config, CASE_GEN_*, PHONE_AGENT_*, MIDSCENE_*). Each service loads its own `.env`. See `.env.example` for full reference.
-- **agent_service communication**: Web backend calls agent_service via HTTP (`agent_service_client.py`). Short tasks use sync POST/GET. Long tasks (test execution, feature explore) use POST to submit → SSE stream for progress → DELETE to cancel. No more direct Python import of `agent_service/`. Cancel is immediate: `signal_cancel()` sends DELETE to agent_service via `_run_task_ids` mapping, terminating the subprocess and closing the SSE stream.
+- **agent_service communication**: Web backend calls agent_service via HTTP (`agent_service_client.py`). Long tasks (case generation, test execution, feature explore) use POST to submit → SSE stream for progress → DELETE to cancel. Case generation: Web `POST /api/test-cases/generate` (202) → `case_generation_jobs` → agent `generate-case-draft` + SSE; UI polls `GET …/generate/{job_id}`. No more direct Python import of `agent_service/`. Test execution cancel: `signal_cancel()` sends DELETE via `_run_task_ids`, terminating subprocess and closing SSE.
 - **Test case format**: Structured only (steps JSON + task_text). Midscene execution uses natural language mode (`execution_mode: "natural"`) which auto-converts structured steps. `case_format_convert.py` and `case_yaml.py` have been removed.
 - **Agent optimization**: AutoGLM model calls have 120s timeout (`PHONE_AGENT_TIMEOUT_SEC`). Screenshots scaled to 720p JPEG (quality 75). Fixed action delays reduced by ~40%. Virtual keypad input hints embedded in task text. Device discovery cached for 3s. Midscene replanning cycle limit defaults to 100, step timeout to 180s.
 

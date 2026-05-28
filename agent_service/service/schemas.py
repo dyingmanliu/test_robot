@@ -49,6 +49,12 @@ class CaseGenConfigResponse(BaseModel):
     kb_limit: int
 
 
+class CaseGenTaskStatusResponse(BaseModel):
+    status: str
+    draft: dict[str, Any] | None = None
+    detail: str | None = None
+
+
 class SyncGiicRequest(BaseModel):
     tree_json: dict[str, Any]
 

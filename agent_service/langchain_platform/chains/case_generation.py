@@ -14,6 +14,11 @@ from agent_service.analysis_agent.config import (
     load_analysis_config,
 )
 from agent_service.analysis_agent.errors import AnalysisAgentError
+from agent_service.analysis_agent.progress import (
+    CaseGenProgressFn,
+    emit_case_gen_progress,
+    invoke_chat_with_progress,
+)
 from agent_service.analysis_agent.parser import draft_from_parsed, extract_json_object
 from agent_service.analysis_agent.types import CaseDraft, ProjectContext
 from agent_service.langchain_platform.models import get_chat_model
@@ -88,6 +93,7 @@ class CaseGenChain:
         kb_snippets: list[str] | None = None,
         project_id: int | None = None,
         owner_scope_ids: str | None = None,
+        on_progress: CaseGenProgressFn | None = None,
     ) -> CaseDraft:
         text = (prompt or "").strip()
         if not text:
@@ -99,11 +105,18 @@ class CaseGenChain:
                 "未配置用例生成 API Key，请在 .env 中设置 CASE_GEN_API_KEY 或 BIGMODEL_API_KEY"
             )
 
+        emit_case_gen_progress(on_progress, phase="retrieve", message="检索参考用例（WebCaseKbRetriever）…")
         resolved_snippets, similar_ids = _resolve_kb_snippets(
             prompt=text,
             kb_snippets=kb_snippets,
             project_id=project_id,
             owner_scope_ids=owner_scope_ids,
+        )
+        emit_case_gen_progress(
+            on_progress,
+            phase="retrieve_done",
+            message=f"参考用例检索完成，{len(resolved_snippets)} 条片段",
+            hits=len(resolved_snippets),
         )
 
         user_msg = _build_user_message(project=project, prompt=text, kb_snippets=resolved_snippets)
@@ -119,7 +132,13 @@ class CaseGenChain:
         )
         t0 = time.perf_counter()
         try:
-            resp = self._llm.invoke(messages)
+            resp = invoke_chat_with_progress(
+                self._llm,
+                messages,
+                on_progress=on_progress,
+                model_name=self.config.model_name,
+                attempt=1,
+            )
         except Exception as e:
             raise AnalysisAgentError(f"调用大模型失败：{e}") from e
         raw = str(resp.content or "").strip()
@@ -127,20 +146,45 @@ class CaseGenChain:
             raise AnalysisAgentError("模型返回为空")
         try:
             draft = draft_from_parsed(extract_json_object(raw))
+            emit_case_gen_progress(
+                on_progress,
+                phase="parse",
+                message=f"已解析 JSON 草稿：{draft.title}（{len(draft.steps)} 步）",
+                title=draft.title,
+                steps=len(draft.steps),
+            )
         except AnalysisAgentError:
+            emit_case_gen_progress(
+                on_progress,
+                phase="llm_retry",
+                message="模型输出 JSON 无法解析，发起第 2 次补全请求…",
+            )
             fix_messages = messages + [
                 resp,
                 HumanMessage(
                     content="上次输出无法解析。请仅输出符合要求的单个 JSON 对象，不要 markdown。"
                 ),
             ]
-            resp2 = self._llm.invoke(fix_messages)
+            resp2 = invoke_chat_with_progress(
+                self._llm,
+                fix_messages,
+                on_progress=on_progress,
+                model_name=self.config.model_name,
+                attempt=2,
+            )
             raw2 = str(resp2.content or "").strip()
             draft = draft_from_parsed(extract_json_object(raw2))
 
         draft.model = self.config.model_name
         if similar_ids:
             draft.similar_case_ids = similar_ids
+        emit_case_gen_progress(
+            on_progress,
+            phase="done",
+            message=f"用例草稿已生成：{draft.title}",
+            title=draft.title,
+            steps=len(draft.steps),
+        )
         log.info(
             "LangChain 用例生成完成 title=%r steps=%s elapsed=%.0fms",
             draft.title,
