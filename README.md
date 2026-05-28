@@ -58,14 +58,27 @@ Web 后端（:8000）经 HTTP 调用 **agent_service**（:8100）；分析/执�
   后台自动索引（parse → chunk → embed）
        ↓
   ┌─ 测试规范/策略（上传）→ 待审核 → 平台管理员通过 → 写入向量库 → 已发布
-  └─ 其他类型（页面模型等）→ 直接已发布
+  └─ 其他类型（执行经验、页面模型、术语表等）→ 索引成功 → 直接已发布
        ↓
   检索测试 / Agent Tool（query_knowledge）→ 语义命中 active 切片
 ```
 
 - **谁可以做什么**：项目成员管理集合与文档；**仅 `platform_admin`** 可在「后台管理 → 知识库审核」通过/驳回规范类文档。
 - **何时能检索**：文档状态为 **已发布**，且切片 `embedding_status=indexed`（Qdrant 有向量）。待审核文档已解析但未入向量库，**不参与检索**。
+- **审核范围**：仅 **`source_type=upload` 且 `doc_type` 为 `standard`（测试规范）或 `strategy`（测试策略）** 会进入待审核；上传时若选成「执行经验」等其它类型，**不会**走审核，索引后直接已发布。
 - **机器人绑定**：在「我的机器人」为实例选择知识集合 + Skill；Agent 仅检索绑定集合内的 active 文档。
+
+### 索引参数（环境 / 项目 / 单文档）
+
+| 层级 | 配置位置 | 作用 |
+|------|----------|------|
+| 环境默认 | `web/backend/.env`：`KB_CHUNK_*`、`KB_SEARCH_MIN_SCORE` | 全站兜底 |
+| 项目默认 | 知识库页左侧 **「索引设置」** → `project_knowledge_settings.chunk_policy_json` | 本项目多数文档的切片与检索阈值 |
+| 单文档覆盖 | 上传 **「高级索引选项」** 或文档 **「索引设置」** → `knowledge_documents.chunk_policy_json` | 仅影响该文档的切片/向量化（不含最低相似度） |
+
+合并优先级：**环境 → 项目 → 文档**。修改项目或文档级切片参数后，须对已有 **已发布** 文档点 **「重建索引」** 才会重切并重 embed。
+
+**切片能力**（`chunkers.py`）：规范/策略类默认 **按章节标题**（如 `6.3 条件分支`）切片；可向量化文本前附加 **【文档】【章节】** 前缀以提升检索命中率。检索侧用 `KB_SEARCH_MIN_SCORE`（项目页可覆盖）过滤低相似度结果。
 
 ### 技术栈
 
@@ -75,7 +88,8 @@ Web 后端（:8000）经 HTTP 调用 **agent_service**（:8100）；分析/执�
 | 向量 | **Qdrant** | `qdrant-client`；集合 `tcm_knowledge_chunks`；Dashboard `http://127.0.0.1:6333/dashboard` |
 | Embedding | **DashScope `text-embedding-v3`** | OpenAI 兼容 HTTP（`openai` SDK）；`KB_EMBEDDING_*`；Key 未设时回退 `DASHSCOPE_API_KEY` / `MIDSCENE_MODEL_API_KEY` |
 | 文档解析 | python-docx / pymupdf / openpyxl / xlrd | TXT·MD·PDF·DOCX·XLSX·HTML·CSV·JSON；单文件 ≤50MB |
-| 文本切片 | 自研 `chunkers._split_by_size` | ~800 字/块，按段落/句号边界；**无 NLTK 运行时依赖** |
+| 文本切片 | `chunkers.py` + `chunk_policy.py` | 可配置长度/重叠；规范类 **按章节标题** 切分；embedding 前可选文档/章节前缀；**无 NLTK** |
+| 检索阈值 | `KB_SEARCH_MIN_SCORE` + Qdrant `score_threshold` | 默认 0.6；项目「索引设置」可覆盖；设为 `0` 关闭过滤 |
 | 索引编排 | `index/pipeline.py` | `ThreadPoolExecutor` 异步；parse → chunk → embed → Qdrant upsert |
 | 检索 | `query/service.py` | query embedding → Qdrant 过滤检索 → MySQL 取 snippet |
 | Agent 侧 | LangGraph Tool + Internal API | `POST /api/internal/knowledge/query`（Bearer `WEB_SERVICE_TOKEN`） |
@@ -96,7 +110,9 @@ TXT、MD、MARKDOWN、MDX、PDF、HTML、HTM、XLSX、XLS、DOCX、CSV、JSON（
 | 结构化录入 | `POST …/documents/structured` |
 | 删除文档（含向量） | `DELETE …/documents/{doc_id}` |
 | 重建索引 | `POST /api/knowledge/documents/{doc_id}/reindex` |
-| 检索测试 | `GET …/projects/{id}/search?q=…` |
+| 项目索引设置 | `GET/PATCH/DELETE …/projects/{id}/chunk-policy` |
+| 文档索引设置 | `GET/PATCH …/projects/{id}/documents/{doc_id}/chunk-policy`（`?reindex=true` 保存后重建） |
+| 检索测试 | `GET …/projects/{id}/search?q=…`（响应含 `min_score`） |
 | 审核队列 / 审核 | `GET /api/knowledge/review-queue`、`POST …/documents/{id}/review` |
 | Agent 语义检索 | `POST /api/internal/knowledge/query` |
 | 机器人 KB 绑定 | `PATCH /api/knowledge/robot-instances/{id}/knowledge-binding` |
@@ -210,8 +226,9 @@ CASE_GEN_TIMEOUT_SEC=120
 - **存储**：MySQL 存文档与切片正文；Qdrant 存向量；上传文件在 `KB_FILE_STORAGE`（默认 `web/backend/data/knowledge`）。
 - **索引**：`index/pipeline.py` — 异步 parse → chunk → DashScope embed → Qdrant upsert。
 - **检索**：`query/service.py` — query 向量 + Qdrant 过滤 + MySQL snippet。
-- **审核**：上传的 **standard / strategy** 须 `platform_admin` 审核通过后才会 embed 入向量库（详见 ARCHITECTURE §4.8.3）。
-- **前端**：`ProjectKnowledgeView.vue`（集合、文档列表、上传、检索测试）、`KnowledgeReviewView.vue`（审核）。
+- **审核**：上传的 **standard / strategy** 须 `platform_admin` 审核通过后才会 embed 入向量库（详见 ARCHITECTURE §4.8.3）；其它 `doc_type` 不强制审核。
+- **索引参数**：`chunk_policy.py` 合并环境/项目/文档三级配置；见上文「索引参数」与 ARCHITECTURE §4.8.9。
+- **前端**：`ProjectKnowledgeView.vue`（集合、左侧项目索引设置、上传高级索引选项、文档「索引设置」弹窗、检索测试）、`KnowledgeReviewView.vue`（审核）。
 
 ### 1g. MAI-UI 技术路线（`mai_ui_tech/`）
 
@@ -233,7 +250,7 @@ CASE_GEN_TIMEOUT_SEC=120
 | **APP 功能清单探索** | `/api/app-explore` | 顶栏全局探索（与项目无关）；Midscene 遍历；`GET /installed-apps`；`POST /runs` 需 `bundle_id`；完成后导出 Excel |
 | **项目功能点分析** | `/api/projects/{id}/feature-analysis` | 测试分析实例 + 真机；`POST …/runs`（`traverse_mode`、`max_screens`、`max_depth`、`fair_share_per_root` 等）；实时 `step_log` / 投屏；`POST …/runs/{id}/confirm` 保存确认树（**成功 / 已取消 / 失败且已有功能点**均可）；多版本 `project_feature_trees` |
 | **知识库检索（用例）** | `/api/knowledge/cases/search` | 语义检索优先，无向量时回退 LIKE |
-| **项目知识库** | `/api/knowledge/projects/{id}/collections` 等 | 集合/文档 CRUD、上传（多格式 ≤50MB）、结构化录入、检索测试、删除、重建索引 |
+| **项目知识库** | `/api/knowledge/projects/{id}/collections` 等 | 集合/文档 CRUD、上传（多格式 ≤50MB、可选文档级 `chunk_policy_json`）、项目/文档索引设置、检索测试、删除、重建索引 |
 | **Internal Agentic RAG** | `POST /api/internal/knowledge/query` | Bearer `WEB_SERVICE_TOKEN`；LangGraph Tool 主入口 |
 | **机器人 KB 绑定** | `PATCH /api/knowledge/robot-instances/{id}/knowledge-binding` | 绑定 knowledge_collections + skill_profile |
 | **知识库审核** | `/api/knowledge/review-queue`、`POST …/documents/{id}/review` | 仅 `platform_admin`；通过后触发向量索引 |
@@ -264,7 +281,7 @@ CASE_GEN_TIMEOUT_SEC=120
 | **用户与角色** | 仅 `platform_admin`：分配用户 RBAC 角色 |
 | **功能清单探索** | `/app-explore` | 选择 APP ID（bundleName）、Midscene 机器人实例；实时步骤日志与功能树预览；下载 Excel |
 | **项目功能点分析** | `/projects/:projectId/feature-analysis` | 选测试分析实例与 App；配置遍历策略（默认 **混合**）、最大界面数/深度、Tab 公平分配；分析中功能树 + 投屏；取消或中断后可确认保存已采集树；「功能树记录」查看历史版本 |
-| **项目知识库** | `/projects/:projectId/knowledge` | 左侧知识集合；文档列表（状态、重建索引、删除）；上传/结构化录入；检索测试 |
+| **项目知识库** | `/projects/:projectId/knowledge` | 左侧集合 + **项目索引设置**；文档列表（**自定义索引** 标签、索引设置弹窗、重建索引）；上传（**高级索引选项**）；检索测试 |
 | **知识库审核** | `/knowledge/review` | 仅 `platform_admin`；审核测试规范/策略上传文档 |
 
 构建与开发依赖：[`web/frontend/package.json`](./web/frontend/package.json)。
@@ -372,8 +389,14 @@ KB_EMBEDDING_API_KEY=sk-...          # 或 DASHSCOPE_API_KEY
 KB_EMBEDDING_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
 KB_EMBEDDING_MODEL=text-embedding-v3
 KB_FILE_STORAGE=web/backend/data/knowledge
+KB_SEARCH_MIN_SCORE=0.6
+KB_CHUNK_MAX_CHARS=800
+KB_CHUNK_OVERLAP=100
+KB_CHUNK_HEADING_AWARE=1
 RAG_DEFAULT_MODE=agentic
 ```
+
+项目页「索引设置」与单文档设置会覆盖上述切片/阈值默认值；详见 §「索引参数（环境 / 项目 / 单文档）」。
 
 完整流程与状态机见 [`ARCHITECTURE.md`](./ARCHITECTURE.md) §4.8。
 

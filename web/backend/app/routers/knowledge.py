@@ -15,6 +15,13 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.deps import get_current_user
+from app.knowledge.chunk_policy import (
+    effective_search_min_score,
+    has_document_chunk_override,
+    normalize_chunk_policy,
+    normalize_document_chunk_policy,
+    resolve_chunk_policy,
+)
 from app.knowledge.config import kb_file_storage
 from app.knowledge.ingestion.upload_types import validate_upload_path
 from app.knowledge.index.pipeline import can_reindex_document, reindex_block_reason, schedule_ingest
@@ -23,6 +30,7 @@ from app.models import (
     KnowledgeCollection,
     KnowledgeDocument,
     Project,
+    ProjectKnowledgeSettings,
     RobotInstance,
     RobotInstanceBinding,
     SkillProfile,
@@ -72,8 +80,31 @@ class DocumentOut(BaseModel):
     title: str
     status: str
     version: int
+    has_chunk_override: bool = False
     created_at: datetime
     updated_at: datetime
+
+
+class DocumentChunkPolicyOut(BaseModel):
+    use_project_default: bool
+    has_document_override: bool
+    max_chars: int
+    overlap: int
+    overlap_short: int
+    prefix_title: bool
+    prefix_section: bool
+    heading_aware: bool
+    search_min_score: Optional[float] = None
+
+
+class DocumentChunkPolicyUpdate(BaseModel):
+    use_project_default: bool = True
+    max_chars: Optional[int] = Field(None, ge=200, le=4000)
+    overlap: Optional[int] = Field(None, ge=0, le=800)
+    overlap_short: Optional[int] = Field(None, ge=0, le=400)
+    prefix_title: Optional[bool] = None
+    prefix_section: Optional[bool] = None
+    heading_aware: Optional[bool] = None
 
 
 class StructuredDocIn(BaseModel):
@@ -81,6 +112,8 @@ class StructuredDocIn(BaseModel):
     doc_type: str
     title: str
     structured_json: dict = Field(default_factory=dict)
+    use_project_chunk_policy: bool = True
+    chunk_policy: Optional[dict] = None
 
 
 class ReviewIn(BaseModel):
@@ -92,6 +125,27 @@ class RobotBindingIn(BaseModel):
     skill_profile_id: Optional[int] = None
     knowledge_collection_ids: list[int] = Field(default_factory=list)
     rag_policy_override: dict = Field(default_factory=dict)
+
+
+class ChunkPolicyOut(BaseModel):
+    max_chars: int
+    overlap: int
+    overlap_short: int
+    prefix_title: bool
+    prefix_section: bool
+    heading_aware: bool
+    search_min_score: Optional[float] = None
+    has_project_override: bool = False
+
+
+class ChunkPolicyUpdate(BaseModel):
+    max_chars: Optional[int] = Field(None, ge=200, le=4000)
+    overlap: Optional[int] = Field(None, ge=0, le=800)
+    overlap_short: Optional[int] = Field(None, ge=0, le=400)
+    prefix_title: Optional[bool] = None
+    prefix_section: Optional[bool] = None
+    heading_aware: Optional[bool] = None
+    search_min_score: Optional[float] = Field(None, ge=0.0, le=1.0)
 
 
 def _require_project(db: Session, user: User, project_id: int) -> Project:
@@ -163,6 +217,148 @@ def _get_collection(
     if row is None:
         raise HTTPException(status_code=404, detail="集合不存在")
     return row
+
+
+def _require_document(
+    db: Session, user: User, project_id: int, doc_id: int
+) -> KnowledgeDocument:
+    _require_project(db, user, project_id)
+    doc = (
+        db.query(KnowledgeDocument)
+        .filter(KnowledgeDocument.id == doc_id, KnowledgeDocument.project_id == project_id)
+        .first()
+    )
+    if doc is None:
+        raise HTTPException(status_code=404, detail="文档不存在")
+    return doc
+
+
+def _document_chunk_policy_out(db: Session, doc: KnowledgeDocument) -> DocumentChunkPolicyOut:
+    effective = resolve_chunk_policy(db, doc.project_id, doc.id)
+    project_only = resolve_chunk_policy(db, doc.project_id, None)
+    has_override = has_document_chunk_override(doc.chunk_policy_json)
+    return DocumentChunkPolicyOut(
+        use_project_default=not has_override,
+        has_document_override=has_override,
+        max_chars=int(effective["max_chars"]),
+        overlap=int(effective["overlap"]),
+        overlap_short=int(effective["overlap_short"]),
+        prefix_title=bool(effective.get("prefix_title")),
+        prefix_section=bool(effective.get("prefix_section")),
+        heading_aware=bool(effective.get("heading_aware")),
+        search_min_score=effective_search_min_score(project_only),
+    )
+
+
+def _apply_upload_chunk_policy(
+    doc: KnowledgeDocument,
+    *,
+    use_project_chunk_policy: bool,
+    chunk_policy_json: str,
+) -> None:
+    if use_project_chunk_policy:
+        doc.chunk_policy_json = "{}"
+        return
+    raw = (chunk_policy_json or "").strip()
+    if not raw:
+        raise HTTPException(status_code=400, detail="请提供 chunk_policy_json 或选择使用项目默认")
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise HTTPException(status_code=400, detail="chunk_policy_json 格式无效") from exc
+    if not isinstance(parsed, dict):
+        raise HTTPException(status_code=400, detail="chunk_policy_json 须为对象")
+    doc.chunk_policy_json = json.dumps(
+        normalize_document_chunk_policy(parsed), ensure_ascii=False
+    )
+
+
+def _chunk_policy_out(db: Session, project_id: int) -> ChunkPolicyOut:
+    policy = resolve_chunk_policy(db, project_id)
+    row = (
+        db.query(ProjectKnowledgeSettings)
+        .filter(ProjectKnowledgeSettings.project_id == project_id)
+        .first()
+    )
+    has_override = bool(row and (row.chunk_policy_json or "").strip() not in ("", "{}"))
+    score = policy.get("search_min_score")
+    return ChunkPolicyOut(
+        max_chars=int(policy["max_chars"]),
+        overlap=int(policy["overlap"]),
+        overlap_short=int(policy["overlap_short"]),
+        prefix_title=bool(policy.get("prefix_title")),
+        prefix_section=bool(policy.get("prefix_section")),
+        heading_aware=bool(policy.get("heading_aware")),
+        search_min_score=float(score) if score is not None else None,
+        has_project_override=has_override,
+    )
+
+
+def _get_or_create_project_knowledge_settings(
+    db: Session, project_id: int
+) -> ProjectKnowledgeSettings:
+    row = (
+        db.query(ProjectKnowledgeSettings)
+        .filter(ProjectKnowledgeSettings.project_id == project_id)
+        .first()
+    )
+    if row is None:
+        row = ProjectKnowledgeSettings(project_id=project_id)
+        db.add(row)
+        db.flush()
+    return row
+
+
+@router.get("/projects/{project_id}/chunk-policy", response_model=ChunkPolicyOut)
+def get_project_chunk_policy(
+    project_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> ChunkPolicyOut:
+    _require_project(db, user, project_id)
+    return _chunk_policy_out(db, project_id)
+
+
+@router.patch("/projects/{project_id}/chunk-policy", response_model=ChunkPolicyOut)
+def update_project_chunk_policy(
+    project_id: int,
+    body: ChunkPolicyUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> ChunkPolicyOut:
+    _require_project(db, user, project_id)
+    row = _get_or_create_project_knowledge_settings(db, project_id)
+    current: dict = {}
+    if (row.chunk_policy_json or "").strip():
+        try:
+            parsed = json.loads(row.chunk_policy_json)
+            if isinstance(parsed, dict):
+                current = parsed
+        except json.JSONDecodeError:
+            current = {}
+    patch = body.model_dump(exclude_unset=True)
+    current.update(patch)
+    row.chunk_policy_json = json.dumps(normalize_chunk_policy(current), ensure_ascii=False)
+    db.commit()
+    return _chunk_policy_out(db, project_id)
+
+
+@router.delete("/projects/{project_id}/chunk-policy", response_model=ChunkPolicyOut)
+def reset_project_chunk_policy(
+    project_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> ChunkPolicyOut:
+    _require_project(db, user, project_id)
+    row = (
+        db.query(ProjectKnowledgeSettings)
+        .filter(ProjectKnowledgeSettings.project_id == project_id)
+        .first()
+    )
+    if row is not None:
+        row.chunk_policy_json = "{}"
+        db.commit()
+    return _chunk_policy_out(db, project_id)
 
 
 @router.get("/skill-profiles")
@@ -291,11 +487,64 @@ def list_documents(
             title=r.title,
             status=r.status,
             version=r.version,
+            has_chunk_override=has_document_chunk_override(r.chunk_policy_json),
             created_at=r.created_at,
             updated_at=r.updated_at,
         )
         for r in rows
     ]
+
+
+@router.get(
+    "/projects/{project_id}/documents/{doc_id}/chunk-policy",
+    response_model=DocumentChunkPolicyOut,
+)
+def get_document_chunk_policy(
+    project_id: int,
+    doc_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> DocumentChunkPolicyOut:
+    doc = _require_document(db, user, project_id, doc_id)
+    return _document_chunk_policy_out(db, doc)
+
+
+@router.patch(
+    "/projects/{project_id}/documents/{doc_id}/chunk-policy",
+    response_model=DocumentChunkPolicyOut,
+)
+def update_document_chunk_policy(
+    project_id: int,
+    doc_id: int,
+    body: DocumentChunkPolicyUpdate,
+    reindex: bool = Query(False),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> DocumentChunkPolicyOut:
+    doc = _require_document(db, user, project_id, doc_id)
+    if body.use_project_default:
+        doc.chunk_policy_json = "{}"
+    else:
+        patch = body.model_dump(exclude_unset=True, exclude={"use_project_default"})
+        current: dict = {}
+        if has_document_chunk_override(doc.chunk_policy_json):
+            try:
+                parsed = json.loads(doc.chunk_policy_json)
+                if isinstance(parsed, dict):
+                    current = parsed
+            except json.JSONDecodeError:
+                current = {}
+        current.update(patch)
+        doc.chunk_policy_json = json.dumps(
+            normalize_document_chunk_policy(current), ensure_ascii=False
+        )
+    db.commit()
+    db.refresh(doc)
+    if reindex:
+        if not can_reindex_document(doc.status):
+            raise HTTPException(status_code=400, detail=reindex_block_reason(doc.status))
+        schedule_ingest(doc.id)
+    return _document_chunk_policy_out(db, doc)
 
 
 @router.post("/projects/{project_id}/documents/upload")
@@ -304,6 +553,8 @@ async def upload_document(
     collection_id: int = Form(...),
     doc_type: str = Form("standard"),
     title: str = Form(""),
+    use_project_chunk_policy: str = Form("true"),
+    chunk_policy_json: str = Form(""),
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
@@ -327,6 +578,7 @@ async def upload_document(
     except HTTPException:
         dest.unlink(missing_ok=True)
         raise
+    use_project = use_project_chunk_policy.strip().lower() in ("1", "true", "yes", "on")
     doc = KnowledgeDocument(
         collection_id=collection_id,
         project_id=project_id,
@@ -337,11 +589,21 @@ async def upload_document(
         status="pending_parse",
         file_path=str(dest),
     )
+    _apply_upload_chunk_policy(
+        doc,
+        use_project_chunk_policy=use_project,
+        chunk_policy_json=chunk_policy_json,
+    )
     db.add(doc)
     db.commit()
     db.refresh(doc)
     schedule_ingest(doc.id)
-    return {"id": doc.id, "status": doc.status, "title": doc.title}
+    return {
+        "id": doc.id,
+        "status": doc.status,
+        "title": doc.title,
+        "has_chunk_override": has_document_chunk_override(doc.chunk_policy_json),
+    }
 
 
 @router.post("/projects/{project_id}/documents/structured")
@@ -369,11 +631,21 @@ def create_structured_document(
         status="pending_parse",
         structured_json=json.dumps(body.structured_json, ensure_ascii=False),
     )
+    if body.use_project_chunk_policy:
+        doc.chunk_policy_json = "{}"
+    elif body.chunk_policy:
+        doc.chunk_policy_json = json.dumps(
+            normalize_document_chunk_policy(body.chunk_policy), ensure_ascii=False
+        )
     db.add(doc)
     db.commit()
     db.refresh(doc)
     schedule_ingest(doc.id)
-    return {"id": doc.id, "status": doc.status}
+    return {
+        "id": doc.id,
+        "status": doc.status,
+        "has_chunk_override": has_document_chunk_override(doc.chunk_policy_json),
+    }
 
 
 @router.delete("/projects/{project_id}/documents/{doc_id}", status_code=status.HTTP_204_NO_CONTENT)

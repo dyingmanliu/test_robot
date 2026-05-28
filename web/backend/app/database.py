@@ -224,6 +224,40 @@ def ensure_schema(eng: Engine | None = None) -> None:
                             "ADD COLUMN scroll_max_passes INTEGER DEFAULT 3"
                         )
                     )
+        if inspector.has_table("project_knowledge_settings"):
+            pks_cols = {c["name"] for c in inspector.get_columns("project_knowledge_settings")}
+            if "chunk_policy_json" not in pks_cols:
+                with db_engine.begin() as conn:
+                    conn.execute(
+                        text(
+                            "ALTER TABLE project_knowledge_settings "
+                            "ADD COLUMN chunk_policy_json LONGTEXT"
+                        )
+                    )
+                    conn.execute(
+                        text(
+                            "UPDATE project_knowledge_settings "
+                            "SET chunk_policy_json = '{}' "
+                            "WHERE chunk_policy_json IS NULL"
+                        )
+                    )
+        if inspector.has_table("knowledge_documents"):
+            kd_cols = {c["name"] for c in inspector.get_columns("knowledge_documents")}
+            if "chunk_policy_json" not in kd_cols:
+                with db_engine.begin() as conn:
+                    conn.execute(
+                        text(
+                            "ALTER TABLE knowledge_documents "
+                            "ADD COLUMN chunk_policy_json LONGTEXT"
+                        )
+                    )
+                    conn.execute(
+                        text(
+                            "UPDATE knowledge_documents "
+                            "SET chunk_policy_json = '{}' "
+                            "WHERE chunk_policy_json IS NULL"
+                        )
+                    )
     except Exception:
         _log.exception("ensure_schema 执行失败")
 

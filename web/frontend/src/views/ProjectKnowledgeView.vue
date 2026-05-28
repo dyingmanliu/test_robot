@@ -40,31 +40,78 @@
               >
                 <span class="coll-name">{{ c.name }}</span>
                 <span v-if="c.description" class="coll-desc">{{ c.description }}</span>
-                <span class="coll-status-icons" aria-label="文档状态概览">
-                  <span
-                    class="status-chip status-chip--mini"
-                    :class="collectionStatusClass(c.status)"
-                    :title="`集合：${collectionStatusLabel(c.status)}`"
-                  >
-                    <span class="status-dot" aria-hidden="true"></span>
-                  </span>
-                  <span
-                    v-for="item in docStatusSummaryItems(c.doc_status_counts)"
-                    :key="`${c.id}-${item.status}`"
-                    class="status-chip status-chip--mini"
-                    :class="item.class"
-                    :title="`${item.label} ${item.count}`"
-                  >
-                    <span class="status-dot" aria-hidden="true"></span>
-                    <span class="status-chip-count">{{ item.count }}</span>
-                  </span>
-                </span>
               </button>
             </li>
           </ul>
           <div v-else class="sidebar-empty">
             <p class="muted small">暂无集合</p>
             <button type="button" class="kb-btn kb-btn--primary" @click="openCollectionDialog">新建集合</button>
+          </div>
+
+          <div class="sidebar-settings">
+            <div class="sidebar-settings-head">
+              <h3>索引设置</h3>
+              <span v-if="chunkPolicy.has_project_override" class="settings-badge">已自定义</span>
+            </div>
+            <p class="hint small settings-hint">影响切片与检索阈值；修改后请对已有文档「重建索引」。</p>
+            <div class="settings-grid">
+              <label class="settings-field">
+                <span>切片长度</span>
+                <input v-model.number="chunkPolicy.max_chars" type="number" min="200" max="4000" step="50" />
+              </label>
+              <label class="settings-field">
+                <span>重叠字符</span>
+                <input v-model.number="chunkPolicy.overlap" type="number" min="0" max="800" step="10" />
+              </label>
+              <label class="settings-field">
+                <span>短文档重叠</span>
+                <input v-model.number="chunkPolicy.overlap_short" type="number" min="0" max="400" step="10" />
+              </label>
+              <label class="settings-field">
+                <span>最低相似度</span>
+                <input
+                  v-model="chunkPolicy.search_min_score_text"
+                  type="number"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  placeholder="留空用环境默认"
+                />
+              </label>
+            </div>
+            <div class="settings-checks">
+              <label class="settings-check">
+                <input v-model="chunkPolicy.prefix_title" type="checkbox" />
+                向量前加文档标题
+              </label>
+              <label class="settings-check">
+                <input v-model="chunkPolicy.prefix_section" type="checkbox" />
+                向量前加章节标题
+              </label>
+              <label class="settings-check">
+                <input v-model="chunkPolicy.heading_aware" type="checkbox" />
+                按章节标题切片
+              </label>
+            </div>
+            <div class="settings-actions">
+              <button
+                type="button"
+                class="kb-toolbar-btn kb-toolbar-btn--primary"
+                :disabled="chunkPolicySaving"
+                @click="saveChunkPolicy"
+              >
+                {{ chunkPolicySaving ? "保存中…" : "保存" }}
+              </button>
+              <button
+                v-if="chunkPolicy.has_project_override"
+                type="button"
+                class="kb-toolbar-btn"
+                :disabled="chunkPolicySaving"
+                @click="resetChunkPolicy"
+              >
+                恢复默认
+              </button>
+            </div>
           </div>
         </aside>
 
@@ -184,6 +231,9 @@
                         <span class="status-dot" aria-hidden="true"></span>
                         {{ docStatusLabel(d.status) }}
                       </span>
+                      <span v-if="d.has_chunk_override" class="custom-index-tag" title="使用单独索引参数">
+                        自定义索引
+                      </span>
                       <span v-if="d.updated_at" class="doc-time muted small">
                         更新 {{ formatTime(d.updated_at) }}
                       </span>
@@ -197,6 +247,9 @@
                       @click="submitDocReview(d.id)"
                     >
                       提交审核
+                    </button>
+                    <button type="button" class="kb-action-btn" @click="openDocChunkDialog(d)">
+                      索引设置
                     </button>
                     <button
                       v-if="canReindex(d.status)"
@@ -294,6 +347,58 @@
                   </div>
                 </div>
 
+                <div class="upload-advanced">
+                  <button
+                    type="button"
+                    class="upload-advanced-toggle"
+                    @click="uploadAdvancedOpen = !uploadAdvancedOpen"
+                  >
+                    {{ uploadAdvancedOpen ? "▼" : "▶" }} 高级索引选项（仅本文件）
+                  </button>
+                  <div v-show="uploadAdvancedOpen" class="upload-advanced-panel">
+                    <label class="chunk-mode-option">
+                      <input v-model="uploadChunkMode" type="radio" value="project" />
+                      使用项目默认
+                      <span class="muted small">（{{ projectChunkSummary }}）</span>
+                    </label>
+                    <label class="chunk-mode-option">
+                      <input v-model="uploadChunkMode" type="radio" value="custom" @change="syncUploadChunkFromProject" />
+                      本文件单独设置
+                    </label>
+                    <div v-if="uploadChunkMode === 'custom'" class="chunk-fields">
+                      <div class="settings-grid">
+                        <label class="settings-field">
+                          <span>切片长度</span>
+                          <input v-model.number="uploadChunk.max_chars" type="number" min="200" max="4000" step="50" />
+                        </label>
+                        <label class="settings-field">
+                          <span>重叠字符</span>
+                          <input v-model.number="uploadChunk.overlap" type="number" min="0" max="800" step="10" />
+                        </label>
+                        <label class="settings-field">
+                          <span>短文档重叠</span>
+                          <input v-model.number="uploadChunk.overlap_short" type="number" min="0" max="400" step="10" />
+                        </label>
+                      </div>
+                      <div class="settings-checks">
+                        <label class="settings-check">
+                          <input v-model="uploadChunk.prefix_title" type="checkbox" />
+                          向量前加文档标题
+                        </label>
+                        <label class="settings-check">
+                          <input v-model="uploadChunk.prefix_section" type="checkbox" />
+                          向量前加章节标题
+                        </label>
+                        <label class="settings-check">
+                          <input v-model="uploadChunk.heading_aware" type="checkbox" />
+                          按章节标题切片
+                        </label>
+                      </div>
+                      <p class="hint small">最低相似度请在左侧「索引设置」配置（项目级）。</p>
+                    </div>
+                  </div>
+                </div>
+
                 <div class="upload-footer">
                   <button
                     type="button"
@@ -354,7 +459,7 @@
               </p>
               <p v-if="searchDone && !searchResults.length" class="hint small warn">
                 未命中结果。请确认文档为「已发布」、Embedding 与 Qdrant 正常；可在文档列表点「重建索引」后重试。
-                <span v-if="searchMinScore != null"> 当前已启用最低相似度 {{ formatScore(searchMinScore) }}，可在 web/backend/.env 调整 KB_SEARCH_MIN_SCORE。</span>
+                <span v-if="searchMinScore != null"> 当前最低相似度 {{ formatScore(searchMinScore) }}，可在左侧「索引设置」或 web/backend/.env 的 KB_SEARCH_MIN_SCORE 调整。</span>
               </p>
               <div v-if="searchResults.length" class="hits">
                 <article v-for="h in searchResults" :key="`${h.chunk_id}-${lastSearchQuery}`" class="hit">
@@ -370,6 +475,81 @@
         </main>
       </div>
     </template>
+
+    <Teleport to="body">
+      <div
+        v-if="docChunkDialog.open"
+        class="kb-modal-overlay"
+        @click.self="docChunkDialog.open = false"
+      >
+        <div class="kb-modal kb-modal-wide" role="dialog" aria-modal="true">
+          <h3>文档索引设置</h3>
+          <p class="modal-desc muted small">{{ docChunkDialog.title }}</p>
+          <label class="chunk-mode-option">
+            <input v-model="docChunkDialog.mode" type="radio" value="project" />
+            使用项目默认
+          </label>
+          <label class="chunk-mode-option">
+            <input v-model="docChunkDialog.mode" type="radio" value="custom" />
+            单独设置（仅影响本文件切片）
+          </label>
+          <div v-if="docChunkDialog.mode === 'custom'" class="chunk-fields">
+            <div class="settings-grid">
+              <label class="settings-field">
+                <span>切片长度</span>
+                <input v-model.number="docChunkDialog.max_chars" type="number" min="200" max="4000" step="50" />
+              </label>
+              <label class="settings-field">
+                <span>重叠字符</span>
+                <input v-model.number="docChunkDialog.overlap" type="number" min="0" max="800" step="10" />
+              </label>
+              <label class="settings-field">
+                <span>短文档重叠</span>
+                <input v-model.number="docChunkDialog.overlap_short" type="number" min="0" max="400" step="10" />
+              </label>
+            </div>
+            <div class="settings-checks">
+              <label class="settings-check">
+                <input v-model="docChunkDialog.prefix_title" type="checkbox" />
+                向量前加文档标题
+              </label>
+              <label class="settings-check">
+                <input v-model="docChunkDialog.prefix_section" type="checkbox" />
+                向量前加章节标题
+              </label>
+              <label class="settings-check">
+                <input v-model="docChunkDialog.heading_aware" type="checkbox" />
+                按章节标题切片
+              </label>
+            </div>
+          </div>
+          <p v-if="docChunkDialog.search_min_score != null" class="hint small">
+            检索最低相似度（项目级）：{{ formatScore(docChunkDialog.search_min_score) }}
+          </p>
+          <p v-if="docChunkDialog.err" class="err">{{ docChunkDialog.err }}</p>
+          <div class="modal-actions">
+            <button type="button" class="kb-modal-btn" @click="docChunkDialog.open = false">取消</button>
+            <button
+              type="button"
+              class="kb-modal-btn kb-modal-btn--primary"
+              :disabled="docChunkDialog.saving"
+              @click="saveDocChunkPolicy(false)"
+            >
+              {{ docChunkDialog.saving ? "保存中…" : "保存" }}
+            </button>
+            <button
+              v-if="canReindex(docChunkDialog.status)"
+              type="button"
+              class="kb-modal-btn kb-modal-btn--primary"
+              :disabled="docChunkDialog.saving"
+              @click="saveDocChunkPolicy(true)"
+            >
+              保存并重建索引
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
 
     <Teleport to="body">
       <div
@@ -523,6 +703,28 @@ const collNameInput = ref(null);
 const fileInputRef = ref(null);
 const uploadDragOver = ref(false);
 
+const chunkPolicy = reactive({
+  max_chars: 800,
+  overlap: 100,
+  overlap_short: 80,
+  prefix_title: true,
+  prefix_section: true,
+  heading_aware: true,
+  search_min_score_text: "",
+  has_project_override: false,
+});
+const chunkPolicySaving = ref(false);
+const uploadAdvancedOpen = ref(false);
+const uploadChunkMode = ref("project");
+const uploadChunk = reactive({
+  max_chars: 800,
+  overlap: 100,
+  overlap_short: 80,
+  prefix_title: true,
+  prefix_section: true,
+  heading_aware: true,
+});
+
 const uploadDocTypes = {
   standard: "测试规范",
   strategy: "测试策略",
@@ -550,6 +752,28 @@ const collDialog = reactive({
 });
 const deleteDialog = reactive({ open: false, id: null, name: "", docCount: 0, err: "" });
 const deleteDocDialog = reactive({ open: false, id: null, title: "", err: "" });
+const docChunkDialog = reactive({
+  open: false,
+  docId: null,
+  title: "",
+  status: "",
+  mode: "project",
+  saving: false,
+  err: "",
+  max_chars: 800,
+  overlap: 100,
+  overlap_short: 80,
+  prefix_title: true,
+  prefix_section: true,
+  heading_aware: true,
+  search_min_score: null,
+});
+
+const projectChunkSummary = computed(() => {
+  const parts = [`切片 ${chunkPolicy.max_chars}`, `重叠 ${chunkPolicy.overlap}`];
+  if (chunkPolicy.heading_aware) parts.push("按章节切片");
+  return parts.join(" · ");
+});
 
 const selectedCollection = computed(() =>
   collections.value.find((c) => c.id === selectedCollectionId.value) || null,
@@ -602,6 +826,131 @@ async function loadDocuments() {
   if (filterDocType.value) params.doc_type = filterDocType.value;
   const { data } = await client.get(`/api/knowledge/projects/${projectId.value}/documents`, { params });
   documents.value = data;
+}
+
+async function loadChunkPolicy() {
+  if (!projectId.value) return;
+  const { data } = await client.get(`/api/knowledge/projects/${projectId.value}/chunk-policy`);
+  chunkPolicy.max_chars = data.max_chars;
+  chunkPolicy.overlap = data.overlap;
+  chunkPolicy.overlap_short = data.overlap_short;
+  chunkPolicy.prefix_title = data.prefix_title;
+  chunkPolicy.prefix_section = data.prefix_section;
+  chunkPolicy.heading_aware = data.heading_aware;
+  chunkPolicy.search_min_score_text =
+    data.search_min_score != null && data.search_min_score !== "" ? String(data.search_min_score) : "";
+  chunkPolicy.has_project_override = Boolean(data.has_project_override);
+}
+
+async function saveChunkPolicy() {
+  chunkPolicySaving.value = true;
+  error.value = "";
+  try {
+    const body = {
+      max_chars: chunkPolicy.max_chars,
+      overlap: chunkPolicy.overlap,
+      overlap_short: chunkPolicy.overlap_short,
+      prefix_title: chunkPolicy.prefix_title,
+      prefix_section: chunkPolicy.prefix_section,
+      heading_aware: chunkPolicy.heading_aware,
+    };
+    const scoreText = String(chunkPolicy.search_min_score_text ?? "").trim();
+    body.search_min_score = scoreText === "" ? null : Number(scoreText);
+    const { data } = await client.patch(`/api/knowledge/projects/${projectId.value}/chunk-policy`, body);
+    chunkPolicy.has_project_override = Boolean(data.has_project_override);
+    msg.value = "索引设置已保存；请对已发布文档执行「重建索引」使切片生效";
+  } catch (e) {
+    error.value = formatApiError(e);
+  } finally {
+    chunkPolicySaving.value = false;
+  }
+}
+
+async function resetChunkPolicy() {
+  chunkPolicySaving.value = true;
+  error.value = "";
+  try {
+    await client.delete(`/api/knowledge/projects/${projectId.value}/chunk-policy`);
+    await loadChunkPolicy();
+    msg.value = "已恢复环境默认索引设置";
+  } catch (e) {
+    error.value = formatApiError(e);
+  } finally {
+    chunkPolicySaving.value = false;
+  }
+}
+
+function syncUploadChunkFromProject() {
+  uploadChunk.max_chars = chunkPolicy.max_chars;
+  uploadChunk.overlap = chunkPolicy.overlap;
+  uploadChunk.overlap_short = chunkPolicy.overlap_short;
+  uploadChunk.prefix_title = chunkPolicy.prefix_title;
+  uploadChunk.prefix_section = chunkPolicy.prefix_section;
+  uploadChunk.heading_aware = chunkPolicy.heading_aware;
+}
+
+function buildChunkFieldsPayload(source) {
+  return {
+    max_chars: source.max_chars,
+    overlap: source.overlap,
+    overlap_short: source.overlap_short,
+    prefix_title: source.prefix_title,
+    prefix_section: source.prefix_section,
+    heading_aware: source.heading_aware,
+  };
+}
+
+function applyChunkPolicyToDialog(data) {
+  docChunkDialog.mode = data.use_project_default ? "project" : "custom";
+  docChunkDialog.max_chars = data.max_chars;
+  docChunkDialog.overlap = data.overlap;
+  docChunkDialog.overlap_short = data.overlap_short;
+  docChunkDialog.prefix_title = data.prefix_title;
+  docChunkDialog.prefix_section = data.prefix_section;
+  docChunkDialog.heading_aware = data.heading_aware;
+  docChunkDialog.search_min_score = data.search_min_score ?? null;
+}
+
+async function openDocChunkDialog(doc) {
+  docChunkDialog.open = true;
+  docChunkDialog.docId = doc.id;
+  docChunkDialog.title = doc.title;
+  docChunkDialog.status = doc.status;
+  docChunkDialog.err = "";
+  try {
+    const { data } = await client.get(
+      `/api/knowledge/projects/${projectId.value}/documents/${doc.id}/chunk-policy`,
+    );
+    applyChunkPolicyToDialog(data);
+  } catch (e) {
+    docChunkDialog.err = formatApiError(e);
+    syncUploadChunkFromProject();
+    docChunkDialog.mode = doc.has_chunk_override ? "custom" : "project";
+  }
+}
+
+async function saveDocChunkPolicy(reindex) {
+  if (!docChunkDialog.docId) return;
+  docChunkDialog.saving = true;
+  docChunkDialog.err = "";
+  try {
+    const body = {
+      use_project_default: docChunkDialog.mode === "project",
+      ...(docChunkDialog.mode === "custom" ? buildChunkFieldsPayload(docChunkDialog) : {}),
+    };
+    await client.patch(
+      `/api/knowledge/projects/${projectId.value}/documents/${docChunkDialog.docId}/chunk-policy`,
+      body,
+      { params: reindex ? { reindex: true } : {} },
+    );
+    docChunkDialog.open = false;
+    msg.value = reindex ? "索引设置已保存，已排队重建索引" : "文档索引设置已保存";
+    await refreshKnowledgeDocs();
+  } catch (e) {
+    docChunkDialog.err = formatApiError(e);
+  } finally {
+    docChunkDialog.saving = false;
+  }
 }
 
 function resetSearchState() {
@@ -800,6 +1149,10 @@ async function submitUpload() {
     fd.append("collection_id", String(selectedCollectionId.value));
     fd.append("doc_type", upload.doc_type);
     fd.append("title", upload.title);
+    fd.append("use_project_chunk_policy", uploadChunkMode.value === "project" ? "true" : "false");
+    if (uploadChunkMode.value === "custom") {
+      fd.append("chunk_policy_json", JSON.stringify(buildChunkFieldsPayload(uploadChunk)));
+    }
     fd.append("file", upload.file);
     await client.post(`/api/knowledge/projects/${projectId.value}/documents/upload`, fd);
     msg.value = "已上传，后台正在索引";
@@ -916,6 +1269,7 @@ async function bootstrap() {
   try {
     await loadProject();
     await loadCollections();
+    await loadChunkPolicy();
     await loadDocuments();
   } catch (e) {
     error.value = formatApiError(e);
@@ -1020,13 +1374,6 @@ onMounted(bootstrap);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.coll-status-icons {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.25rem;
-  margin-top: 0.35rem;
-}
 .sidebar-empty {
   text-align: center;
   padding: 1.25rem 0.5rem;
@@ -1034,6 +1381,77 @@ onMounted(bootstrap);
   flex-direction: column;
   gap: 0.65rem;
   align-items: center;
+}
+.sidebar-settings {
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid #e8edf3;
+}
+.sidebar-settings-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+  margin-bottom: 0.35rem;
+}
+.sidebar-settings-head h3 {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+.settings-badge {
+  font-size: 0.62rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+.settings-hint {
+  margin: 0 0 0.65rem;
+  line-height: 1.4;
+}
+.settings-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+  margin-bottom: 0.55rem;
+}
+.settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.72rem;
+  color: #64748b;
+}
+.settings-field input {
+  height: 26px;
+  padding: 0 0.4rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 0.75rem;
+  box-sizing: border-box;
+}
+.settings-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.65rem;
+}
+.settings-check {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  color: #475569;
+  cursor: pointer;
+}
+.settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
 }
 .kb-main {
   min-width: 0;
@@ -1507,7 +1925,7 @@ onMounted(bootstrap);
 }
 .doc-item {
   display: grid;
-  grid-template-columns: 1fr 6.75rem;
+  grid-template-columns: 1fr 7.5rem;
   column-gap: 1rem;
   align-items: end;
   padding: 0.85rem 1rem;
@@ -1645,7 +2063,59 @@ onMounted(bootstrap);
   align-items: stretch;
   justify-content: flex-end;
   gap: 0.3rem;
-  width: 6.75rem;
+  width: 7.5rem;
+}
+.custom-index-tag {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 0.45rem;
+  font-size: 0.68rem;
+  font-weight: 500;
+  border-radius: 4px;
+  background: #f5f3ff;
+  color: #6d28d9;
+  border: 1px solid #ddd6fe;
+  box-sizing: border-box;
+}
+.upload-advanced {
+  margin-top: 0.85rem;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 0.65rem;
+}
+.upload-advanced-toggle {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #475569;
+  cursor: pointer;
+}
+.upload-advanced-toggle:hover {
+  color: #1d4ed8;
+}
+.upload-advanced-panel {
+  margin-top: 0.65rem;
+  padding: 0.75rem;
+  background: #f8fafc;
+  border: 1px solid #e8edf3;
+  border-radius: 8px;
+}
+.chunk-mode-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  color: #334155;
+  margin-bottom: 0.45rem;
+  cursor: pointer;
+}
+.chunk-fields {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed #e2e8f0;
 }
 .doc-actions .kb-action-btn {
   width: 100%;
@@ -1804,6 +2274,9 @@ onMounted(bootstrap);
   padding: 1.5rem;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
   border: 1px solid #e2e8f0;
+}
+.kb-modal-wide {
+  max-width: 520px;
 }
 .kb-modal h3 {
   margin: 0 0 0.35rem;

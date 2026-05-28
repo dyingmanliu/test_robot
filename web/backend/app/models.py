@@ -449,6 +449,7 @@ class KnowledgeDocument(Base):
     review_note: Mapped[str] = mapped_column(LongText, default="")
     reviewed_by: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
     reviewed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    chunk_policy_json: Mapped[str] = mapped_column(LongText, default="{}")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -483,6 +484,7 @@ class ProjectKnowledgeSettings(Base):
         ForeignKey("project_feature_trees.id", ondelete="SET NULL"), nullable=True
     )
     rag_policy_json: Mapped[str] = mapped_column(LongText, default="{}")
+    chunk_policy_json: Mapped[str] = mapped_column(LongText, default="{}")
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 

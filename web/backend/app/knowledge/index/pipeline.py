@@ -12,7 +12,8 @@ from sqlalchemy.orm import Session
 
 from app.knowledge.index.embeddings import get_embed_model
 from app.knowledge.index.qdrant_store import delete_points, upsert_point
-from app.knowledge.ingestion.chunkers import chunk_text
+from app.knowledge.chunk_policy import resolve_chunk_policy
+from app.knowledge.ingestion.chunkers import build_embed_text, chunk_text
 from app.knowledge.ingestion.parsers import parse_document_content
 from app.models import KnowledgeChunk, KnowledgeDocument, ProjectFeatureTree, TestCase
 
@@ -134,7 +135,15 @@ def run_ingest_document(db: Session, document_id: int) -> bool:
             db.delete(c)
         db.commit()
 
-        pairs = chunk_text(text, doc_type=doc.doc_type)
+        chunk_policy = resolve_chunk_policy(db, doc.project_id, doc.id)
+        pairs = chunk_text(
+            text,
+            doc_type=doc.doc_type,
+            max_chars=int(chunk_policy["max_chars"]),
+            overlap=int(chunk_policy["overlap"]),
+            overlap_short=int(chunk_policy["overlap_short"]),
+            heading_aware=bool(chunk_policy.get("heading_aware", True)),
+        )
         needs_review = _upload_requires_review(doc) and not was_published
         indexable = was_published or not _upload_requires_review(doc)
         ok_any = False
@@ -155,7 +164,13 @@ def run_ingest_document(db: Session, document_id: int) -> bool:
                 ok_any = True
                 continue
 
-            vec = _embed_text(content)
+            embed_text = build_embed_text(
+                doc_title=doc.title or "",
+                section_path=section_path,
+                content=content,
+                policy=chunk_policy,
+            )
+            vec = _embed_text(embed_text)
             if vec is None:
                 chunk.embedding_status = "failed"
                 continue

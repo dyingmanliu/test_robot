@@ -47,6 +47,27 @@ def rag_default_mode() -> str:
     return (os.getenv("RAG_DEFAULT_MODE") or "agentic").strip().lower()
 
 
+DEFAULT_CHUNK_POLICY = {
+    "max_chars": 800,
+    "overlap": 100,
+    "overlap_short": 80,
+    "prefix_title": True,
+    "prefix_section": True,
+    "heading_aware": True,
+    "search_min_score": None,
+}
+
+
+def _env_int(name: str, default: int) -> int:
+    raw = (os.getenv(name) or "").strip()
+    if not raw:
+        return default
+    try:
+        return int(raw)
+    except ValueError:
+        return default
+
+
 def kb_search_min_score() -> float:
     """语义检索最低相似度（余弦，0~1）；默认 0.6，设为 0 可关闭过滤。"""
     raw = (os.getenv("KB_SEARCH_MIN_SCORE") or "").strip()

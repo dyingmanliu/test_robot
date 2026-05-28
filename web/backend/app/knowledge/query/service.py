@@ -7,7 +7,8 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from app.knowledge.config import DEFAULT_RAG_POLICY, kb_search_min_score
+from app.knowledge.chunk_policy import effective_search_min_score, resolve_chunk_policy
+from app.knowledge.config import DEFAULT_RAG_POLICY
 from app.knowledge.index.embeddings import format_embedding_error, get_embed_model
 from app.knowledge.index.qdrant_store import search_vectors
 from app.models import KnowledgeChunk, KnowledgeDocument
@@ -36,7 +37,8 @@ def knowledge_search(
     except Exception as exc:
         log.warning("query embedding 失败: %s", exc)
         return {"items": [], "query": q, "error": format_embedding_error(exc)}
-    min_score = kb_search_min_score()
+    chunk_policy = resolve_chunk_policy(db, project_id)
+    min_score = effective_search_min_score(chunk_policy)
     hits = search_vectors(
         query_vector=vec,
         limit=limit,

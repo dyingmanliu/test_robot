@@ -460,6 +460,7 @@ autoglm-phone-test-agent/          # 仓库根目录
         │   │   └── device_screen.py     # 投屏：ADB / HDC
         │   ├── knowledge/               # Agentic RAG：ingest / index / query（§4.8）
         │   │   ├── config.py
+        │   │   ├── chunk_policy.py      # 环境/项目/文档索引参数合并
         │   │   ├── ingestion/           # parsers, chunkers, upload_types
         │   │   ├── index/               # pipeline, embeddings, qdrant_store
         │   │   └── query/               # knowledge_search, engine
@@ -664,7 +665,7 @@ agent 启动：`python -m agent_service.service`（`access_log=False`，避免�
 
 | 角色 / 页面 | 路径 | 能力 |
 |-------------|------|------|
-| 项目成员 | `/projects/:id/knowledge`（`ProjectKnowledgeView.vue`） | 管理**知识集合**；上传/结构化录入文档；文档列表（状态、重建索引、删除）；**检索测试** |
+| 项目成员 | `/projects/:id/knowledge`（`ProjectKnowledgeView.vue`） | 管理**知识集合**；左侧**项目索引设置**；上传（含**高级索引选项**）；文档列表（**索引设置**弹窗、自定义索引标签、重建索引）；**检索测试** |
 | 平台管理员 | `/knowledge/review`（`KnowledgeReviewView.vue`） | 审核上传的**测试规范 / 测试策略**（`platform_admin` 专属） |
 | 机器人配置 | 我的机器人详情 | 绑定 `knowledge_collections` + `skill_profile`（控制 Agent 可用 Tool 与 RAG scope） |
 
@@ -672,7 +673,7 @@ agent 启动：`python -m agent_service.service`（`access_log=False`，避免�
 
 - 知识按**项目**隔离；集合用于分组（如「验证集」「功能树分析知识集」）。
 - **仅 `status=active` 且向量已写入 Qdrant 的切片**参与语义检索（检索测试、Internal API、Agent Tool 均如此）。
-- 上传的 **standard / strategy** 类文档须**平台管理员审核通过**后才写入向量库；其他类型（页面模型、术语表等）解析后直接发布并索引。
+- 上传的 **standard / strategy** 类文档须**平台管理员审核通过**后才写入向量库；其他类型（`page_model`、`glossary`、`execution_hint`、`other` 等）解析后直接发布并索引。**上传时选错文档类型**（如规范 Word 却选「执行经验」）会跳过审核门禁。
 - 用例（`doc_type=case`）、功能树（`feature_tree`）可由 DB 同步自动入库，走同一 ingest 流水线。
 
 #### 4.8.2 技术架构
@@ -721,9 +722,10 @@ flowchart TB
 
 | 层次 | 路径 | 说明 |
 |------|------|------|
-| 配置 | `app/knowledge/config.py` | `QDRANT_*`、`KB_EMBEDDING_*`、`KB_FILE_STORAGE`、`RAG_DEFAULT_MODE` |
+| 配置 | `app/knowledge/config.py` | `QDRANT_*`、`KB_EMBEDDING_*`、`KB_FILE_STORAGE`、`KB_SEARCH_MIN_SCORE`、`RAG_DEFAULT_MODE` |
+| 切片策略 | `app/knowledge/chunk_policy.py` | 环境 → 项目 `chunk_policy_json` → 文档 `chunk_policy_json` 合并；`effective_search_min_score` |
 | 解析 | `app/knowledge/ingestion/parsers.py` | TXT/MD/PDF/DOCX/XLSX/HTML/JSON 等；DOCX 含段落 + 表格 |
-| 切片 | `app/knowledge/ingestion/chunkers.py` | 按 `doc_type` 分块（~800 字，无 NLTK 依赖） |
+| 切片 | `app/knowledge/ingestion/chunkers.py` | 按 `doc_type` + `heading_aware`：规范类按章节标题切分；`build_embed_text` 加【文档】【章节】前缀 |
 | 索引 | `app/knowledge/index/pipeline.py` | 异步 `ThreadPoolExecutor`；`schedule_ingest(document_id)` |
 | 向量 | `app/knowledge/index/embeddings.py` | OpenAI 兼容 HTTP → DashScope `text-embedding-v3` |
 | 检索 | `app/knowledge/query/service.py` | query embedding → Qdrant 过滤检索 → MySQL 取 snippet |
@@ -762,7 +764,9 @@ flowchart TB
 2. 平台管理员 `POST /api/knowledge/documents/{id}/review`（`approve=true`）→ `status=active` → 再次 `schedule_ingest`。
 3. 二次 ingest：`was_published=True` → **embed + upsert Qdrant**，文档保持 `active`。
 
-非规范类（如 `page_model`、`glossary`）首次 ingest 即 embed 并置 `active`。
+非规范类（如 `page_model`、`glossary`、`execution_hint`、`other`）首次 ingest 即 embed 并置 `active`。
+
+**审核判定代码**（`pipeline.py`）：`_upload_requires_review(doc)` ⇔ `doc.source_type == "upload"` 且 `doc.doc_type in {"standard", "strategy"}`。
 
 #### 4.8.4 索引流水线（技术处理）
 
@@ -771,7 +775,7 @@ flowchart TB
 1. **门禁**：`pending_review` / `rejected` / `archived` 不跑；`parsing` 超过 2 分钟视为僵死任务可重跑。
 2. **解析**：`parse_document_content()` — 文件路径或 `structured_json`；用例/功能树走 DB 同步源。
 3. **清旧索引**：删除旧 `knowledge_chunks` 及对应 Qdrant point。
-4. **切片**：`chunk_text()` → `(section_path, content)` 列表。
+4. **切片**：`resolve_chunk_policy(db, project_id, document_id)` 取有效参数 → `chunk_text(...)` → `(section_path, content)`；`build_embed_text()` 拼接标题前缀后 `_embed_text()`。
 5. **向量化**（当 `indexable=True`）：DashScope embedding → `upsert_point`；payload 含 `chunk_id`、`document_id`、`collection_id`、`project_id`、`doc_type`、`status=active`。
 6. **落库**：chunk 的 `embedding_status` 为 `indexed` | `parsed` | `failed`。
 7. **异常**：任一步骤未捕获异常 → 回滚并置 `pending_parse`；避免永久卡在 `parsing`。
@@ -789,8 +793,8 @@ flowchart TB
 检索步骤（`knowledge_search`）：
 
 1. 对 query 做 embedding（与索引同一模型）。
-2. Qdrant `query_points`，过滤 `status=active`，可选 `collection_id` / `project_id` / `doc_type`。
-3. 用 payload 中 `chunk_id` 回表 `knowledge_chunks` 取正文 snippet（前 600 字）。
+2. Qdrant `query_points`，过滤 `status=active`，`score_threshold=effective_search_min_score(project_policy)`，可选 `collection_id` / `project_id` / `doc_type`。
+3. 用 payload 中 `chunk_id` 回表 `knowledge_chunks` 取正文 snippet（前 600 字）；响应含 `min_score` 供前端展示。
 
 #### 4.8.6 Agentic RAG 接入（三条业务链）
 
@@ -810,8 +814,10 @@ flowchart TB
 |------|------|------|
 | GET/POST/PATCH/DELETE | `/api/knowledge/projects/{id}/collections` | 集合 CRUD |
 | GET | `/api/knowledge/projects/{id}/documents` | 文档列表（可按集合、类型筛选） |
-| POST | `…/documents/upload` |  multipart 上传（≤50MB） |
-| POST | `…/documents/structured` | 结构化 JSON 录入 |
+| POST | `…/documents/upload` | multipart 上传（≤50MB）；Form：`use_project_chunk_policy`、`chunk_policy_json`（文档级覆盖） |
+| POST | `…/documents/structured` | 结构化 JSON 录入；Body 可选 `use_project_chunk_policy` / `chunk_policy` |
+| GET/PATCH/DELETE | `…/projects/{id}/chunk-policy` | 项目级索引默认（含 `search_min_score`） |
+| GET/PATCH | `…/documents/{doc_id}/chunk-policy` | 文档级切片覆盖；PATCH 支持 `?reindex=true` |
 | POST | `…/documents/{doc_id}/submit-review` | 草稿/驳回 → 待审核 |
 | DELETE | `…/documents/{doc_id}` | 删除文档 + 向量 + 文件 |
 | POST | `/api/knowledge/documents/{doc_id}/reindex` | 排队重建索引（`active` / `draft` / `pending_parse`） |
@@ -831,16 +837,40 @@ flowchart TB
 | `KB_EMBEDDING_MODEL` | `text-embedding-v3` |
 | `KB_FILE_STORAGE` | `web/backend/data/knowledge` |
 | `KB_INGEST_WORKERS` | 索引线程池（实现为 pipeline 内 `max_workers=2`） |
+| `KB_SEARCH_MIN_SCORE` | 语义检索最低相似度（余弦 0~1），默认 `0.6`；`0` 关闭；项目页可覆盖 |
+| `KB_CHUNK_MAX_CHARS` / `KB_CHUNK_OVERLAP` / `KB_CHUNK_OVERLAP_SHORT` | 切片默认（项目/文档页可覆盖） |
+| `KB_CHUNK_PREFIX_TITLE` / `KB_CHUNK_PREFIX_SECTION` / `KB_CHUNK_HEADING_AWARE` | `1`/`0`；是否加前缀、按章节切片 |
 | `RAG_DEFAULT_MODE` | `agentic` |
 | `WEB_SERVICE_TOKEN` | 与 agent_service 相同，供 Internal API |
 
-#### 4.8.9 排查清单
+#### 4.8.9 索引参数（环境 / 项目 / 文档）
+
+```text
+KB_CHUNK_* / KB_SEARCH_MIN_SCORE (.env)
+        ↓
+project_knowledge_settings.chunk_policy_json   ← 知识库页左侧「索引设置」
+        ↓
+knowledge_documents.chunk_policy_json        ← 上传「高级索引选项」或文档「索引设置」
+        ↓
+run_ingest_document → chunk_text + build_embed_text → Qdrant
+```
+
+| 字段 | 项目级 | 文档级 |
+|------|--------|--------|
+| `max_chars` / `overlap` / `overlap_short` | ✓ | ✓ |
+| `prefix_title` / `prefix_section` / `heading_aware` | ✓ | ✓ |
+| `search_min_score` | ✓（检索阈值） | ✗（始终用项目/环境） |
+
+实现：`app/knowledge/chunk_policy.py`（`normalize_chunk_policy`、`normalize_document_chunk_policy`、`resolve_chunk_policy`）。审核通过后再 `schedule_ingest` 时须在 **`db.commit()` 之后**调度，避免后台线程仍读到 `pending_review`（见 `routers/knowledge.py` `review_document`）。
+
+#### 4.8.10 排查清单
 
 | 现象 | 可能原因 | 处理 |
 |------|----------|------|
 | 一直「索引中」 | ingest 异常未回滚（已修复 NLTK/异常处理） | 等 2 分钟后刷新或点「重建索引」 |
 | 检索结果与文档不符 | 规范类未审核，或审核后未 embed（已修复 `was_published` 逻辑） | 后台 **知识库审核** 通过；文档列表 **重建索引** |
-| 检索无结果 | 仅 1～2 篇 active 文档、embedding 失败、Qdrant 未启动 | 查 Qdrant Dashboard；看 chunk `embedding_status`；确认 `KB_EMBEDDING_*` |
+| 检索无结果 | 阈值过高（`KB_SEARCH_MIN_SCORE` / 项目索引设置）、仅少量 active 文档、embedding 失败 | 调低项目「最低相似度」（如 0.55～0.58）后重试；查 Qdrant / `embedding_status` |
+| 未走审核直接已发布 | 上传时 `doc_type` 非 standard/strategy | 规范类文档上传时选「测试规范」或「测试策略」 |
 | Embedding 400 `Arrearage` | DashScope / 百炼账户欠费停服 | 充值阿里云或更换有效 `KB_EMBEDDING_API_KEY`；重启后端后对文档 **重建索引** |
 | Agent 未用到 KB | 机器人未绑定集合 / Skill 未含 `query_knowledge` | 我的机器人 → KB 绑定 |
 
@@ -866,9 +896,9 @@ flowchart TB
   - `test_case_revisions`：每次保存的快照（版本管理）。  
   - `case_kb_documents`：检索用扁平文本（标题/步骤/说明聚合），供 `/api/knowledge/cases/search` 与 RAG（**兼容降级路径**）。
   - `knowledge_collections`：项目知识集合（名称、描述、归属项目）。
-  - `knowledge_documents`：知识文档（类型、来源、状态、文件路径、审核字段）；`status` 见 §4.8.3。
+  - `knowledge_documents`：知识文档（类型、来源、状态、文件路径、审核字段、`chunk_policy_json` 文档级切片覆盖）；`status` 见 §4.8.3。
   - `knowledge_chunks`：切片正文 + `qdrant_point_id` + `embedding_status`（`indexed` / `parsed` / `failed`）。
-  - `project_knowledge_settings`：项目级 RAG 策略 JSON。
+  - `project_knowledge_settings`：项目级 `rag_policy_json` + `chunk_policy_json`（索引默认与检索阈值）。
   - `skill_profiles`：按 `catalog_robot_id` 的 Skill 模板（可用 Tool 列表）。
   - `robot_instance_bindings`：实例绑定的 `knowledge_collection_ids` + `skill_profile_id` + RAG 覆盖策略。  
   - `robot_instances`：租用实例化后的数字机器人；`instance_code`（DR-xxxxxx）、`test_agent_backend`、`device_platform`（**默认**平台）、`catalog_robot_id` 等。  
@@ -909,6 +939,7 @@ flowchart TB
 | `QDRANT_URL` / `QDRANT_COLLECTION` | Qdrant 向量库（§4.8、§5） |
 | `KB_EMBEDDING_API_KEY` / `KB_EMBEDDING_BASE_URL` / `KB_EMBEDDING_MODEL` | 知识库 embedding（DashScope 兼容模式） |
 | `KB_FILE_STORAGE` | 知识库上传文件目录 |
+| `KB_SEARCH_MIN_SCORE` / `KB_CHUNK_*` | 切片与检索阈值默认（项目页可覆盖） |
 | `RAG_DEFAULT_MODE` | `agentic`（默认）或 passive 兼容模式 |
 
 ### Agent Service（`agent_service/.env`）
@@ -962,7 +993,7 @@ flowchart TB
 8. **数据库**：MySQL 8；`DATABASE_URL` 必填；无 Alembic，列迁移在 `database.ensure_schema()`。  
 9. **排查执行失败**：确认实例 **技术路线（autoglm/midscene）**、用例页 **平台+终端**；`adb devices` / `hdc list targets`；看 agent 日志 `agent_service.func_agent` 与 `step_log`；Midscene 报告见 `report_path`。  
 10. **排查 AI 生成失败**：`CASE_GEN_*`、`WEB_SERVICE_TOKEN`（Retriever）；Web `POST /api/test-cases/generate` 或 agent `POST /api/agent/analysis/generate-case-draft`；`CaseGenChain` 对非法 JSON 自动重试一轮。  
-11. **排查知识库索引/检索**：§4.8.9；确认 Qdrant（`docker compose up -d qdrant`）、`KB_EMBEDDING_*`、文档 `status=active` 与 chunk `embedding_status=indexed`；规范类须 **知识库审核** 通过后再检索。
+11. **排查知识库索引/检索**：§4.8.10；确认 Qdrant、`KB_EMBEDDING_*`、索引参数 §4.8.9；文档 `status=active` 且 chunk `indexed`；规范类须 **知识库审核** 通过后再检索。
 
 ## 8. 一句话小结
 
