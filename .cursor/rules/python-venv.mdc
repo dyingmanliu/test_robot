@@ -38,7 +38,7 @@ pip3 install -r requirements.txt
 
 ```bash
 cd agent_service
-PYTHONPATH=/Users/qiunian/Documents/test/test-robots .venv/bin/python -m agent_service.service
+PYTHONPATH=.. .venv/bin/python -m agent_service.service
 ```
 
 ### Web Backend
