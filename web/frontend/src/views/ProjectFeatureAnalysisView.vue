@@ -270,9 +270,6 @@
         <div class="metric"><span class="label">功能项</span><strong>{{ run.feature_count ?? 0 }}</strong></div>
         <div class="metric"><span class="label">访问页面</span><strong>{{ run.screens_visited ?? 0 }}</strong></div>
       </div>
-      <div v-if="run.has_excel" class="download-row">
-        <button type="button" class="btn" @click="downloadExcel">下载 Excel 草稿</button>
-      </div>
     </section>
 
     <section v-if="showWorkbench" class="card block live-block">
@@ -1174,23 +1171,6 @@ async function cancelRun() {
     const { data } = await client.post(`${apiBase.value}/runs/${runId.value}/cancel`);
     run.value = data;
     stopPoll();
-  } catch (e) {
-    actionErr.value = formatApiError(e);
-  }
-}
-
-async function downloadExcel() {
-  if (!runId.value) return;
-  try {
-    const { data } = await client.get(`${apiBase.value}/runs/${runId.value}/download`, {
-      responseType: "blob",
-    });
-    const url = URL.createObjectURL(data);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${form.app_display_name || "APP"}-功能菜单树.xlsx`;
-    a.click();
-    URL.revokeObjectURL(url);
   } catch (e) {
     actionErr.value = formatApiError(e);
   }
