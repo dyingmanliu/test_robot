@@ -12274,18 +12274,31 @@
       ]
     }
   ],
-  "metadata": {
-    "version": "1.0.0",
-    "generatedAt": "2026-05-29T09:35:21.142Z",
-    "projectRoot": "/Users/qiunian/Documents/test/test-robots",
-    "outputLanguage": "zh",
-    "totalFiles": 300,
+  "version": "1.0.0",
+  "project": {
+    "name": "test-robots",
     "languages": [
       "python",
       "typescript",
+      "javascript",
       "vue",
+      "markdown",
+      "yaml",
       "shell"
     ],
-    "generator": "understand-anything (manual pipeline)"
+    "frameworks": [
+      "FastAPI",
+      "Vue 3",
+      "Vite",
+      "LangChain",
+      "LangGraph",
+      "Qdrant",
+      "MySQL",
+      "Midscene",
+      "AutoGLM"
+    ],
+    "description": "鸿蒙生态智能测试平台：Web UI + Agent Service + 双轨设备自动化（AutoGLM / Midscene）+ Agentic RAG 知识库。",
+    "analyzedAt": "2026-05-29T10:13:45.849Z",
+    "gitCommitHash": "841fa9369fc9d6bc8b5e989b1cf87b55c0a897cc"
   }
 }
