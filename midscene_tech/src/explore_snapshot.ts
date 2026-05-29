@@ -74,11 +74,12 @@ function parseSnapshotRaw(raw: unknown, appName: string): ScreenSnapshot {
     const heuristicAreas = modelSaysNoScroll
       ? []
       : inferHorizontalScrollAreasStrong(items);
-    const scrollAreas =
+    const scrollAreasRaw =
       modelAreas.length > 0 ? modelAreas : heuristicAreas;
+    const scrollAreas = filterScrollAreasByLayout(items, scrollAreasRaw);
     const hasHorizontalScroll =
       (modelSaysScroll && scrollAreas.length > 0) ||
-      (!modelSaysNoScroll && !modelSaysScroll && heuristicAreas.length > 0);
+      (!modelSaysNoScroll && !modelSaysScroll && scrollAreas.length > 0);
     const activeBottomTab = String(o.active_bottom_tab ?? o.active_tab ?? '').trim();
     return {
       screen_title: title,
@@ -92,28 +93,71 @@ function parseSnapshotRaw(raw: unknown, appName: string): ScreenSnapshot {
   return { screen_title: '未知页面', nav_items: [], has_sub_pages: false };
 }
 
-/** 强信号启发式：仅在模型未明确否定时作兜底，避免普通首页/固定 Tab 误判 */
+/** 强信号启发式：仅作兜底；「更多服务」是入口链接，不触发横滑 */
 function inferHorizontalScrollAreasStrong(items: NavItem[]): string[] {
   const areas = new Set<string>();
   const iconGridCount = items.filter(
     (i) => (i.region || 'other').toLowerCase() === 'icon_grid',
   ).length;
 
-  // 仅统计 region=icon_grid，不把 button/other 当作宫格
-  if (iconGridCount >= 8) areas.add('icon_grid');
-  if (items.some((i) => /更多服务|全部服务|^更多$/.test(i.name.trim()))) {
-    areas.add('icon_grid');
-  }
+  if (iconGridCount >= 10) areas.add('icon_grid');
 
   return [...areas];
 }
 
-/** 当前快照是否值得做横滑发现 */
+function countFixedBottomTabs(items: NavItem[]): number {
+  return items.filter((i) => {
+    const r = (i.region || 'other').toLowerCase();
+    return r === 'bottom_tab' || r === 'bottom';
+  }).length;
+}
+
+/** 固定底栏 App（钱包/设置类）：不对 icon_grid/bottom_tab 做横滑，保留顶部分类 Tab */
+function filterScrollAreasByLayout(items: NavItem[], areas: string[]): string[] {
+  const bottom = countFixedBottomTabs(items);
+  if (bottom < 2 || bottom > 5) return areas;
+  return areas.filter((a) => a === 'top_category_tab' || a === 'list');
+}
+
+/** 当前快照是否值得做横滑发现（初筛，不含二次确认） */
 function shouldRevealHiddenMenus(snapshot: ScreenSnapshot): boolean {
-  return (
-    snapshot.has_horizontal_scroll === true &&
-    (snapshot.horizontal_scroll_areas?.length ?? 0) > 0
+  const areas = filterScrollAreasByLayout(
+    snapshot.nav_items,
+    snapshot.horizontal_scroll_areas ?? [],
   );
+  return snapshot.has_horizontal_scroll === true && areas.length > 0;
+}
+
+function parseBoolean(raw: unknown): boolean {
+  if (raw === true || raw === 1) return true;
+  if (raw === false || raw === 0) return false;
+  const s = String(raw ?? '').trim().toLowerCase();
+  return s === 'true' || s === 'yes' || s === '是' || s === '1';
+}
+
+/** 二次确认：避免钱包/设置等平铺首页被误判为可横滑宫格 */
+async function confirmScrollRevealNeeded(
+  handle: ExploreAgentHandle,
+  appName: string,
+  machineOut: boolean,
+  metrics?: ExploreMetrics,
+): Promise<boolean> {
+  const prompt =
+    `boolean, 在「${appName}」当前截图中，是否**明确可见**图标宫格下方的分页圆点/横条，且横向滑动会切换到**完全不同的一页**功能图标？` +
+    '顶部分类 Tab 右侧文字被明显截断也算。' +
+    '以下必须回答 false：底部固定 Tab 栏；功能卡片/按钮平铺；「更多服务」类入口；垂直列表；看不清分页圆点。' +
+    '不确定时回答 false。';
+  try {
+    const raw = await logModelCall(
+      'aiQuery',
+      '横滑确认',
+      () => withStepTimeout(handle.aiQuery<unknown>(prompt), '横滑确认'),
+      { machineOut, metrics, promptHint: prompt, resultToText: (r) => String(r ?? '') },
+    );
+    return parseBoolean(raw);
+  } catch {
+    return false;
+  }
 }
 
 function navItemDedupeKey(item: NavItem): string {
@@ -140,7 +184,10 @@ function mergeSnapshots(base: ScreenSnapshot, extra: ScreenSnapshot): ScreenSnap
 
 function buildScrollRevealTasks(appName: string, snapshot: ScreenSnapshot): string[] {
   const areas = new Set(
-    (snapshot.horizontal_scroll_areas || []).map((a) => a.toLowerCase()),
+    filterScrollAreasByLayout(
+      snapshot.nav_items,
+      snapshot.horizontal_scroll_areas || [],
+    ).map((a) => a.toLowerCase()),
   );
   if (!areas.size) return [];
 
@@ -236,6 +283,17 @@ async function revealHiddenMenuItems(
     return base;
   }
 
+  const confirmed = await confirmScrollRevealNeeded(
+    handle,
+    appName,
+    machineOut,
+    metrics,
+  );
+  if (!confirmed) {
+    opts.emitStep?.('done', '横滑二次确认：当前页面无需滑动，直接进入遍历');
+    return base;
+  }
+
   const tasks = buildScrollRevealTasks(appName, base);
   if (tasks.length === 0) {
     return base;
@@ -271,7 +329,8 @@ async function revealHiddenMenuItems(
       noProgressStreak = 0;
     } else {
       noProgressStreak += 1;
-      if (noProgressStreak >= 2) {
+      if (noProgressStreak >= 1) {
+        opts.emitStep?.('done', '滑动未发现新菜单，停止横滑');
         break;
       }
     }

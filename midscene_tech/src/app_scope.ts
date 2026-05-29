@@ -78,13 +78,14 @@ export function scopedBackTask(appName: string, bundleId: string): string {
   return `在${scope}内返回上一级页面；不要退出到桌面，不要打开其他应用`;
 }
 
-/** 标题/界面文案疑似已离开被测应用（系统钱包、商城、桌面等） */
-export function isOffAppScreenTitle(title: string): boolean {
-  const t = title.trim();
-  if (!t) return false;
-  return /站外|华为商城|应用市场|桌面|launcher|钱包|华为钱包|系统设置|权限|协议|欢迎|同意与|服务条款|应用商店/i.test(
-    t,
-  );
+/** 前台包名是否与目标包名不一致（离站判断以包名为准，不用界面标题中文名） */
+export function isForegroundOffTarget(
+  foreground: string | null | undefined,
+  targetBundle: string,
+): boolean {
+  const target = targetBundle.trim();
+  if (!target || !foreground) return false;
+  return !bundleMatches(foreground, target);
 }
 
 export async function harmonyPressBack(

@@ -52,7 +52,7 @@ import {
   buildExploreActionContext,
   bundleMatches,
   harmonyPressBack,
-  isOffAppScreenTitle,
+  isForegroundOffTarget,
   readForegroundBundle,
   scopedBackTask,
   scopedTapTask,
@@ -290,8 +290,8 @@ export async function runAppFeatureExplore(
       const target = targetBundle();
       if (!target) return null;
       const prompt =
-        `boolean, 当前屏幕是否属于被测应用「${appName}」（包名 ${target}）的主流程界面，` +
-        '而不是华为钱包、华为商城、应用市场、系统桌面、浏览器或其他无关 App';
+        `boolean, 当前屏幕是否属于被测应用（包名 ${target}，${appName}）的主流程界面，` +
+        '而不是系统桌面、浏览器或其他无关 App';
       try {
         return await logModelCall(
           'aiQuery',
@@ -488,9 +488,15 @@ export async function runAppFeatureExplore(
       }
 
       const screenTitle = snapshot.screen_title;
-      if (isOffAppScreenTitle(screenTitle)) {
-        emitStep('error', '界面疑似站外', screenTitle);
-        await ensureInTargetApp(`站外界面：${screenTitle}`);
+      const fgBeforeRecord = await readForeground();
+      const target = targetBundle();
+      if (isForegroundOffTarget(fgBeforeRecord, target)) {
+        emitStep(
+          'error',
+          '已离开被测应用',
+          `前台 ${fgBeforeRecord} ≠ 目标 ${target}`,
+        );
+        await ensureInTargetApp(`记录界面前：${screenTitle}`);
         return false;
       }
       if (scopeOffAppStreakRef.value >= 3) {
@@ -676,12 +682,6 @@ export async function runAppFeatureExplore(
           metrics,
           { scrollRevealMenus: false },
         );
-        if (isOffAppScreenTitle(afterSnap.screen_title)) {
-          emitStep('error', '点击后进入站外', afterSnap.screen_title);
-          await ensureInTargetApp(`点击「${item.name}」后站外`);
-          await tryNavigateBack(`站外恢复·${item.name}`);
-          continue;
-        }
         const afterFp = screenFingerprint(afterSnap.screen_title, childPath);
         if (
           afterFp === fp ||
@@ -778,9 +778,12 @@ export async function runAppFeatureExplore(
     const reportFile =
       typeof handle.reportFile === 'string' ? handle.reportFile : undefined;
 
+    const hasResults = features.length > 0 || screensVisited > 0;
     return {
-      ok: true,
-      message: `${modeLabel}完成，共发现 ${features.length} 项功能（访问 ${screensVisited} 个页面）`,
+      ok: hasResults,
+      message: hasResults
+        ? `${modeLabel}完成，共发现 ${features.length} 项功能（访问 ${screensVisited} 个页面）`
+        : `${modeLabel}未发现任何功能点（访问 0 个页面），请确认设备停留在目标应用内`,
       tree,
       reportFile,
     };

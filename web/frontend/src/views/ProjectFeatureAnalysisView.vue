@@ -325,6 +325,12 @@
           </div>
         </div>
       </details>
+      <p
+        v-if="run && ['success', 'failed', 'cancelled'].includes(run.status) && (run.feature_count ?? 0) === 0"
+        class="err small empty-fa-hint"
+      >
+        未发现功能点，无法确认保存功能树。请重新发起分析。
+      </p>
       <p v-if="canSaveFeatureTree && run?.status !== 'success'" class="confirm-hint muted small">
         分析已{{ run?.status === "cancelled" ? "取消" : "中断" }}，可基于已采集的
         {{ run?.feature_count ?? 0 }} 项功能点确认保存（可编辑后保存）。

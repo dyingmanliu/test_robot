@@ -3,7 +3,6 @@
  */
 
 import { scopedTapTask } from './app_scope.js';
-import { isOffAppScreenTitle } from './app_scope.js';
 import {
   filterNavItemsForScreen,
   filterNavItemsForTap,
@@ -294,11 +293,6 @@ export async function runFrontierTraverse(
       ctx.metrics,
       { scrollRevealMenus: false },
     );
-    if (isOffAppScreenTitle(snap.screen_title)) {
-      ctx.emitStep('error', '点击后进入站外', snap.screen_title);
-      await ctx.tryNavigateBack(`站外恢复·${node.item.name}`);
-      continue;
-    }
 
     const afterFp = screenFingerprint(snap.screen_title, childPath);
     if (afterFp === screenFingerprint(snap.screen_title, node.path)) {
