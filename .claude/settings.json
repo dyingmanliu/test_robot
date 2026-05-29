@@ -4,7 +4,14 @@
       "Bash(python3 -c ' *)",
       "Bash(curl -s http://127.0.0.1:8000/api/test-cases/runs/105)",
       "Bash(python3 -m json.tool)",
-      "Bash(mysql -h 127.0.0.1 -P 3306 -u tcm -ptcm tcm -e \"SELECT id, status, output_message, error_trace, step_log FROM test_runs WHERE id=105\\\\G\")"
+      "Bash(mysql -h 127.0.0.1 -P 3306 -u tcm -ptcm tcm -e \"SELECT id, status, output_message, error_trace, step_log FROM test_runs WHERE id=105\\\\G\")",
+      "mcp__codegraph__codegraph_search",
+      "mcp__codegraph__codegraph_context",
+      "mcp__codegraph__codegraph_callers",
+      "mcp__codegraph__codegraph_callees",
+      "mcp__codegraph__codegraph_impact",
+      "mcp__codegraph__codegraph_node",
+      "mcp__codegraph__codegraph_status"
     ]
   },
   "enabledPlugins": {
