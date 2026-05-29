@@ -567,7 +567,9 @@ export async function runAppFeatureExplore(
         appName,
         machineOut,
         metrics,
-        snapshotQueryOpts,
+        depth === 0
+          ? snapshotQueryOpts
+          : { ...snapshotQueryOpts, scrollRevealMenus: false },
       );
       const recorded = await recordScreen(path, depth, snapshot);
       if (!recorded) return;

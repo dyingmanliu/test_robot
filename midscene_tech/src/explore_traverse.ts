@@ -292,7 +292,7 @@ export async function runFrontierTraverse(
       ctx.appName,
       ctx.machineOut,
       ctx.metrics,
-      ctx.snapshotQueryOpts,
+      { scrollRevealMenus: false },
     );
     if (isOffAppScreenTitle(snap.screen_title)) {
       ctx.emitStep('error', '点击后进入站外', snap.screen_title);

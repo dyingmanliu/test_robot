@@ -223,23 +223,6 @@
             <small class="muted">按「最大界面数 ÷ Tab 数」自动分配每分支预算</small>
           </span>
         </label>
-        <label class="fair-share-toggle">
-          <input v-model="form.scroll_reveal_menus" type="checkbox" :disabled="running" />
-          <span class="fair-share-text">
-            <strong>滑动发现隐藏菜单</strong>
-            <small class="muted">适用于美团图标宫格分页、京东顶部分类 Tab 等需横向滑动的入口（推荐开启）</small>
-          </span>
-        </label>
-        <label v-if="form.scroll_reveal_menus" class="field field--inline">
-          <span>滑动重扫次数</span>
-          <input
-            v-model.number="form.scroll_max_passes"
-            type="number"
-            min="1"
-            max="6"
-            :disabled="running"
-          />
-        </label>
       </div>
 
       <div class="form-actions">
@@ -523,8 +506,6 @@ const form = reactive({
   traverse_mode: "hybrid",
   bfs_max_depth: 1,
   fair_share_enabled: true,
-  scroll_reveal_menus: true,
-  scroll_max_passes: 5,
 });
 
 const run = ref(null);
@@ -1153,8 +1134,6 @@ async function startAnalysis() {
       traverse_mode: form.traverse_mode,
       bfs_max_depth: form.bfs_max_depth,
       fair_share_per_root: form.fair_share_enabled ? -1 : 0,
-      scroll_reveal_menus: form.scroll_reveal_menus,
-      scroll_max_passes: form.scroll_max_passes,
     };
     const { data } = await client.post(`${apiBase.value}/runs`, body);
     run.value = data;

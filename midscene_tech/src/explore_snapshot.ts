@@ -43,8 +43,10 @@ function buildSnapshotPrompt(appName: string): string {
     'nav_items 列出当前可见的全部功能入口：顶部/底部分类 Tab、图标宫格（金刚位）、侧栏、工具栏按钮、搜索框；' +
     'active_bottom_tab 为当前高亮/选中的底部 Tab 名称（如 推荐、小团）；无底部 Tab 可省略；' +
     '若图标宫格下方有横条分页指示点，或顶部分类 Tab 右侧被截断，说明还有隐藏入口；' +
-    'has_horizontal_scroll 表示是否存在需横向滑动才能看全的入口；' +
-    'horizontal_scroll_areas 列出需横滑区域：icon_grid（首页图标宫格，如美团外卖/团购）、top_category_tab（顶部分类 Tab，如京东关注/推荐/手机）、bottom_tab、list；' +
+    'has_horizontal_scroll 仅在「横滑后才能看到更多入口」时为 true，并填写 horizontal_scroll_areas；' +
+    '以下情况 has_horizontal_scroll 必须为 false：底部 2~5 个固定 Tab（点击切换、不可横滑）；' +
+    '首页功能卡片/按钮平铺且无分页圆点；普通垂直列表。' +
+    'horizontal_scroll_areas 列出需横滑区域：icon_grid（首页金刚位且有多页分页点）、top_category_tab（顶部分类 Tab 右侧被截断）、bottom_tab（极少数可横滑底栏）、list；' +
     'has_sub_pages 表示除主 Tab 切换外是否还有可进入的子页面/子菜单；' +
     '若不在该应用内返回 nav_items=[]、has_sub_pages=false。' +
     '不要编造；region 取 top_tab|bottom_tab|icon_grid|side|search_bar|button|tab|list_item|other；' +
@@ -62,57 +64,56 @@ function parseSnapshotRaw(raw: unknown, appName: string): ScreenSnapshot {
     const hasSub =
       o.has_sub_pages === true ||
       (o.has_sub_pages !== false && items.some((i) => i.clickable !== false));
-    const scrollAreas = Array.isArray(o.horizontal_scroll_areas)
+    const modelAreas = Array.isArray(o.horizontal_scroll_areas)
       ? o.horizontal_scroll_areas
           .map((a) => String(a).trim().toLowerCase())
           .filter(Boolean)
-      : undefined;
+      : [];
+    const modelSaysScroll = o.has_horizontal_scroll === true;
+    const modelSaysNoScroll = o.has_horizontal_scroll === false;
+    const heuristicAreas = modelSaysNoScroll
+      ? []
+      : inferHorizontalScrollAreasStrong(items);
+    const scrollAreas =
+      modelAreas.length > 0 ? modelAreas : heuristicAreas;
     const hasHorizontalScroll =
-      o.has_horizontal_scroll === true ||
-      (scrollAreas != null && scrollAreas.length > 0) ||
-      inferHorizontalScroll(items);
+      (modelSaysScroll && scrollAreas.length > 0) ||
+      (!modelSaysNoScroll && !modelSaysScroll && heuristicAreas.length > 0);
     const activeBottomTab = String(o.active_bottom_tab ?? o.active_tab ?? '').trim();
     return {
       screen_title: title,
       nav_items: items,
       has_sub_pages: hasSub,
       has_horizontal_scroll: hasHorizontalScroll,
-      horizontal_scroll_areas: scrollAreas?.length
-        ? scrollAreas
-        : inferHorizontalScrollAreas(items),
+      horizontal_scroll_areas: scrollAreas.length ? scrollAreas : undefined,
       active_bottom_tab: activeBottomTab || undefined,
     };
   }
   return { screen_title: '未知页面', nav_items: [], has_sub_pages: false };
 }
 
-/** 启发式：图标宫格/顶部分类 Tab 等常见横滑场景 */
-function inferHorizontalScroll(items: NavItem[]): boolean {
-  return inferHorizontalScrollAreas(items).length > 0;
-}
-
-function inferHorizontalScrollAreas(items: NavItem[]): string[] {
+/** 强信号启发式：仅在模型未明确否定时作兜底，避免普通首页/固定 Tab 误判 */
+function inferHorizontalScrollAreasStrong(items: NavItem[]): string[] {
   const areas = new Set<string>();
-  let iconGridCount = 0;
-  let topTabCount = 0;
-  let bottomTabCount = 0;
+  const iconGridCount = items.filter(
+    (i) => (i.region || 'other').toLowerCase() === 'icon_grid',
+  ).length;
 
-  for (const item of items) {
-    const r = (item.region || 'other').toLowerCase();
-    if (r === 'icon_grid') iconGridCount += 1;
-    if (r === 'top_tab' || r === 'top' || r === 'category_tab') topTabCount += 1;
-    if (r === 'bottom_tab' || r === 'bottom') bottomTabCount += 1;
-    if (r === 'button' || r === 'other') iconGridCount += 1;
-  }
-
-  if (iconGridCount >= 6) areas.add('icon_grid');
+  // 仅统计 region=icon_grid，不把 button/other 当作宫格
+  if (iconGridCount >= 8) areas.add('icon_grid');
   if (items.some((i) => /更多服务|全部服务|^更多$/.test(i.name.trim()))) {
     areas.add('icon_grid');
   }
-  if (topTabCount >= 3) areas.add('top_category_tab');
-  if (bottomTabCount >= 2) areas.add('bottom_tab');
 
   return [...areas];
+}
+
+/** 当前快照是否值得做横滑发现 */
+function shouldRevealHiddenMenus(snapshot: ScreenSnapshot): boolean {
+  return (
+    snapshot.has_horizontal_scroll === true &&
+    (snapshot.horizontal_scroll_areas?.length ?? 0) > 0
+  );
 }
 
 function navItemDedupeKey(item: NavItem): string {
@@ -138,36 +139,16 @@ function mergeSnapshots(base: ScreenSnapshot, extra: ScreenSnapshot): ScreenSnap
 }
 
 function buildScrollRevealTasks(appName: string, snapshot: ScreenSnapshot): string[] {
-  const items = snapshot.nav_items;
   const areas = new Set(
-    (snapshot.horizontal_scroll_areas || inferHorizontalScrollAreas(items)).map((a) =>
-      a.toLowerCase(),
-    ),
+    (snapshot.horizontal_scroll_areas || []).map((a) => a.toLowerCase()),
   );
-  const regions = new Set(items.map((i) => (i.region || 'other').toLowerCase()));
+  if (!areas.size) return [];
+
   const tasks: string[] = [];
-
-  const wantIconGrid =
-    areas.has('icon_grid') ||
-    regions.has('icon_grid') ||
-    items.filter((i) => {
-      const r = (i.region || 'other').toLowerCase();
-      return r === 'icon_grid' || r === 'button' || r === 'other';
-    }).length >= 6;
-
-  const wantTopCategory =
-    areas.has('top_category_tab') ||
-    regions.has('top_tab') ||
-    regions.has('top') ||
-    regions.has('category_tab') ||
-    items.filter((i) => {
-      const r = (i.region || 'other').toLowerCase();
-      return r === 'top_tab' || r === 'top' || r === 'tab';
-    }).length >= 3;
-
-  const wantBottomTab =
-    areas.has('bottom_tab') || regions.has('bottom_tab') || regions.has('bottom');
-  const wantList = areas.has('list') || regions.has('list_item') || regions.has('side');
+  const wantIconGrid = areas.has('icon_grid');
+  const wantTopCategory = areas.has('top_category_tab');
+  const wantBottomTab = areas.has('bottom_tab');
+  const wantList = areas.has('list');
 
   // 美团式：首页图标宫格横向分页（金刚位）
   if (wantIconGrid) {
@@ -210,14 +191,6 @@ function buildScrollRevealTasks(appName: string, snapshot: ScreenSnapshot): stri
     );
   }
 
-  if (tasks.length === 0) {
-    tasks.push(
-      `在「${appName}」应用内，在页面主要功能入口区域（图标宫格或顶部分类 Tab）向左滑动，露出隐藏的功能按钮或分类`,
-    );
-    tasks.push(
-      `在「${appName}」应用内，继续在主要菜单区域向左滑动，露出更多隐藏入口`,
-    );
-  }
   return tasks;
 }
 
@@ -258,9 +231,18 @@ async function revealHiddenMenuItems(
     emitStep?: SnapshotQueryOptions['emitStep'];
   },
 ): Promise<ScreenSnapshot> {
-  let merged = base;
-  let prevCount = merged.nav_items.length;
+  if (!shouldRevealHiddenMenus(base)) {
+    opts.emitStep?.('done', '当前页面无横滑隐藏菜单，跳过滑动发现');
+    return base;
+  }
+
   const tasks = buildScrollRevealTasks(appName, base);
+  if (tasks.length === 0) {
+    return base;
+  }
+
+  let merged = base;
+  let noProgressStreak = 0;
   const maxPasses = Math.min(Math.max(1, opts.scrollMaxPasses), tasks.length);
 
   for (let i = 0; i < maxPasses; i += 1) {
@@ -283,9 +265,15 @@ async function revealHiddenMenuItems(
     }
 
     const snap = await queryScreenSnapshotOnce(handle, appName, machineOut, metrics);
+    const beforeCount = merged.nav_items.length;
     merged = mergeSnapshots(merged, snap);
-    if (merged.nav_items.length > prevCount) {
-      prevCount = merged.nav_items.length;
+    if (merged.nav_items.length > beforeCount) {
+      noProgressStreak = 0;
+    } else {
+      noProgressStreak += 1;
+      if (noProgressStreak >= 2) {
+        break;
+      }
     }
   }
 
