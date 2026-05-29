@@ -1,0 +1,3728 @@
+{
+  "schemaVersion": 1,
+  "algorithm": "louvain",
+  "totalFiles": 300,
+  "totalBatches": 17,
+  "exportsByPath": {
+    ".cursor/rules/python-venv.mdc": [],
+    "agent_service/__init__.py": [],
+    "agent_service/analysis_agent/__init__.py": [],
+    "agent_service/analysis_agent/agent.py": [
+      "AnalysisAgent"
+    ],
+    "agent_service/analysis_agent/config/__init__.py": [
+      "AnalysisAgentConfig",
+      "_env_bool",
+      "load_analysis_config",
+      "kb_enabled",
+      "kb_limit"
+    ],
+    "agent_service/analysis_agent/config/prompts.py": [],
+    "agent_service/analysis_agent/errors.py": [
+      "AnalysisAgentError"
+    ],
+    "agent_service/analysis_agent/feature_explore/__init__.py": [],
+    "agent_service/analysis_agent/feature_explore/agent.py": [
+      "_repo_root",
+      "FeatureExploreAgent"
+    ],
+    "agent_service/analysis_agent/feature_explore/tree_build.py": [
+      "_is_search_feature",
+      "_apply_icon_grid_heuristic",
+      "_infer_active_bottom_tab",
+      "_reparent_root_tab_content",
+      "_function_type",
+      "_region_for_function_type",
+      "_enrich_feature",
+      "build_function_tree_by_path",
+      "_finalize_app_name",
+      "_prepare_features",
+      "sync_giic_tree_from_features",
+      "ensure_giic_tree"
+    ],
+    "agent_service/analysis_agent/feature_explore/types.py": [
+      "ExploreDispatch",
+      "ExploreRunResult"
+    ],
+    "agent_service/analysis_agent/model/__init__.py": [],
+    "agent_service/analysis_agent/model/client.py": [
+      "_connection_error_message",
+      "_api_host",
+      "_preflight_dns",
+      "_http_trust_env",
+      "AnalysisModelClient"
+    ],
+    "agent_service/analysis_agent/parser.py": [
+      "extract_json_object",
+      "normalize_steps",
+      "validate_structured_draft",
+      "draft_from_parsed"
+    ],
+    "agent_service/analysis_agent/progress.py": [
+      "truncate_log_text",
+      "emit_case_gen_progress",
+      "_message_chars",
+      "_coerce_token_count",
+      "_token_usage_from_response",
+      "emit_llm_request",
+      "emit_llm_response",
+      "invoke_chat_with_progress",
+      "emit_kb_http_log"
+    ],
+    "agent_service/analysis_agent/types.py": [
+      "ProjectContext",
+      "CaseStep",
+      "CaseDraft"
+    ],
+    "agent_service/common/__init__.py": [],
+    "agent_service/common/device_resolve.py": [
+      "resolve_execution_device_id"
+    ],
+    "agent_service/func_agent/__init__.py": [],
+    "agent_service/func_agent/backends/__init__.py": [],
+    "agent_service/func_agent/backends/autoglm_runner.py": [
+      "_resolve_repo_root",
+      "run_autoglm_task"
+    ],
+    "agent_service/func_agent/backends/autoglm/__init__.py": [],
+    "agent_service/func_agent/backends/autoglm/agent.py": [
+      "AgentConfig",
+      "StepResult",
+      "AgentRunOutcome",
+      "PhoneTestAgent"
+    ],
+    "agent_service/func_agent/backends/midscene/__init__.py": [],
+    "agent_service/func_agent/backends/midscene/runtime.py": [
+      "_resolve_repo_root",
+      "_find_latest_midscene_report",
+      "_resolve_report_file",
+      "_build_midscene_cli_cmd",
+      "_model_gateway_hosts",
+      "_append_no_proxy_for_midscene_model",
+      "run_midscene_task"
+    ],
+    "agent_service/func_agent/cli.py": [
+      "_check_adb",
+      "_check_hdc",
+      "main"
+    ],
+    "agent_service/func_agent/core.py": [
+      "FuncAgentDispatch"
+    ],
+    "agent_service/func_agent/orchestrator.py": [
+      "run_func_agent_dispatch"
+    ],
+    "agent_service/langchain_platform/__init__.py": [],
+    "agent_service/langchain_platform/callbacks/__init__.py": [],
+    "agent_service/langchain_platform/callbacks/sse.py": [
+      "SSEProgressCallback"
+    ],
+    "agent_service/langchain_platform/chains/__init__.py": [],
+    "agent_service/langchain_platform/chains/case_generation.py": [
+      "_build_user_message",
+      "_resolve_kb_snippets",
+      "CaseGenChain"
+    ],
+    "agent_service/langchain_platform/config.py": [
+      "web_internal_api_url",
+      "web_service_token",
+      "_env_truthy",
+      "_env_falsy",
+      "langsmith_api_key",
+      "langchain_tracing_enabled",
+      "langsmith_project",
+      "configure_langsmith"
+    ],
+    "agent_service/langchain_platform/explore_core.py": [
+      "execute_explore_run"
+    ],
+    "agent_service/langchain_platform/facades/__init__.py": [],
+    "agent_service/langchain_platform/facades/analysis.py": [
+      "generate_case_draft_langchain"
+    ],
+    "agent_service/langchain_platform/facades/func_dispatch.py": [
+      "run_func_agent_dispatch_langchain"
+    ],
+    "agent_service/langchain_platform/graphs/__init__.py": [],
+    "agent_service/langchain_platform/graphs/autoglm_exec.py": [
+      "AutoglmCallbacks",
+      "AutoglmState",
+      "_init_node",
+      "_maybe_recovery_rag",
+      "_step_node",
+      "_route_after_step",
+      "_finish_ok",
+      "_finish_cancel",
+      "_finish_max",
+      "build_autoglm_exec_graph",
+      "run_autoglm_graph"
+    ],
+    "agent_service/langchain_platform/graphs/case_gen_agentic.py": [
+      "CaseGenAgenticState",
+      "_rag_mode",
+      "_load_context",
+      "_agentic_retrieve",
+      "_generate_draft",
+      "build_case_gen_agentic_graph",
+      "run_case_gen_agentic"
+    ],
+    "agent_service/langchain_platform/graphs/explore_run.py": [
+      "ExploreState",
+      "_validate_dispatch",
+      "_prefetch_kb_context",
+      "_run_explore",
+      "_sync_tree",
+      "_route_after_validate",
+      "_finish_error",
+      "build_explore_orchestrator_graph",
+      "run_explore_graph"
+    ],
+    "agent_service/langchain_platform/graphs/func_dispatch.py": [
+      "FuncDispatchState",
+      "_prefetch_kb_context",
+      "_route_backend",
+      "_run_autoglm",
+      "_run_midscene",
+      "_unsupported",
+      "build_func_dispatch_graph",
+      "run_func_dispatch_graph"
+    ],
+    "agent_service/langchain_platform/graphs/midscene_exec.py": [
+      "MidsceneState",
+      "_stream_subprocess",
+      "build_midscene_exec_graph",
+      "run_midscene_graph"
+    ],
+    "agent_service/langchain_platform/models.py": [
+      "_http_trust_env",
+      "_httpx_client",
+      "_case_gen_credentials",
+      "get_chat_model"
+    ],
+    "agent_service/langchain_platform/retrievers/__init__.py": [],
+    "agent_service/langchain_platform/retrievers/web_case_kb.py": [
+      "WebCaseKbRetriever"
+    ],
+    "agent_service/langchain_platform/tools/__init__.py": [],
+    "agent_service/langchain_platform/tools/device_autoglm.py": [
+      "build_phone_test_agent",
+      "list_connected_devices_hint",
+      "execute_autoglm_action"
+    ],
+    "agent_service/langchain_platform/tools/knowledge_query.py": [
+      "KnowledgeToolContext",
+      "_internal_headers",
+      "query_knowledge_http",
+      "fetch_agent_context",
+      "QueryKnowledgeInput",
+      "_format_hits",
+      "build_query_knowledge_tool",
+      "build_search_ui_element_tool",
+      "build_search_execution_hint_tool",
+      "ValidateDraftInput",
+      "build_validate_case_draft_tool",
+      "build_tools_for_context"
+    ],
+    "agent_service/langchain_platform/tools/midscene_dispatch.py": [
+      "run_midscene_explore_dispatch",
+      "run_midscene_web_dispatch"
+    ],
+    "agent_service/langchain_platform/tools/registry.py": [
+      "list_skills",
+      "get_tools",
+      "register_skill"
+    ],
+    "agent_service/service/__init__.py": [],
+    "agent_service/service/__main__.py": [],
+    "agent_service/service/app.py": [
+      "_http_log_level",
+      "_cleanup_loop",
+      "lifespan",
+      "request_logging_middleware"
+    ],
+    "agent_service/service/config.py": [],
+    "agent_service/service/logging_config.py": [
+      "_resolve_level",
+      "_resolve_format",
+      "configure_logging"
+    ],
+    "agent_service/service/routers/__init__.py": [],
+    "agent_service/service/routers/analysis.py": [
+      "_draft_to_payload",
+      "get_case_gen_config",
+      "submit_generate_case_draft",
+      "get_generate_case_draft_task",
+      "stream_generate_case_draft",
+      "cancel_generate_case_draft"
+    ],
+    "agent_service/service/routers/explore.py": [
+      "submit_explore",
+      "stream_explore",
+      "cancel_explore"
+    ],
+    "agent_service/service/routers/func_agent.py": [
+      "submit_dispatch",
+      "stream_dispatch",
+      "cancel_dispatch"
+    ],
+    "agent_service/service/routers/health.py": [
+      "health"
+    ],
+    "agent_service/service/routers/midscene.py": [
+      "submit_midscene",
+      "stream_midscene",
+      "cancel_midscene"
+    ],
+    "agent_service/service/routers/tree.py": [
+      "sync_giic",
+      "build_function_tree"
+    ],
+    "agent_service/service/schemas.py": [
+      "ProjectContextBody",
+      "GenerateCaseDraftRequest",
+      "CaseStepBody",
+      "GenerateCaseDraftResponse",
+      "CaseGenConfigResponse",
+      "CaseGenTaskStatusResponse",
+      "SyncGiicRequest",
+      "BuildFunctionTreeRequest",
+      "TaskIdResponse",
+      "CancelResponse",
+      "FuncAgentDispatchRequest",
+      "ExploreRunRequest",
+      "MidsceneTaskRequest"
+    ],
+    "agent_service/service/sse.py": [
+      "SSEEvent"
+    ],
+    "agent_service/service/task_manager.py": [
+      "TaskStatus",
+      "TaskRecord",
+      "TaskManager"
+    ],
+    "autoglm_phone_tech/__init__.py": [],
+    "autoglm_phone_tech/actions/__init__.py": [],
+    "autoglm_phone_tech/actions/handler.py": [
+      "ActionResult",
+      "ActionHandler",
+      "parse_action"
+    ],
+    "autoglm_phone_tech/config/__init__.py": [
+      "get_system_prompt"
+    ],
+    "autoglm_phone_tech/config/apps_harmonyos.py": [],
+    "autoglm_phone_tech/config/apps.py": [
+      "get_package_name",
+      "get_app_name",
+      "list_supported_apps"
+    ],
+    "autoglm_phone_tech/config/prompts_zh.py": [],
+    "autoglm_phone_tech/config/timing.py": [],
+    "autoglm_phone_tech/device/__init__.py": [],
+    "autoglm_phone_tech/device/adb_bridge.py": [
+      "Screenshot",
+      "_adb_bin",
+      "_adb_prefix",
+      "AdbBridge",
+      "_fallback"
+    ],
+    "autoglm_phone_tech/device/adb_resolve.py": [
+      "resolve_adb_executable"
+    ],
+    "autoglm_phone_tech/device/device_factory.py": [
+      "create_device",
+      "get_device_factory"
+    ],
+    "autoglm_phone_tech/device/hdc_bridge.py": [
+      "HdcBridge"
+    ],
+    "autoglm_phone_tech/device/hdc_resolve.py": [
+      "resolve_hdc_executable",
+      "_is_placeholder"
+    ],
+    "autoglm_phone_tech/device/platform.py": [
+      "DevicePlatform"
+    ],
+    "autoglm_phone_tech/model/__init__.py": [],
+    "autoglm_phone_tech/model/client.py": [
+      "ModelConfig",
+      "ModelResponse",
+      "ModelClient",
+      "MessageBuilder"
+    ],
+    "mai_ui_tech/__init__.py": [],
+    "mai_ui_tech/__main__.py": [],
+    "mai_ui_tech/cli.py": [
+      "main"
+    ],
+    "mai_ui_tech/config.py": [
+      "_load_dotenv",
+      "_default_local_model_dir",
+      "_infer_backend",
+      "MaiUiConfig",
+      "load_config"
+    ],
+    "mai_ui_tech/coords.py": [
+      "norm_to_pixel",
+      "norm999_to_norm1000",
+      "norm_to_norm999"
+    ],
+    "mai_ui_tech/grounding_server.py": [
+      "_json_response",
+      "GroundingHandler",
+      "main"
+    ],
+    "mai_ui_tech/grounding.py": [
+      "_estimate_tokens",
+      "parse_grounding_response",
+      "pil_to_base64",
+      "load_image",
+      "_mlx_vlm_available",
+      "_should_use_mlx",
+      "GroundingResult",
+      "MaiUiGroundingAgent"
+    ],
+    "mai_ui_tech/health.py": [
+      "_models_url",
+      "list_model_ids",
+      "check_server"
+    ],
+    "mai_ui_tech/image_utils.py": [
+      "resize_for_grounding"
+    ],
+    "mai_ui_tech/menu_detect.py": [
+      "_strip_code_fence",
+      "_repair_json",
+      "_try_parse_json_object",
+      "_extract_menus_array_from_text",
+      "_extract_menu_objects_loose",
+      "_extract_answer_json",
+      "parse_menu_detect_response",
+      "MenuItemResult",
+      "MenuDetectResult",
+      "_normalize_region",
+      "_menu_item_from_raw",
+      "MaiUiMenuDetectAgent"
+    ],
+    "mai_ui_tech/mlx_inference.py": [
+      "_estimate_tokens",
+      "resolve_mlx_model_path",
+      "_chat_processor",
+      "build_vision_prompt",
+      "build_grounding_prompt",
+      "get_model_and_processor",
+      "_run_generate",
+      "_predict_mlx_locked",
+      "predict_mlx",
+      "predict_mlx_vision"
+    ],
+    "mai_ui_tech/prompt.py": [],
+    "mai_ui_tech/scripts/download_model_hf.py": [
+      "_hub_endpoint",
+      "_download_one",
+      "main"
+    ],
+    "midscene_tech/scripts/demo-settings.ts": [],
+    "midscene_tech/src/agent.ts": [
+      "MidsceneTestAgent",
+      "HarmonyTestAgent"
+    ],
+    "midscene_tech/src/app_scope.ts": [
+      "normalizeBundleId",
+      "bundleMatches",
+      "getHarmonyForegroundBundle",
+      "buildExploreActionContext",
+      "scopedTapTask",
+      "scopedBackTask",
+      "isOffAppScreenTitle",
+      "harmonyPressBack",
+      "readForegroundBundle"
+    ],
+    "midscene_tech/src/cli.ts": [],
+    "midscene_tech/src/config.ts": [
+      "loadAgentConfig",
+      "applyAgentBackendModelEnv",
+      "applySharedModelEnvFallbacks",
+      "assertMidsceneModelEnv"
+    ],
+    "midscene_tech/src/device_runtime.ts": [
+      "createMidsceneRuntime"
+    ],
+    "midscene_tech/src/explore_agent.ts": [
+      "createExploreAgent"
+    ],
+    "midscene_tech/src/explore_common.test.ts": [],
+    "midscene_tech/src/explore_common.ts": [
+      "DEFAULT_MAX_SCREENS",
+      "DEFAULT_MAX_DEPTH",
+      "DEFAULT_MAX_TAPS",
+      "DEFAULT_BFS_MAX_DEPTH",
+      "SEARCH_FEATURE_LABEL",
+      "REGION_RANK",
+      "isSearchItem",
+      "canonicalizeSearchNavItem",
+      "isFeatureItem",
+      "applyIconGridRegionHeuristic",
+      "normalizeNavItems",
+      "sortNavItems",
+      "pathKey",
+      "tapKey",
+      "fullPathKey",
+      "screenFingerprint",
+      "longestCommonPrefix",
+      "isBottomTabRegion",
+      "isTopTabRegion",
+      "inferActiveBottomTab",
+      "listingPathForItem",
+      "filterNavItemsForScreen",
+      "filterNavItemsForTap",
+      "regionRank",
+      "frontierPriority",
+      "parseTraverseMode",
+      "shouldEnqueueTap",
+      "inferHasSubPages"
+    ],
+    "midscene_tech/src/explore_fair_share.ts": [
+      "FAIR_SHARE_OFF",
+      "FAIR_SHARE_AUTO",
+      "rootBranchKey",
+      "resolveQuotaPerRoot",
+      "countRootTabs",
+      "createFairShareBudget",
+      "FairShareBudget"
+    ],
+    "midscene_tech/src/explore_metrics.ts": [
+      "ExploreMetrics"
+    ],
+    "midscene_tech/src/explore_nav.ts": [
+      "ExploreNavigation"
+    ],
+    "midscene_tech/src/explore_snapshot.ts": [
+      "DEFAULT_SCROLL_MAX_PASSES",
+      "queryScreenSnapshot",
+      "waitAfterTap"
+    ],
+    "midscene_tech/src/explore_traverse.ts": [
+      "runFrontierTraverse",
+      "runDfsTraverse"
+    ],
+    "midscene_tech/src/explore_types.ts": [],
+    "midscene_tech/src/explore.ts": [
+      "runAppFeatureExplore"
+    ],
+    "midscene_tech/src/feature_tree_build.ts": [
+      "regionToFunctionType",
+      "buildFeatureDescription",
+      "buildLocationInfo",
+      "enrichFeatureGiicFields",
+      "buildFunctionTree",
+      "buildScreenGroupedTree",
+      "reparentRootTabContent",
+      "reclassifyIconGridRegions",
+      "attachTreesToResult"
+    ],
+    "midscene_tech/src/hdc.ts": [
+      "resolveHdcExecutablePath",
+      "checkHdcVersion",
+      "listHdcTargets",
+      "hdcShell",
+      "queryMainAbility",
+      "listInstalledBundleIds",
+      "resolveDeviceId"
+    ],
+    "midscene_tech/src/index.ts": [
+      "MidsceneTestAgent",
+      "HarmonyTestAgent",
+      "AgentRunOutcome",
+      "StepCallback",
+      "parseDevicePlatform",
+      "parseAgentBackend",
+      "DevicePlatform",
+      "loadAgentConfig",
+      "assertMidsceneModelEnv",
+      "MidsceneAgentConfig",
+      "checkHdcVersion",
+      "listHdcTargets",
+      "resolveDeviceId",
+      "resolveHdcExecutablePath",
+      "HdcTarget",
+      "WEB_DISPATCH_VERSION",
+      "parseWebDispatchJson",
+      "WebExecutionMode",
+      "WebTestDispatch",
+      "runMidsceneYamlScript",
+      "runHarmonyYamlScript",
+      "runAppFeatureExplore",
+      "ExploreOptions",
+      "ExploreRunOutcome",
+      "ExploreTreeResult",
+      "FeatureEntry"
+    ],
+    "midscene_tech/src/model_log.ts": [
+      "estimateTokens",
+      "logModelCall"
+    ],
+    "midscene_tech/src/platform.ts": [
+      "parseDevicePlatform",
+      "parseAgentBackend",
+      "platformLabel"
+    ],
+    "midscene_tech/src/resolve_app_launch.ts": [
+      "loadAppNameMapping",
+      "launchAppByName",
+      "launchAppByBundleId",
+      "applyAppNameMappingToDevice"
+    ],
+    "midscene_tech/src/step_timeout.ts": [
+      "stepTimeoutMs",
+      "exploreStepTimeoutMs",
+      "withStepTimeout"
+    ],
+    "midscene_tech/src/web_dispatch.ts": [
+      "WEB_DISPATCH_VERSION",
+      "parseWebDispatchJson"
+    ],
+    "midscene_tech/src/yaml_runner.ts": [
+      "runMidsceneYamlScript",
+      "runHarmonyYamlScript"
+    ],
+    "web/backend/app/__init__.py": [],
+    "web/backend/app/auth_utils.py": [
+      "_sha256_hex_for_bcrypt",
+      "hash_password",
+      "verify_password",
+      "create_access_token",
+      "decode_access_token_payload",
+      "decode_token"
+    ],
+    "web/backend/app/database.py": [
+      "_resolve_database_url",
+      "_int_env",
+      "_build_engine",
+      "check_database_connection",
+      "ensure_schema",
+      "ensure_company_bootstrap",
+      "ensure_builtin_platform_admin",
+      "bootstrap_rbac",
+      "ensure_projects_bootstrap",
+      "ensure_personal_spaces",
+      "get_db"
+    ],
+    "web/backend/app/deps.py": [
+      "get_current_user",
+      "get_current_user_allow_stale_role",
+      "require_roles"
+    ],
+    "web/backend/app/executor.py": [
+      "StepResult",
+      "prepare_cancel_slot",
+      "signal_cancel",
+      "execute_test_run"
+    ],
+    "web/backend/app/knowledge/__init__.py": [],
+    "web/backend/app/knowledge/chunk_policy.py": [
+      "default_chunk_policy_from_env",
+      "_clamp_int",
+      "_clamp_bool",
+      "normalize_chunk_policy",
+      "normalize_document_chunk_policy",
+      "has_document_chunk_override",
+      "_merge_project_chunk_policy",
+      "resolve_chunk_policy",
+      "effective_search_min_score"
+    ],
+    "web/backend/app/knowledge/config.py": [
+      "qdrant_url",
+      "qdrant_collection",
+      "kb_embedding_api_key",
+      "kb_embedding_base_url",
+      "kb_embedding_model",
+      "kb_file_storage",
+      "rag_default_mode",
+      "_env_int",
+      "kb_search_min_score"
+    ],
+    "web/backend/app/knowledge/index/__init__.py": [],
+    "web/backend/app/knowledge/index/embeddings.py": [
+      "_http_trust_env",
+      "DashScopeEmbedding",
+      "get_embed_model",
+      "format_embedding_error"
+    ],
+    "web/backend/app/knowledge/index/pipeline.py": [
+      "_upload_requires_review",
+      "can_reindex_document",
+      "reindex_block_reason",
+      "_embed_text",
+      "_is_stale_parsing",
+      "_finalize_doc_status",
+      "run_ingest_document",
+      "schedule_ingest",
+      "sync_case_document",
+      "get_or_create_default_collection"
+    ],
+    "web/backend/app/knowledge/index/qdrant_store.py": [
+      "get_qdrant_client",
+      "ensure_collection",
+      "upsert_point",
+      "delete_points",
+      "search_vectors"
+    ],
+    "web/backend/app/knowledge/ingestion/__init__.py": [],
+    "web/backend/app/knowledge/ingestion/chunkers.py": [
+      "_split_by_size",
+      "_chunk_by_headings",
+      "chunk_text",
+      "build_embed_text"
+    ],
+    "web/backend/app/knowledge/ingestion/parsers.py": [
+      "_HtmlTextExtractor",
+      "parse_text_file",
+      "parse_markdown",
+      "parse_json_file",
+      "parse_docx",
+      "parse_pdf",
+      "parse_html",
+      "parse_xlsx",
+      "parse_xls",
+      "parse_case_from_db",
+      "parse_structured_json",
+      "parse_feature_tree_json",
+      "parse_document_content"
+    ],
+    "web/backend/app/knowledge/ingestion/router.py": [
+      "route_and_parse"
+    ],
+    "web/backend/app/knowledge/ingestion/upload_types.py": [
+      "validate_upload_path"
+    ],
+    "web/backend/app/knowledge/query/__init__.py": [],
+    "web/backend/app/knowledge/query/engine.py": [
+      "query_engine_search"
+    ],
+    "web/backend/app/knowledge/query/service.py": [
+      "knowledge_search",
+      "merge_rag_policy"
+    ],
+    "web/backend/app/logging_config.py": [
+      "_resolve_level",
+      "_resolve_format",
+      "configure_logging"
+    ],
+    "web/backend/app/main.py": [
+      "_http_log_level",
+      "request_logging_middleware",
+      "on_startup",
+      "health"
+    ],
+    "web/backend/app/models.py": [
+      "Company",
+      "User",
+      "PersonalSpace",
+      "Project",
+      "ProjectReport",
+      "Defect",
+      "TestCase",
+      "TestCaseRevision",
+      "CaseKbDocument",
+      "ProjectAppArtifact",
+      "TestCaseSet",
+      "TestCaseSetItem",
+      "FunctionalDispatchTask",
+      "BillingPreorder",
+      "RobotRentalOrder",
+      "RobotInstance",
+      "TestRun",
+      "AppExploreRun",
+      "ProjectFeatureAnalysisRun",
+      "ProjectFeatureTree",
+      "KnowledgeCollection",
+      "KnowledgeDocument",
+      "KnowledgeChunk",
+      "ProjectKnowledgeSettings",
+      "SkillProfile",
+      "RobotInstanceBinding"
+    ],
+    "web/backend/app/rbac.py": [
+      "can_view_all_cases",
+      "can_manage_users",
+      "case_scope_filter",
+      "run_scope_query"
+    ],
+    "web/backend/app/routers/__init__.py": [],
+    "web/backend/app/routers/admin.py": [
+      "_next_instance_codes",
+      "list_rental_orders",
+      "approve_rental_order",
+      "reject_rental_order",
+      "list_companies",
+      "patch_company_share_internal",
+      "list_robot_instances_admin",
+      "set_robot_instance_status_admin",
+      "list_users",
+      "list_role_definitions",
+      "set_user_role"
+    ],
+    "web/backend/app/routers/app_explore.py": [
+      "_run_in_thread",
+      "list_installed_apps",
+      "start_explore",
+      "get_explore_run",
+      "cancel_explore_run",
+      "download_explore_excel"
+    ],
+    "web/backend/app/routers/auth.py": [
+      "_new_username",
+      "build_user_out",
+      "_resolve_register_company",
+      "_resolve_user",
+      "register",
+      "login",
+      "refresh_token",
+      "me",
+      "update_profile",
+      "change_password"
+    ],
+    "web/backend/app/routers/billing.py": [
+      "create_preorder",
+      "get_preorder"
+    ],
+    "web/backend/app/routers/companies.py": [
+      "list_companies_for_register"
+    ],
+    "web/backend/app/routers/dashboard.py": [
+      "_runs_rows",
+      "_cases_query",
+      "dashboard_summary"
+    ],
+    "web/backend/app/routers/device_pools_api.py": [
+      "get_device_pools"
+    ],
+    "web/backend/app/routers/devices.py": [
+      "get_connected_devices"
+    ],
+    "web/backend/app/routers/internal_knowledge.py": [
+      "_verify_service_token",
+      "KnowledgeQueryRequest",
+      "internal_search_cases_kb",
+      "internal_knowledge_query",
+      "internal_robot_agent_context"
+    ],
+    "web/backend/app/routers/knowledge.py": [
+      "CollectionIn",
+      "CollectionUpdate",
+      "CollectionOut",
+      "DocumentOut",
+      "DocumentChunkPolicyOut",
+      "DocumentChunkPolicyUpdate",
+      "StructuredDocIn",
+      "ReviewIn",
+      "RobotBindingIn",
+      "ChunkPolicyOut",
+      "ChunkPolicyUpdate",
+      "_require_project",
+      "_can_review",
+      "_doc_status_counts_by_collection",
+      "_collection_out",
+      "_get_collection",
+      "_require_document",
+      "_document_chunk_policy_out",
+      "_apply_upload_chunk_policy",
+      "_chunk_policy_out",
+      "_get_or_create_project_knowledge_settings",
+      "get_project_chunk_policy",
+      "update_project_chunk_policy",
+      "reset_project_chunk_policy",
+      "list_skill_profiles",
+      "list_collections",
+      "create_collection",
+      "update_collection",
+      "delete_collection",
+      "list_documents",
+      "get_document_chunk_policy",
+      "update_document_chunk_policy",
+      "upload_document",
+      "create_structured_document",
+      "delete_document",
+      "submit_review",
+      "review_document",
+      "reindex_document",
+      "search_project_knowledge",
+      "review_queue",
+      "search_test_cases_kb",
+      "get_robot_knowledge_binding",
+      "patch_robot_knowledge_binding"
+    ],
+    "web/backend/app/routers/mai_ui.py": [
+      "mai_ui_status",
+      "mai_ui_ground",
+      "mai_ui_detect_menus",
+      "_parse_queries"
+    ],
+    "web/backend/app/routers/marketplace.py": [
+      "robots_catalog"
+    ],
+    "web/backend/app/routers/monitor_api.py": [
+      "_require_monitor_role",
+      "monitor_robots_snapshot"
+    ],
+    "web/backend/app/routers/platform_api.py": [
+      "platform_devices",
+      "platform_billing_config",
+      "robot_catalog_full",
+      "enterprise_robot_rentals",
+      "enterprise_usage_report"
+    ],
+    "web/backend/app/routers/project_feature_analysis.py": [
+      "_run_in_thread",
+      "_app_name_from_tree_json",
+      "_content_disposition_attachment",
+      "_feature_count_in_tree",
+      "_assert_run_confirmable",
+      "_resolved_app_display_name",
+      "_sync_run_app_display_name",
+      "_app_slug_for_version_label",
+      "_max_v_label_number",
+      "_version_labels_for_same_app",
+      "_default_version_label_for_app",
+      "_next_version_label",
+      "_feature_tree_out",
+      "_artifact_path",
+      "list_installed_apps_catalog",
+      "list_installed_apps_for_project",
+      "list_feature_app_packages",
+      "upload_feature_app_package",
+      "install_feature_app_package",
+      "list_feature_runs",
+      "start_feature_analysis",
+      "get_feature_run",
+      "cancel_feature_run",
+      "download_feature_excel",
+      "confirm_feature_tree",
+      "list_feature_trees",
+      "get_feature_tree",
+      "export_feature_tree_excel",
+      "update_feature_tree",
+      "delete_feature_tree"
+    ],
+    "web/backend/app/routers/project_functional.py": [
+      "_upload_root",
+      "_max_upload_bytes",
+      "_safe_filename",
+      "upload_app_package",
+      "list_app_packages",
+      "_case_ids_for_set",
+      "create_case_set",
+      "list_case_sets",
+      "ai_draft_case_set",
+      "create_functional_dispatch",
+      "list_functional_dispatches"
+    ],
+    "web/backend/app/routers/projects.py": [
+      "_get_project_readable",
+      "_get_project_owned",
+      "_require_project",
+      "_require_project_owner",
+      "list_projects",
+      "create_project",
+      "project_dashboard",
+      "get_project",
+      "update_project",
+      "delete_project",
+      "project_reports_stub",
+      "project_task_summary"
+    ],
+    "web/backend/app/routers/rentals.py": [
+      "create_rental_order",
+      "list_my_rental_orders"
+    ],
+    "web/backend/app/routers/robot_instances.py": [
+      "_instance_readable",
+      "list_my_instances",
+      "get_my_instance",
+      "get_device_screen",
+      "patch_my_instance"
+    ],
+    "web/backend/app/routers/test_cases.py": [
+      "_run_in_thread",
+      "_get_case_for_read",
+      "_get_case_for_write",
+      "_resolve_project_for_case",
+      "_require_project_readable",
+      "_append_revision_snapshot",
+      "_validate_test_case_row",
+      "list_cases",
+      "submit_generate_case_job",
+      "get_generate_case_job",
+      "cancel_generate_case_job",
+      "create_case",
+      "import_cases_file",
+      "list_runs",
+      "get_run",
+      "download_run_report",
+      "cancel_run",
+      "list_case_versions",
+      "get_case",
+      "update_case",
+      "delete_case",
+      "run_case"
+    ],
+    "web/backend/app/routers/ws_monitor.py": [
+      "robot_monitor_stream"
+    ],
+    "web/backend/app/schemas.py": [
+      "PersonalSpaceOut",
+      "CompanyPublicOut",
+      "CompanyAdminOut",
+      "CompanySharePatch",
+      "RegisterBody",
+      "UserOut",
+      "AdminUserOut",
+      "AdminRolePatch",
+      "ProfileUpdate",
+      "ChangePasswordBody",
+      "Token",
+      "LoginBody",
+      "ProjectCreate",
+      "ProjectUpdate",
+      "ProjectOut",
+      "ProjectWithStatsOut",
+      "CaseStepJson",
+      "TestCaseGenerateIn",
+      "CaseGenerateMetaOut",
+      "TestCaseGenerateOut",
+      "TestCaseGenerateJobSubmittedOut",
+      "TestCaseGenerateJobOut",
+      "TestCaseCreate",
+      "TestCaseUpdate",
+      "TestCaseOut",
+      "TestCaseRevisionOut",
+      "CaseImportResultOut",
+      "TestRunOut",
+      "TestRunListItemOut",
+      "BillingModePriceOut",
+      "RobotCatalogItemOut",
+      "RobotCatalogResponse",
+      "PreorderCreate",
+      "PreorderCreatedOut",
+      "PreorderDetailOut",
+      "ProjectAppArtifactOut",
+      "CaseSetCreate",
+      "CaseSetOut",
+      "CaseSetAiDraftOut",
+      "FunctionalDispatchCreate",
+      "FunctionalDispatchCreatedOut",
+      "FunctionalDispatchListOut",
+      "RentalOrderCreate",
+      "RentalOrderCreatedOut",
+      "RentalApproveBody",
+      "RentalOrderOut",
+      "RobotInstanceOut",
+      "RobotInstanceStatusPatch",
+      "RobotInstancePatch",
+      "ConnectedDeviceOut",
+      "ConnectedDevicesOut",
+      "DeviceScreenOut",
+      "InstalledAppOut",
+      "PlatformInstalledCatalogItem",
+      "InstalledAppsCatalogOut",
+      "AppExploreRunCreate",
+      "AppExploreRunOut",
+      "RunCaseBody",
+      "RentalRejectBody",
+      "FeatureAnalysisRunCreate",
+      "FeatureAnalysisRunOut",
+      "FeatureAnalysisTreeConfirmIn",
+      "FeatureAnalysisTreeOut",
+      "FeatureAnalysisTreeUpdateIn",
+      "AppInstallIn",
+      "AppInstallOut"
+    ],
+    "web/backend/app/services/__init__.py": [],
+    "web/backend/app/services/agent_service_client.py": [
+      "AgentServiceError",
+      "_base",
+      "_raise_for_status",
+      "_case_gen_payload",
+      "submit_case_gen_generate",
+      "stream_case_gen_events",
+      "get_case_gen_task",
+      "get_case_gen_config",
+      "sync_giic_tree",
+      "build_function_tree",
+      "submit_func_agent_dispatch",
+      "submit_explore_run",
+      "submit_midscene_task",
+      "_parse_sse_lines",
+      "stream_func_agent_events",
+      "stream_explore_events",
+      "stream_midscene_events",
+      "_stream_events",
+      "cancel_task"
+    ],
+    "web/backend/app/services/analysis_instance_guard.py": [
+      "is_instance_generating",
+      "reset_generation_locks_on_startup",
+      "analysis_generation_lock",
+      "instance_available_for_generation"
+    ],
+    "web/backend/app/services/app_explore_export.py": [
+      "_level_columns",
+      "build_feature_workbook",
+      "write_explore_excel",
+      "workbook_to_bytes",
+      "_full_path_for_tree_node",
+      "_function_type_for_tree_node",
+      "_iter_tree_rows",
+      "_resolve_function_tree_root",
+      "build_feature_tree_detail_workbook",
+      "tree_detail_workbook_to_bytes"
+    ],
+    "web/backend/app/services/app_explore_service.py": [
+      "prepare_explore_cancel_slot",
+      "signal_explore_cancel",
+      "find_active_explore_for_instance",
+      "explore_busy_message",
+      "execute_app_explore_run"
+    ],
+    "web/backend/app/services/app_install.py": [
+      "list_installed_packages",
+      "list_installed_apps",
+      "install_package_file",
+      "_adb_args",
+      "_hdc_args",
+      "_adb_install",
+      "_hdc_install",
+      "_fallback_label",
+      "_parse_android_label",
+      "_list_android_user_package_ids",
+      "_list_android_apps",
+      "_list_harmony_apps"
+    ],
+    "web/backend/app/services/case_agent_text.py": [
+      "parse_steps_json",
+      "build_agent_task_text",
+      "_sanitize_midscene_instruction",
+      "_split_compound_midscene_description",
+      "build_midscene_tech_steps"
+    ],
+    "web/backend/app/services/case_generation_jobs.py": [
+      "CaseGenerationJob",
+      "_cleanup_expired_unlocked",
+      "_cleanup_expired",
+      "get_job",
+      "_append_job_log",
+      "append_job_log",
+      "start_case_generation_job",
+      "cancel_case_generation_job",
+      "_execute_job",
+      "_AgentRunContext",
+      "_prepare_agent_run_context",
+      "_run_with_agent"
+    ],
+    "web/backend/app/services/case_generation.py": [
+      "AnalysisAgentError",
+      "_kb_owner_scope",
+      "_fetch_kb_examples",
+      "_project_context",
+      "_draft_to_schema_steps",
+      "GeneratedCaseDraft",
+      "build_draft_from_agent_dict",
+      "generate_case_draft_precheck"
+    ],
+    "web/backend/app/services/case_import.py": [
+      "_norm_header",
+      "_pick",
+      "_steps_from_cell",
+      "rows_from_csv",
+      "rows_from_xlsx",
+      "parse_import_file",
+      "row_to_create"
+    ],
+    "web/backend/app/services/case_kb.py": [
+      "build_kb_search_blob",
+      "upsert_case_kb",
+      "search_cases_kb"
+    ],
+    "web/backend/app/services/company_scope.py": [
+      "enterprise_colleague_user_ids",
+      "company_shares_projects_cases",
+      "case_scope_query",
+      "project_scope_query",
+      "project_readable_by_user",
+      "project_owned_by_user",
+      "run_scope_query",
+      "can_use_robot_instance"
+    ],
+    "web/backend/app/services/device_discovery.py": [
+      "ConnectedDevice",
+      "_resolve_adb",
+      "_resolve_hdc",
+      "_parse_adb_model",
+      "list_android_devices",
+      "list_harmonyos_devices",
+      "list_connected_devices"
+    ],
+    "web/backend/app/services/device_platform.py": [
+      "normalize_device_platform",
+      "default_platform_for_backend",
+      "resolve_instance_platform",
+      "resolve_execution_platform",
+      "uses_midscene_runner",
+      "uses_autoglm_runner",
+      "platform_label",
+      "resolve_execution_device_id"
+    ],
+    "web/backend/app/services/device_pools.py": [
+      "list_device_pools",
+      "is_known_pool"
+    ],
+    "web/backend/app/services/device_screen.py": [
+      "DeviceScreenFrame",
+      "_prepare_mirror_image",
+      "_frame_from_pil",
+      "_resolve_hdc_executable",
+      "_hdc_prefix",
+      "_run_hdc",
+      "capture_harmony_screen",
+      "capture_android_screen",
+      "capture_device_screen"
+    ],
+    "web/backend/app/services/feature_analysis_bridge.py": [
+      "_merge_feature_from_line",
+      "_finalize_tree",
+      "_persist_finalized_tree",
+      "_try_write_explore_excel",
+      "execute_feature_analysis_run",
+      "_clear_slot"
+    ],
+    "web/backend/app/services/feature_analysis_guard.py": [
+      "find_active_feature_analysis_for_instance",
+      "feature_analysis_busy_message",
+      "instance_available_for_feature_analysis",
+      "reconcile_stale_feature_analysis_on_startup"
+    ],
+    "web/backend/app/services/feature_analysis_service.py": [
+      "get_feature_cancel_event",
+      "clear_feature_cancel_slot",
+      "prepare_feature_cancel_slot",
+      "signal_feature_cancel",
+      "execute_feature_analysis_run"
+    ],
+    "web/backend/app/services/hdc_apps.py": [
+      "_resolve_hdc_executable",
+      "_hdc_cmd",
+      "_run_hdc_shell",
+      "_fallback_label",
+      "_parse_bundle_lines",
+      "_parse_labeled_json",
+      "list_installed_harmony_apps",
+      "list_installed_bundle_ids"
+    ],
+    "web/backend/app/services/installed_apps_catalog.py": [
+      "build_installed_apps_catalog"
+    ],
+    "web/backend/app/services/kafka_functional.py": [
+      "_get_producer",
+      "publish_functional_dispatch"
+    ],
+    "web/backend/app/services/knowledge_bootstrap.py": [
+      "ensure_skill_profiles"
+    ],
+    "web/backend/app/services/knowledge_collection.py": [
+      "_remove_collection_from_bindings",
+      "delete_knowledge_collection"
+    ],
+    "web/backend/app/services/knowledge_document.py": [
+      "delete_knowledge_document"
+    ],
+    "web/backend/app/services/knowledge_sync.py": [
+      "sync_test_case_to_knowledge",
+      "_feature_tree_knowledge_title",
+      "sync_feature_tree_to_knowledge"
+    ],
+    "web/backend/app/services/llm_usage_log.py": [
+      "estimate_tokens",
+      "log_llm_usage",
+      "log_from_openai_usage",
+      "log_midscene_machine_line"
+    ],
+    "web/backend/app/services/mai_ui_service.py": [
+      "_grounding_worker_status",
+      "_grounding_worker_reachable",
+      "_run_grounding_via_worker",
+      "get_mai_ui_status",
+      "run_grounding",
+      "_run_menu_detect_via_worker",
+      "run_menu_detect"
+    ],
+    "web/backend/app/services/marketplace_catalog.py": [
+      "list_robots",
+      "get_robot_by_id"
+    ],
+    "web/backend/app/services/package_bundle.py": [
+      "infer_bundle_id_from_package",
+      "_is_likely_installer",
+      "resolve_bundle_after_install",
+      "_bundle_from_hap_archive",
+      "_extract_bundle_from_json",
+      "_bundle_from_apk"
+    ],
+    "web/backend/app/services/package_platform.py": [
+      "infer_device_platform_from_package",
+      "platform_label_cn",
+      "parse_platform_app_text"
+    ],
+    "web/backend/app/services/project_dashboard.py": [
+      "build_project_dashboard_payload"
+    ],
+    "web/backend/app/services/robot_agent_context.py": [
+      "_parse_json_list",
+      "_parse_json_dict",
+      "default_skill_profile_for_catalog",
+      "resolve_robot_agent_context"
+    ],
+    "web/backend/app/services/robot_catalog.py": [
+      "is_analysis_catalog",
+      "is_execution_catalog"
+    ],
+    "web/backend/app/services/robot_instance_out.py": [
+      "robot_instance_to_out"
+    ],
+    "web/backend/app/services/robot_monitor.py": [
+      "_compute_robot_metrics_legacy",
+      "compute_robot_metrics"
+    ],
+    "web/backend/app/services/robot_run_guard.py": [
+      "instance_execution_lock",
+      "find_active_run_for_instance",
+      "instance_available_for_run",
+      "resolve_instance_runtime_status",
+      "busy_run_detail_message",
+      "reconcile_stale_runs_on_startup"
+    ],
+    "web/backend/app/services/run_metrics.py": [
+      "count_recognition_steps"
+    ],
+    "web/backend/app/services/run_report.py": [
+      "find_latest_midscene_report",
+      "normalize_report_path",
+      "resolve_report_file"
+    ],
+    "web/backend/app/test_case_io.py": [
+      "_steps_from_raw",
+      "steps_to_json",
+      "test_case_to_out",
+      "test_run_to_out",
+      "revision_to_out"
+    ],
+    "web/backend/data/feature_analysis_exports/feature-analysis-3-9.xlsx": [],
+    "web/backend/data/knowledge/3/1/20260527103159_测试用例规范V1.0设计文档.docx": [],
+    "web/backend/tests/test_case_agent_text.py": [
+      "test_midscene_steps_omit_task_text_when_structured_steps_exist",
+      "test_midscene_steps_use_task_text_when_no_structured_steps",
+      "test_agent_task_still_includes_task_text"
+    ],
+    "web/backend/tests/test_knowledge_integration.py": [
+      "KnowledgeUnitTest"
+    ],
+    "web/frontend/scripts/test-feature-tree.mjs": [],
+    "web/frontend/src/api/client.js": [
+      "formatApiError"
+    ],
+    "web/frontend/src/App.vue": [],
+    "web/frontend/src/components/AppSearchSelect.vue": [],
+    "web/frontend/src/components/DeviceScreenMirror.vue": [],
+    "web/frontend/src/components/FeatureAnalysisWorkbench.vue": [],
+    "web/frontend/src/components/FeatureTreeBranch.vue": [],
+    "web/frontend/src/components/RobotMascotAvatar.vue": [],
+    "web/frontend/src/components/RunLivePanel.vue": [],
+    "web/frontend/src/constants/robotCatalog.js": [
+      "CATALOG_TEST_ANALYSIS",
+      "ROBOT_TYPE_LABELS",
+      "robotTypeLabel",
+      "isAnalysisInstance",
+      "isExecutionInstance",
+      "featureAnalysisLiveRoute",
+      "testRunLiveRoute",
+      "RUNTIME_STATUS_LABELS",
+      "runtimeStatusLabel",
+      "INSTANCE_STATUS_LABELS",
+      "instanceStatusLabel",
+      "instanceStatusClass",
+      "isInstanceStarted",
+      "isRobotRunnableForCase",
+      "robotUnselectableHint",
+      "isRobotRunnableForAnalysis",
+      "analysisRobotUnselectableHint",
+      "isRobotRunnableForFeatureAnalysis"
+    ],
+    "web/frontend/src/main.js": [],
+    "web/frontend/src/router/index.js": [],
+    "web/frontend/src/stores/activeTestRun.js": [
+      "deviceBindingKey",
+      "isLiveRunStatus",
+      "useActiveTestRunStore",
+      "getActiveRunProjectId"
+    ],
+    "web/frontend/src/stores/auth.js": [
+      "ROLE_PLATFORM_ADMIN",
+      "ROLE_TSE",
+      "ROLE_ENTERPRISE",
+      "ROLE_LABELS",
+      "useAuthStore"
+    ],
+    "web/frontend/src/utils/caseGenLive.js": [
+      "parseCaseGenStepLog"
+    ],
+    "web/frontend/src/utils/featureAnalysisLive.js": [
+      "parseFeatureStepLog",
+      "summarizeFeatureAnalysisLocation",
+      "estimateFeatureProgress"
+    ],
+    "web/frontend/src/utils/featureTree.js": [
+      "isFunctionLikeNode",
+      "normalizeAppDisplayLabel",
+      "parseFeatureJson",
+      "appDisplayNameFromTreeRecord",
+      "nodeTypeLabel",
+      "regionLabel",
+      "nodeFullPathSegs",
+      "nodePathPrefix",
+      "flattenFunctionTree",
+      "treeNodesForUi",
+      "buildTreeFromFeatures",
+      "featurePathFromRow",
+      "normalizeTableRow",
+      "normalizeTableRows",
+      "syncRowLocations",
+      "dedupeTableRows",
+      "treeNodeToTableRow",
+      "rowsToFeatures",
+      "findAppTableRow",
+      "appNameFromTableRows",
+      "syncTreeFromTableRows",
+      "parentPathForNewChild",
+      "nextDefaultChildName",
+      "findTreeNodeByRowId",
+      "findTreeNodeById",
+      "findTreeNodeByPathKey",
+      "enrichTableRowsWithTreeFunctions",
+      "enrichTableRowsWithTreeModules",
+      "featurePathKey",
+      "isSameFeatureRow",
+      "resolveWorkbenchData",
+      "subtreePathPrefix",
+      "ensureAppTableRow",
+      "tableRowsInTreeOrder",
+      "filterRowsByTreeNode"
+    ],
+    "web/frontend/src/utils/fuzzyMatch.js": [
+      "fuzzyMatch"
+    ],
+    "web/frontend/src/utils/knowledgeLabels.js": [
+      "DOC_TYPE_LABELS",
+      "DOC_STATUS_LABELS",
+      "DOC_STATUS_CLASS",
+      "COLLECTION_STATUS_LABELS",
+      "DOC_STATUS_SUMMARY_ORDER",
+      "collectionStatusLabel",
+      "collectionStatusClass",
+      "docStatusSummaryItems",
+      "docTypeLabel",
+      "docStatusLabel",
+      "docStatusClass",
+      "canReindex",
+      "reindexBlockHint"
+    ],
+    "web/frontend/src/utils/knowledgeUpload.js": [
+      "UPLOAD_ACCEPT",
+      "UPLOAD_EXTENSIONS",
+      "UPLOAD_HINT",
+      "isAllowedUploadFile",
+      "MAX_UPLOAD_BYTES",
+      "validateUploadFileSize"
+    ],
+    "web/frontend/src/utils/packagePlatform.js": [
+      "inferDevicePlatform",
+      "platformLabel",
+      "parsePlatformAppText"
+    ],
+    "web/frontend/src/utils/runLive.js": [
+      "statusLabel",
+      "parseStepLog",
+      "formatJson",
+      "stepCount",
+      "estimateRunProgress"
+    ],
+    "web/frontend/src/views/AdminCompaniesView.vue": [],
+    "web/frontend/src/views/AdminRentalOrdersView.vue": [],
+    "web/frontend/src/views/AdminRobotInstancesView.vue": [],
+    "web/frontend/src/views/AdminUsersView.vue": [],
+    "web/frontend/src/views/AppExploreView.vue": [],
+    "web/frontend/src/views/CasesView.vue": [],
+    "web/frontend/src/views/DashboardView.vue": [],
+    "web/frontend/src/views/FunctionalTaskWizardView.vue": [],
+    "web/frontend/src/views/HomeDashboardView.vue": [],
+    "web/frontend/src/views/KnowledgeReviewView.vue": [],
+    "web/frontend/src/views/LoginView.vue": [],
+    "web/frontend/src/views/MaiUiStudioView.vue": [],
+    "web/frontend/src/views/MonitorOpsView.vue": [],
+    "web/frontend/src/views/MyRentalApplicationsView.vue": [],
+    "web/frontend/src/views/MyRobotDetailView.vue": [],
+    "web/frontend/src/views/MyRobotsShell.vue": [],
+    "web/frontend/src/views/MyRobotsView.vue": [],
+    "web/frontend/src/views/PaymentView.vue": [],
+    "web/frontend/src/views/PlatformIntroView.vue": [],
+    "web/frontend/src/views/ProfileView.vue": [],
+    "web/frontend/src/views/ProjectDashboardView.vue": [],
+    "web/frontend/src/views/ProjectFeatureAnalysisHistoryView.vue": [],
+    "web/frontend/src/views/ProjectFeatureAnalysisView.vue": [],
+    "web/frontend/src/views/ProjectFeatureTreeDetailView.vue": [],
+    "web/frontend/src/views/ProjectKnowledgeView.vue": [],
+    "web/frontend/src/views/ProjectRunsHistoryView.vue": [],
+    "web/frontend/src/views/ProjectsView.vue": [],
+    "web/frontend/src/views/RegisterView.vue": [],
+    "web/frontend/src/views/RobotMarketplaceView.vue": [],
+    "web/frontend/src/views/RunExecutionLiveView.vue": [],
+    "web/frontend/vite.config.js": []
+  },
+  "batches": [
+    {
+      "batchIndex": 1,
+      "files": [
+        {
+          "path": ".env.example",
+          "language": "config",
+          "sizeLines": 144,
+          "fileCategory": "config"
+        },
+        {
+          "path": "ARCHITECTURE.md",
+          "language": "markdown",
+          "sizeLines": 1002,
+          "fileCategory": "docs"
+        },
+        {
+          "path": "CLAUDE.md",
+          "language": "markdown",
+          "sizeLines": 193,
+          "fileCategory": "docs"
+        },
+        {
+          "path": "README.md",
+          "language": "markdown",
+          "sizeLines": 497,
+          "fileCategory": "docs"
+        },
+        {
+          "path": "docker-compose.yml",
+          "language": "yaml",
+          "sizeLines": 40,
+          "fileCategory": "infra"
+        },
+        {
+          "path": "requirements.txt",
+          "language": "txt",
+          "sizeLines": 4,
+          "fileCategory": "docs"
+        }
+      ],
+      "batchImportData": {
+        ".env.example": [],
+        "ARCHITECTURE.md": [],
+        "CLAUDE.md": [],
+        "README.md": [],
+        "docker-compose.yml": [],
+        "requirements.txt": []
+      },
+      "neighborMap": {}
+    },
+    {
+      "batchIndex": 2,
+      "files": [
+        {
+          "path": "mai_ui_tech/.env.example",
+          "language": "config",
+          "sizeLines": 25,
+          "fileCategory": "config"
+        },
+        {
+          "path": "mai_ui_tech/README.md",
+          "language": "markdown",
+          "sizeLines": 223,
+          "fileCategory": "docs"
+        },
+        {
+          "path": "mai_ui_tech/pyproject.toml",
+          "language": "toml",
+          "sizeLines": 25,
+          "fileCategory": "config"
+        },
+        {
+          "path": "mai_ui_tech/requirements-mlx.txt",
+          "language": "txt",
+          "sizeLines": 4,
+          "fileCategory": "docs"
+        },
+        {
+          "path": "mai_ui_tech/requirements.txt",
+          "language": "txt",
+          "sizeLines": 5,
+          "fileCategory": "docs"
+        }
+      ],
+      "batchImportData": {
+        "mai_ui_tech/.env.example": [],
+        "mai_ui_tech/README.md": [],
+        "mai_ui_tech/pyproject.toml": [],
+        "mai_ui_tech/requirements-mlx.txt": [],
+        "mai_ui_tech/requirements.txt": []
+      },
+      "neighborMap": {}
+    },
+    {
+      "batchIndex": 3,
+      "files": [
+        {
+          "path": "mai_ui_tech/scripts/pull_ollama_model.sh",
+          "language": "shell",
+          "sizeLines": 6,
+          "fileCategory": "script"
+        },
+        {
+          "path": "mai_ui_tech/scripts/run_cli.sh",
+          "language": "shell",
+          "sizeLines": 13,
+          "fileCategory": "script"
+        },
+        {
+          "path": "mai_ui_tech/scripts/serve_grounding_mlx.sh",
+          "language": "shell",
+          "sizeLines": 30,
+          "fileCategory": "script"
+        },
+        {
+          "path": "mai_ui_tech/scripts/serve_vllm_mlx.sh",
+          "language": "shell",
+          "sizeLines": 48,
+          "fileCategory": "script"
+        },
+        {
+          "path": "mai_ui_tech/scripts/setup_mlx_mac.sh",
+          "language": "shell",
+          "sizeLines": 69,
+          "fileCategory": "script"
+        }
+      ],
+      "batchImportData": {
+        "mai_ui_tech/scripts/pull_ollama_model.sh": [],
+        "mai_ui_tech/scripts/run_cli.sh": [],
+        "mai_ui_tech/scripts/serve_grounding_mlx.sh": [],
+        "mai_ui_tech/scripts/serve_vllm_mlx.sh": [],
+        "mai_ui_tech/scripts/setup_mlx_mac.sh": []
+      },
+      "neighborMap": {}
+    },
+    {
+      "batchIndex": 4,
+      "files": [
+        {
+          "path": "midscene_tech/.env.example",
+          "language": "config",
+          "sizeLines": 37,
+          "fileCategory": "config"
+        },
+        {
+          "path": "midscene_tech/README.md",
+          "language": "markdown",
+          "sizeLines": 129,
+          "fileCategory": "docs"
+        },
+        {
+          "path": "midscene_tech/package.json",
+          "language": "json",
+          "sizeLines": 29,
+          "fileCategory": "config"
+        },
+        {
+          "path": "midscene_tech/tsconfig.json",
+          "language": "json",
+          "sizeLines": 15,
+          "fileCategory": "config"
+        }
+      ],
+      "batchImportData": {
+        "midscene_tech/.env.example": [],
+        "midscene_tech/README.md": [],
+        "midscene_tech/package.json": [],
+        "midscene_tech/tsconfig.json": []
+      },
+      "neighborMap": {}
+    },
+    {
+      "batchIndex": 5,
+      "files": [
+        {
+          "path": "web/frontend/.env.example",
+          "language": "config",
+          "sizeLines": 12,
+          "fileCategory": "config"
+        },
+        {
+          "path": "web/frontend/index.html",
+          "language": "html",
+          "sizeLines": 12,
+          "fileCategory": "markup"
+        },
+        {
+          "path": "web/frontend/package.json",
+          "language": "json",
+          "sizeLines": 21,
+          "fileCategory": "config"
+        }
+      ],
+      "batchImportData": {
+        "web/frontend/.env.example": [],
+        "web/frontend/index.html": [],
+        "web/frontend/package.json": []
+      },
+      "neighborMap": {}
+    },
+    {
+      "batchIndex": 6,
+      "files": [
+        {
+          "path": ".claude/settings.json",
+          "language": "json",
+          "sizeLines": 21,
+          "fileCategory": "config"
+        },
+        {
+          "path": ".cursor/mcp.json",
+          "language": "json",
+          "sizeLines": 14,
+          "fileCategory": "config"
+        },
+        {
+          "path": ".cursor/rules/python-venv.mdc",
+          "language": "mdc",
+          "sizeLines": 55,
+          "fileCategory": "code"
+        },
+        {
+          "path": ".understand-anything/config.json",
+          "language": "json",
+          "sizeLines": 1,
+          "fileCategory": "config"
+        },
+        {
+          "path": "agent_service/__init__.py",
+          "language": "python",
+          "sizeLines": 7,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/analysis_agent/__init__.py",
+          "language": "python",
+          "sizeLines": 24,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/analysis_agent/agent.py",
+          "language": "python",
+          "sizeLines": 59,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/analysis_agent/config/__init__.py",
+          "language": "python",
+          "sizeLines": 71,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/analysis_agent/config/prompts.py",
+          "language": "python",
+          "sizeLines": 24,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/analysis_agent/errors.py",
+          "language": "python",
+          "sizeLines": 5,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/analysis_agent/feature_explore/__init__.py",
+          "language": "python",
+          "sizeLines": 9,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/analysis_agent/feature_explore/agent.py",
+          "language": "python",
+          "sizeLines": 111,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/analysis_agent/feature_explore/README.md",
+          "language": "markdown",
+          "sizeLines": 43,
+          "fileCategory": "docs"
+        },
+        {
+          "path": "agent_service/analysis_agent/feature_explore/tree_build.py",
+          "language": "python",
+          "sizeLines": 387,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/analysis_agent/feature_explore/types.py",
+          "language": "python",
+          "sizeLines": 63,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/analysis_agent/model/__init__.py",
+          "language": "python",
+          "sizeLines": 3,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/analysis_agent/model/client.py",
+          "language": "python",
+          "sizeLines": 124,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/analysis_agent/parser.py",
+          "language": "python",
+          "sizeLines": 94,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/analysis_agent/progress.py",
+          "language": "python",
+          "sizeLines": 238,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/analysis_agent/README.md",
+          "language": "markdown",
+          "sizeLines": 50,
+          "fileCategory": "docs"
+        },
+        {
+          "path": "agent_service/analysis_agent/types.py",
+          "language": "python",
+          "sizeLines": 35,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/common/__init__.py",
+          "language": "python",
+          "sizeLines": 0,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/common/device_resolve.py",
+          "language": "python",
+          "sizeLines": 18,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/func_agent/__init__.py",
+          "language": "python",
+          "sizeLines": 9,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/func_agent/backends/__init__.py",
+          "language": "python",
+          "sizeLines": 4,
+          "fileCategory": "code"
+        }
+      ],
+      "batchImportData": {
+        ".claude/settings.json": [],
+        ".cursor/mcp.json": [],
+        ".cursor/rules/python-venv.mdc": [],
+        ".understand-anything/config.json": [],
+        "agent_service/__init__.py": [],
+        "agent_service/analysis_agent/__init__.py": [],
+        "agent_service/analysis_agent/agent.py": [],
+        "agent_service/analysis_agent/config/__init__.py": [],
+        "agent_service/analysis_agent/config/prompts.py": [],
+        "agent_service/analysis_agent/errors.py": [],
+        "agent_service/analysis_agent/feature_explore/__init__.py": [],
+        "agent_service/analysis_agent/feature_explore/agent.py": [],
+        "agent_service/analysis_agent/feature_explore/README.md": [],
+        "agent_service/analysis_agent/feature_explore/tree_build.py": [],
+        "agent_service/analysis_agent/feature_explore/types.py": [],
+        "agent_service/analysis_agent/model/__init__.py": [],
+        "agent_service/analysis_agent/model/client.py": [],
+        "agent_service/analysis_agent/parser.py": [],
+        "agent_service/analysis_agent/progress.py": [],
+        "agent_service/analysis_agent/README.md": [],
+        "agent_service/analysis_agent/types.py": [],
+        "agent_service/common/__init__.py": [],
+        "agent_service/common/device_resolve.py": [],
+        "agent_service/func_agent/__init__.py": [],
+        "agent_service/func_agent/backends/__init__.py": []
+      },
+      "neighborMap": {}
+    },
+    {
+      "batchIndex": 7,
+      "files": [
+        {
+          "path": "agent_service/func_agent/backends/autoglm_runner.py",
+          "language": "python",
+          "sizeLines": 64,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/func_agent/backends/autoglm/__init__.py",
+          "language": "python",
+          "sizeLines": 5,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/func_agent/backends/autoglm/agent.py",
+          "language": "python",
+          "sizeLines": 167,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/func_agent/backends/midscene/__init__.py",
+          "language": "python",
+          "sizeLines": 5,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/func_agent/backends/midscene/runtime.py",
+          "language": "python",
+          "sizeLines": 280,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/func_agent/cli.py",
+          "language": "python",
+          "sizeLines": 116,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/func_agent/core.py",
+          "language": "python",
+          "sizeLines": 12,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/func_agent/orchestrator.py",
+          "language": "python",
+          "sizeLines": 23,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/func_agent/README.md",
+          "language": "markdown",
+          "sizeLines": 28,
+          "fileCategory": "docs"
+        },
+        {
+          "path": "agent_service/langchain_platform/__init__.py",
+          "language": "python",
+          "sizeLines": 13,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/langchain_platform/callbacks/__init__.py",
+          "language": "python",
+          "sizeLines": 0,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/langchain_platform/callbacks/sse.py",
+          "language": "python",
+          "sizeLines": 26,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/langchain_platform/chains/__init__.py",
+          "language": "python",
+          "sizeLines": 1,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/langchain_platform/chains/case_generation.py",
+          "language": "python",
+          "sizeLines": 194,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/langchain_platform/config.py",
+          "language": "python",
+          "sizeLines": 78,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/langchain_platform/explore_core.py",
+          "language": "python",
+          "sizeLines": 70,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/langchain_platform/facades/__init__.py",
+          "language": "python",
+          "sizeLines": 1,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/langchain_platform/facades/analysis.py",
+          "language": "python",
+          "sizeLines": 22,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/langchain_platform/facades/func_dispatch.py",
+          "language": "python",
+          "sizeLines": 24,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/langchain_platform/graphs/__init__.py",
+          "language": "python",
+          "sizeLines": 1,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/langchain_platform/graphs/autoglm_exec.py",
+          "language": "python",
+          "sizeLines": 192,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/langchain_platform/graphs/case_gen_agentic.py",
+          "language": "python",
+          "sizeLines": 308,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/langchain_platform/graphs/explore_run.py",
+          "language": "python",
+          "sizeLines": 137,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/langchain_platform/graphs/func_dispatch.py",
+          "language": "python",
+          "sizeLines": 141,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/langchain_platform/graphs/midscene_exec.py",
+          "language": "python",
+          "sizeLines": 55,
+          "fileCategory": "code"
+        }
+      ],
+      "batchImportData": {
+        "agent_service/func_agent/backends/autoglm_runner.py": [],
+        "agent_service/func_agent/backends/autoglm/__init__.py": [],
+        "agent_service/func_agent/backends/autoglm/agent.py": [],
+        "agent_service/func_agent/backends/midscene/__init__.py": [],
+        "agent_service/func_agent/backends/midscene/runtime.py": [],
+        "agent_service/func_agent/cli.py": [],
+        "agent_service/func_agent/core.py": [],
+        "agent_service/func_agent/orchestrator.py": [],
+        "agent_service/func_agent/README.md": [],
+        "agent_service/langchain_platform/__init__.py": [],
+        "agent_service/langchain_platform/callbacks/__init__.py": [],
+        "agent_service/langchain_platform/callbacks/sse.py": [],
+        "agent_service/langchain_platform/chains/__init__.py": [],
+        "agent_service/langchain_platform/chains/case_generation.py": [],
+        "agent_service/langchain_platform/config.py": [],
+        "agent_service/langchain_platform/explore_core.py": [],
+        "agent_service/langchain_platform/facades/__init__.py": [],
+        "agent_service/langchain_platform/facades/analysis.py": [],
+        "agent_service/langchain_platform/facades/func_dispatch.py": [],
+        "agent_service/langchain_platform/graphs/__init__.py": [],
+        "agent_service/langchain_platform/graphs/autoglm_exec.py": [],
+        "agent_service/langchain_platform/graphs/case_gen_agentic.py": [],
+        "agent_service/langchain_platform/graphs/explore_run.py": [],
+        "agent_service/langchain_platform/graphs/func_dispatch.py": [],
+        "agent_service/langchain_platform/graphs/midscene_exec.py": []
+      },
+      "neighborMap": {}
+    },
+    {
+      "batchIndex": 8,
+      "files": [
+        {
+          "path": "agent_service/langchain_platform/models.py",
+          "language": "python",
+          "sizeLines": 66,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/langchain_platform/README.md",
+          "language": "markdown",
+          "sizeLines": 184,
+          "fileCategory": "docs"
+        },
+        {
+          "path": "agent_service/langchain_platform/retrievers/__init__.py",
+          "language": "python",
+          "sizeLines": 1,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/langchain_platform/retrievers/web_case_kb.py",
+          "language": "python",
+          "sizeLines": 64,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/langchain_platform/tools/__init__.py",
+          "language": "python",
+          "sizeLines": 1,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/langchain_platform/tools/device_autoglm.py",
+          "language": "python",
+          "sizeLines": 51,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/langchain_platform/tools/knowledge_query.py",
+          "language": "python",
+          "sizeLines": 221,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/langchain_platform/tools/midscene_dispatch.py",
+          "language": "python",
+          "sizeLines": 38,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/langchain_platform/tools/registry.py",
+          "language": "python",
+          "sizeLines": 38,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/requirements.txt",
+          "language": "txt",
+          "sizeLines": 10,
+          "fileCategory": "docs"
+        },
+        {
+          "path": "agent_service/service/__init__.py",
+          "language": "python",
+          "sizeLines": 0,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/service/__main__.py",
+          "language": "python",
+          "sizeLines": 14,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/service/app.py",
+          "language": "python",
+          "sizeLines": 134,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/service/config.py",
+          "language": "python",
+          "sizeLines": 15,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/service/logging_config.py",
+          "language": "python",
+          "sizeLines": 101,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/service/routers/__init__.py",
+          "language": "python",
+          "sizeLines": 0,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/service/routers/analysis.py",
+          "language": "python",
+          "sizeLines": 151,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/service/routers/explore.py",
+          "language": "python",
+          "sizeLines": 102,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/service/routers/func_agent.py",
+          "language": "python",
+          "sizeLines": 102,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/service/routers/health.py",
+          "language": "python",
+          "sizeLines": 15,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/service/routers/midscene.py",
+          "language": "python",
+          "sizeLines": 81,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/service/routers/tree.py",
+          "language": "python",
+          "sizeLines": 31,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/service/schemas.py",
+          "language": "python",
+          "sizeLines": 112,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/service/sse.py",
+          "language": "python",
+          "sizeLines": 17,
+          "fileCategory": "code"
+        },
+        {
+          "path": "agent_service/service/task_manager.py",
+          "language": "python",
+          "sizeLines": 112,
+          "fileCategory": "code"
+        }
+      ],
+      "batchImportData": {
+        "agent_service/langchain_platform/models.py": [],
+        "agent_service/langchain_platform/README.md": [],
+        "agent_service/langchain_platform/retrievers/__init__.py": [],
+        "agent_service/langchain_platform/retrievers/web_case_kb.py": [],
+        "agent_service/langchain_platform/tools/__init__.py": [],
+        "agent_service/langchain_platform/tools/device_autoglm.py": [],
+        "agent_service/langchain_platform/tools/knowledge_query.py": [],
+        "agent_service/langchain_platform/tools/midscene_dispatch.py": [],
+        "agent_service/langchain_platform/tools/registry.py": [],
+        "agent_service/requirements.txt": [],
+        "agent_service/service/__init__.py": [],
+        "agent_service/service/__main__.py": [],
+        "agent_service/service/app.py": [],
+        "agent_service/service/config.py": [],
+        "agent_service/service/logging_config.py": [],
+        "agent_service/service/routers/__init__.py": [],
+        "agent_service/service/routers/analysis.py": [],
+        "agent_service/service/routers/explore.py": [],
+        "agent_service/service/routers/func_agent.py": [],
+        "agent_service/service/routers/health.py": [],
+        "agent_service/service/routers/midscene.py": [],
+        "agent_service/service/routers/tree.py": [],
+        "agent_service/service/schemas.py": [],
+        "agent_service/service/sse.py": [],
+        "agent_service/service/task_manager.py": []
+      },
+      "neighborMap": {}
+    },
+    {
+      "batchIndex": 9,
+      "files": [
+        {
+          "path": "autoglm_phone_tech/__init__.py",
+          "language": "python",
+          "sizeLines": 8,
+          "fileCategory": "code"
+        },
+        {
+          "path": "autoglm_phone_tech/actions/__init__.py",
+          "language": "python",
+          "sizeLines": 3,
+          "fileCategory": "code"
+        },
+        {
+          "path": "autoglm_phone_tech/actions/handler.py",
+          "language": "python",
+          "sizeLines": 212,
+          "fileCategory": "code"
+        },
+        {
+          "path": "autoglm_phone_tech/config/__init__.py",
+          "language": "python",
+          "sizeLines": 10,
+          "fileCategory": "code"
+        },
+        {
+          "path": "autoglm_phone_tech/config/apps_harmonyos.py",
+          "language": "python",
+          "sizeLines": 53,
+          "fileCategory": "code"
+        },
+        {
+          "path": "autoglm_phone_tech/config/apps.py",
+          "language": "python",
+          "sizeLines": 56,
+          "fileCategory": "code"
+        },
+        {
+          "path": "autoglm_phone_tech/config/prompts_zh.py",
+          "language": "python",
+          "sizeLines": 79,
+          "fileCategory": "code"
+        },
+        {
+          "path": "autoglm_phone_tech/config/timing.py",
+          "language": "python",
+          "sizeLines": 15,
+          "fileCategory": "code"
+        },
+        {
+          "path": "autoglm_phone_tech/device/__init__.py",
+          "language": "python",
+          "sizeLines": 14,
+          "fileCategory": "code"
+        },
+        {
+          "path": "autoglm_phone_tech/device/adb_bridge.py",
+          "language": "python",
+          "sizeLines": 225,
+          "fileCategory": "code"
+        },
+        {
+          "path": "autoglm_phone_tech/device/adb_resolve.py",
+          "language": "python",
+          "sizeLines": 34,
+          "fileCategory": "code"
+        },
+        {
+          "path": "autoglm_phone_tech/device/device_factory.py",
+          "language": "python",
+          "sizeLines": 45,
+          "fileCategory": "code"
+        },
+        {
+          "path": "autoglm_phone_tech/device/hdc_bridge.py",
+          "language": "python",
+          "sizeLines": 219,
+          "fileCategory": "code"
+        },
+        {
+          "path": "autoglm_phone_tech/device/hdc_resolve.py",
+          "language": "python",
+          "sizeLines": 24,
+          "fileCategory": "code"
+        },
+        {
+          "path": "autoglm_phone_tech/device/platform.py",
+          "language": "python",
+          "sizeLines": 23,
+          "fileCategory": "code"
+        },
+        {
+          "path": "autoglm_phone_tech/model/__init__.py",
+          "language": "python",
+          "sizeLines": 3,
+          "fileCategory": "code"
+        },
+        {
+          "path": "autoglm_phone_tech/model/client.py",
+          "language": "python",
+          "sizeLines": 187,
+          "fileCategory": "code"
+        },
+        {
+          "path": "autoglm_phone_tech/README.md",
+          "language": "markdown",
+          "sizeLines": 85,
+          "fileCategory": "docs"
+        },
+        {
+          "path": "mai_ui_tech/__init__.py",
+          "language": "python",
+          "sizeLines": 12,
+          "fileCategory": "code"
+        },
+        {
+          "path": "mai_ui_tech/__main__.py",
+          "language": "python",
+          "sizeLines": 4,
+          "fileCategory": "code"
+        },
+        {
+          "path": "mai_ui_tech/cli.py",
+          "language": "python",
+          "sizeLines": 75,
+          "fileCategory": "code"
+        },
+        {
+          "path": "mai_ui_tech/config.py",
+          "language": "python",
+          "sizeLines": 115,
+          "fileCategory": "code"
+        },
+        {
+          "path": "mai_ui_tech/coords.py",
+          "language": "python",
+          "sizeLines": 19,
+          "fileCategory": "code"
+        },
+        {
+          "path": "mai_ui_tech/grounding_server.py",
+          "language": "python",
+          "sizeLines": 230,
+          "fileCategory": "code"
+        },
+        {
+          "path": "mai_ui_tech/grounding.py",
+          "language": "python",
+          "sizeLines": 329,
+          "fileCategory": "code"
+        }
+      ],
+      "batchImportData": {
+        "autoglm_phone_tech/__init__.py": [],
+        "autoglm_phone_tech/actions/__init__.py": [],
+        "autoglm_phone_tech/actions/handler.py": [],
+        "autoglm_phone_tech/config/__init__.py": [],
+        "autoglm_phone_tech/config/apps_harmonyos.py": [],
+        "autoglm_phone_tech/config/apps.py": [],
+        "autoglm_phone_tech/config/prompts_zh.py": [],
+        "autoglm_phone_tech/config/timing.py": [],
+        "autoglm_phone_tech/device/__init__.py": [],
+        "autoglm_phone_tech/device/adb_bridge.py": [],
+        "autoglm_phone_tech/device/adb_resolve.py": [],
+        "autoglm_phone_tech/device/device_factory.py": [],
+        "autoglm_phone_tech/device/hdc_bridge.py": [],
+        "autoglm_phone_tech/device/hdc_resolve.py": [],
+        "autoglm_phone_tech/device/platform.py": [],
+        "autoglm_phone_tech/model/__init__.py": [],
+        "autoglm_phone_tech/model/client.py": [],
+        "autoglm_phone_tech/README.md": [],
+        "mai_ui_tech/__init__.py": [],
+        "mai_ui_tech/__main__.py": [],
+        "mai_ui_tech/cli.py": [],
+        "mai_ui_tech/config.py": [],
+        "mai_ui_tech/coords.py": [],
+        "mai_ui_tech/grounding_server.py": [],
+        "mai_ui_tech/grounding.py": []
+      },
+      "neighborMap": {}
+    },
+    {
+      "batchIndex": 10,
+      "files": [
+        {
+          "path": "mai_ui_tech/health.py",
+          "language": "python",
+          "sizeLines": 60,
+          "fileCategory": "code"
+        },
+        {
+          "path": "mai_ui_tech/image_utils.py",
+          "language": "python",
+          "sizeLines": 27,
+          "fileCategory": "code"
+        },
+        {
+          "path": "mai_ui_tech/menu_detect.py",
+          "language": "python",
+          "sizeLines": 361,
+          "fileCategory": "code"
+        },
+        {
+          "path": "mai_ui_tech/mlx_inference.py",
+          "language": "python",
+          "sizeLines": 236,
+          "fileCategory": "code"
+        },
+        {
+          "path": "mai_ui_tech/prompt.py",
+          "language": "python",
+          "sizeLines": 40,
+          "fileCategory": "code"
+        },
+        {
+          "path": "mai_ui_tech/scripts/download_model_hf.py",
+          "language": "python",
+          "sizeLines": 102,
+          "fileCategory": "code"
+        },
+        {
+          "path": "midscene_tech/scripts/demo-settings.ts",
+          "language": "typescript",
+          "sizeLines": 65,
+          "fileCategory": "code"
+        },
+        {
+          "path": "midscene_tech/src/agent.ts",
+          "language": "typescript",
+          "sizeLines": 148,
+          "fileCategory": "code"
+        },
+        {
+          "path": "midscene_tech/src/app_scope.ts",
+          "language": "typescript",
+          "sizeLines": 104,
+          "fileCategory": "code"
+        },
+        {
+          "path": "midscene_tech/src/cli.ts",
+          "language": "typescript",
+          "sizeLines": 307,
+          "fileCategory": "code"
+        },
+        {
+          "path": "midscene_tech/src/config.ts",
+          "language": "typescript",
+          "sizeLines": 193,
+          "fileCategory": "code"
+        },
+        {
+          "path": "midscene_tech/src/device_runtime.ts",
+          "language": "typescript",
+          "sizeLines": 116,
+          "fileCategory": "code"
+        },
+        {
+          "path": "midscene_tech/src/explore_agent.ts",
+          "language": "typescript",
+          "sizeLines": 97,
+          "fileCategory": "code"
+        },
+        {
+          "path": "midscene_tech/src/explore_common.test.ts",
+          "language": "typescript",
+          "sizeLines": 103,
+          "fileCategory": "code"
+        },
+        {
+          "path": "midscene_tech/src/explore_common.ts",
+          "language": "typescript",
+          "sizeLines": 403,
+          "fileCategory": "code"
+        },
+        {
+          "path": "midscene_tech/src/explore_fair_share.ts",
+          "language": "typescript",
+          "sizeLines": 85,
+          "fileCategory": "code"
+        },
+        {
+          "path": "midscene_tech/src/explore_metrics.ts",
+          "language": "typescript",
+          "sizeLines": 84,
+          "fileCategory": "code"
+        },
+        {
+          "path": "midscene_tech/src/explore_nav.ts",
+          "language": "typescript",
+          "sizeLines": 124,
+          "fileCategory": "code"
+        },
+        {
+          "path": "midscene_tech/src/explore_snapshot.ts",
+          "language": "typescript",
+          "sizeLines": 373,
+          "fileCategory": "code"
+        },
+        {
+          "path": "midscene_tech/src/explore_traverse.ts",
+          "language": "typescript",
+          "sizeLines": 356,
+          "fileCategory": "code"
+        },
+        {
+          "path": "midscene_tech/src/explore_types.ts",
+          "language": "typescript",
+          "sizeLines": 158,
+          "fileCategory": "code"
+        },
+        {
+          "path": "midscene_tech/src/explore.ts",
+          "language": "typescript",
+          "sizeLines": 831,
+          "fileCategory": "code"
+        },
+        {
+          "path": "midscene_tech/src/feature_tree_build.ts",
+          "language": "typescript",
+          "sizeLines": 364,
+          "fileCategory": "code"
+        },
+        {
+          "path": "midscene_tech/src/hdc.ts",
+          "language": "typescript",
+          "sizeLines": 183,
+          "fileCategory": "code"
+        },
+        {
+          "path": "midscene_tech/src/index.ts",
+          "language": "typescript",
+          "sizeLines": 33,
+          "fileCategory": "code"
+        }
+      ],
+      "batchImportData": {
+        "mai_ui_tech/health.py": [],
+        "mai_ui_tech/image_utils.py": [],
+        "mai_ui_tech/menu_detect.py": [],
+        "mai_ui_tech/mlx_inference.py": [],
+        "mai_ui_tech/prompt.py": [],
+        "mai_ui_tech/scripts/download_model_hf.py": [],
+        "midscene_tech/scripts/demo-settings.ts": [],
+        "midscene_tech/src/agent.ts": [],
+        "midscene_tech/src/app_scope.ts": [],
+        "midscene_tech/src/cli.ts": [],
+        "midscene_tech/src/config.ts": [],
+        "midscene_tech/src/device_runtime.ts": [],
+        "midscene_tech/src/explore_agent.ts": [],
+        "midscene_tech/src/explore_common.test.ts": [],
+        "midscene_tech/src/explore_common.ts": [],
+        "midscene_tech/src/explore_fair_share.ts": [],
+        "midscene_tech/src/explore_metrics.ts": [],
+        "midscene_tech/src/explore_nav.ts": [],
+        "midscene_tech/src/explore_snapshot.ts": [],
+        "midscene_tech/src/explore_traverse.ts": [],
+        "midscene_tech/src/explore_types.ts": [],
+        "midscene_tech/src/explore.ts": [],
+        "midscene_tech/src/feature_tree_build.ts": [],
+        "midscene_tech/src/hdc.ts": [],
+        "midscene_tech/src/index.ts": []
+      },
+      "neighborMap": {}
+    },
+    {
+      "batchIndex": 11,
+      "files": [
+        {
+          "path": "midscene_tech/src/model_log.ts",
+          "language": "typescript",
+          "sizeLines": 90,
+          "fileCategory": "code"
+        },
+        {
+          "path": "midscene_tech/src/platform.ts",
+          "language": "typescript",
+          "sizeLines": 20,
+          "fileCategory": "code"
+        },
+        {
+          "path": "midscene_tech/src/resolve_app_launch.ts",
+          "language": "typescript",
+          "sizeLines": 166,
+          "fileCategory": "code"
+        },
+        {
+          "path": "midscene_tech/src/step_timeout.ts",
+          "language": "typescript",
+          "sizeLines": 41,
+          "fileCategory": "code"
+        },
+        {
+          "path": "midscene_tech/src/web_dispatch.ts",
+          "language": "typescript",
+          "sizeLines": 169,
+          "fileCategory": "code"
+        },
+        {
+          "path": "midscene_tech/src/yaml_runner.ts",
+          "language": "typescript",
+          "sizeLines": 66,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/__init__.py",
+          "language": "python",
+          "sizeLines": 1,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/auth_utils.py",
+          "language": "python",
+          "sizeLines": 63,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/database.py",
+          "language": "python",
+          "sizeLines": 483,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/deps.py",
+          "language": "python",
+          "sizeLines": 66,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/executor.py",
+          "language": "python",
+          "sizeLines": 499,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/knowledge/__init__.py",
+          "language": "python",
+          "sizeLines": 1,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/knowledge/chunk_policy.py",
+          "language": "python",
+          "sizeLines": 171,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/knowledge/config.py",
+          "language": "python",
+          "sizeLines": 90,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/knowledge/index/__init__.py",
+          "language": "python",
+          "sizeLines": 0,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/knowledge/index/embeddings.py",
+          "language": "python",
+          "sizeLines": 69,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/knowledge/index/pipeline.py",
+          "language": "python",
+          "sizeLines": 276,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/knowledge/index/qdrant_store.py",
+          "language": "python",
+          "sizeLines": 102,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/knowledge/ingestion/__init__.py",
+          "language": "python",
+          "sizeLines": 0,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/knowledge/ingestion/chunkers.py",
+          "language": "python",
+          "sizeLines": 124,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/knowledge/ingestion/parsers.py",
+          "language": "python",
+          "sizeLines": 195,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/knowledge/ingestion/router.py",
+          "language": "python",
+          "sizeLines": 23,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/knowledge/ingestion/upload_types.py",
+          "language": "python",
+          "sizeLines": 44,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/knowledge/query/__init__.py",
+          "language": "python",
+          "sizeLines": 0,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/knowledge/query/engine.py",
+          "language": "python",
+          "sizeLines": 25,
+          "fileCategory": "code"
+        }
+      ],
+      "batchImportData": {
+        "midscene_tech/src/model_log.ts": [],
+        "midscene_tech/src/platform.ts": [],
+        "midscene_tech/src/resolve_app_launch.ts": [],
+        "midscene_tech/src/step_timeout.ts": [],
+        "midscene_tech/src/web_dispatch.ts": [],
+        "midscene_tech/src/yaml_runner.ts": [],
+        "web/backend/app/__init__.py": [],
+        "web/backend/app/auth_utils.py": [],
+        "web/backend/app/database.py": [],
+        "web/backend/app/deps.py": [],
+        "web/backend/app/executor.py": [],
+        "web/backend/app/knowledge/__init__.py": [],
+        "web/backend/app/knowledge/chunk_policy.py": [],
+        "web/backend/app/knowledge/config.py": [],
+        "web/backend/app/knowledge/index/__init__.py": [],
+        "web/backend/app/knowledge/index/embeddings.py": [],
+        "web/backend/app/knowledge/index/pipeline.py": [],
+        "web/backend/app/knowledge/index/qdrant_store.py": [],
+        "web/backend/app/knowledge/ingestion/__init__.py": [],
+        "web/backend/app/knowledge/ingestion/chunkers.py": [],
+        "web/backend/app/knowledge/ingestion/parsers.py": [],
+        "web/backend/app/knowledge/ingestion/router.py": [],
+        "web/backend/app/knowledge/ingestion/upload_types.py": [],
+        "web/backend/app/knowledge/query/__init__.py": [],
+        "web/backend/app/knowledge/query/engine.py": []
+      },
+      "neighborMap": {}
+    },
+    {
+      "batchIndex": 12,
+      "files": [
+        {
+          "path": "web/backend/app/knowledge/query/service.py",
+          "language": "python",
+          "sizeLines": 85,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/logging_config.py",
+          "language": "python",
+          "sizeLines": 91,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/main.py",
+          "language": "python",
+          "sizeLines": 177,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/models.py",
+          "language": "python",
+          "sizeLines": 518,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/rbac.py",
+          "language": "python",
+          "sizeLines": 45,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/routers/__init__.py",
+          "language": "python",
+          "sizeLines": 1,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/routers/admin.py",
+          "language": "python",
+          "sizeLines": 209,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/routers/app_explore.py",
+          "language": "python",
+          "sizeLines": 178,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/routers/auth.py",
+          "language": "python",
+          "sizeLines": 170,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/routers/billing.py",
+          "language": "python",
+          "sizeLines": 64,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/routers/companies.py",
+          "language": "python",
+          "sizeLines": 17,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/routers/dashboard.py",
+          "language": "python",
+          "sizeLines": 80,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/routers/device_pools_api.py",
+          "language": "python",
+          "sizeLines": 14,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/routers/devices.py",
+          "language": "python",
+          "sizeLines": 40,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/routers/internal_knowledge.py",
+          "language": "python",
+          "sizeLines": 137,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/routers/knowledge.py",
+          "language": "python",
+          "sizeLines": 871,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/routers/mai_ui.py",
+          "language": "python",
+          "sizeLines": 110,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/routers/marketplace.py",
+          "language": "python",
+          "sizeLines": 30,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/routers/monitor_api.py",
+          "language": "python",
+          "sizeLines": 32,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/routers/platform_api.py",
+          "language": "python",
+          "sizeLines": 73,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/routers/project_feature_analysis.py",
+          "language": "python",
+          "sizeLines": 823,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/routers/project_functional.py",
+          "language": "python",
+          "sizeLines": 327,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/routers/projects.py",
+          "language": "python",
+          "sizeLines": 199,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/routers/rentals.py",
+          "language": "python",
+          "sizeLines": 70,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/routers/robot_instances.py",
+          "language": "python",
+          "sizeLines": 119,
+          "fileCategory": "code"
+        }
+      ],
+      "batchImportData": {
+        "web/backend/app/knowledge/query/service.py": [],
+        "web/backend/app/logging_config.py": [],
+        "web/backend/app/main.py": [],
+        "web/backend/app/models.py": [],
+        "web/backend/app/rbac.py": [],
+        "web/backend/app/routers/__init__.py": [],
+        "web/backend/app/routers/admin.py": [],
+        "web/backend/app/routers/app_explore.py": [],
+        "web/backend/app/routers/auth.py": [],
+        "web/backend/app/routers/billing.py": [],
+        "web/backend/app/routers/companies.py": [],
+        "web/backend/app/routers/dashboard.py": [],
+        "web/backend/app/routers/device_pools_api.py": [],
+        "web/backend/app/routers/devices.py": [],
+        "web/backend/app/routers/internal_knowledge.py": [],
+        "web/backend/app/routers/knowledge.py": [],
+        "web/backend/app/routers/mai_ui.py": [],
+        "web/backend/app/routers/marketplace.py": [],
+        "web/backend/app/routers/monitor_api.py": [],
+        "web/backend/app/routers/platform_api.py": [],
+        "web/backend/app/routers/project_feature_analysis.py": [],
+        "web/backend/app/routers/project_functional.py": [],
+        "web/backend/app/routers/projects.py": [],
+        "web/backend/app/routers/rentals.py": [],
+        "web/backend/app/routers/robot_instances.py": []
+      },
+      "neighborMap": {}
+    },
+    {
+      "batchIndex": 13,
+      "files": [
+        {
+          "path": "web/backend/app/routers/test_cases.py",
+          "language": "python",
+          "sizeLines": 532,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/routers/ws_monitor.py",
+          "language": "python",
+          "sizeLines": 65,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/schemas.py",
+          "language": "python",
+          "sizeLines": 821,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/services/__init__.py",
+          "language": "python",
+          "sizeLines": 1,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/services/agent_service_client.py",
+          "language": "python",
+          "sizeLines": 213,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/services/analysis_instance_guard.py",
+          "language": "python",
+          "sizeLines": 61,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/services/app_explore_export.py",
+          "language": "python",
+          "sizeLines": 282,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/services/app_explore_service.py",
+          "language": "python",
+          "sizeLines": 267,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/services/app_install.py",
+          "language": "python",
+          "sizeLines": 132,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/services/case_agent_text.py",
+          "language": "python",
+          "sizeLines": 142,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/services/case_generation_jobs.py",
+          "language": "python",
+          "sizeLines": 396,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/services/case_generation.py",
+          "language": "python",
+          "sizeLines": 124,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/services/case_import.py",
+          "language": "python",
+          "sizeLines": 136,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/services/case_kb.py",
+          "language": "python",
+          "sizeLines": 76,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/services/company_scope.py",
+          "language": "python",
+          "sizeLines": 80,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/services/device_discovery.py",
+          "language": "python",
+          "sizeLines": 148,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/services/device_platform.py",
+          "language": "python",
+          "sizeLines": 79,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/services/device_pools.py",
+          "language": "python",
+          "sizeLines": 32,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/services/device_screen.py",
+          "language": "python",
+          "sizeLines": 131,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/services/feature_analysis_bridge.py",
+          "language": "python",
+          "sizeLines": 323,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/services/feature_analysis_guard.py",
+          "language": "python",
+          "sizeLines": 76,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/services/feature_analysis_service.py",
+          "language": "python",
+          "sizeLines": 39,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/services/hdc_apps.py",
+          "language": "python",
+          "sizeLines": 113,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/services/installed_apps_catalog.py",
+          "language": "python",
+          "sizeLines": 67,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/services/kafka_functional.py",
+          "language": "python",
+          "sizeLines": 67,
+          "fileCategory": "code"
+        }
+      ],
+      "batchImportData": {
+        "web/backend/app/routers/test_cases.py": [],
+        "web/backend/app/routers/ws_monitor.py": [],
+        "web/backend/app/schemas.py": [],
+        "web/backend/app/services/__init__.py": [],
+        "web/backend/app/services/agent_service_client.py": [],
+        "web/backend/app/services/analysis_instance_guard.py": [],
+        "web/backend/app/services/app_explore_export.py": [],
+        "web/backend/app/services/app_explore_service.py": [],
+        "web/backend/app/services/app_install.py": [],
+        "web/backend/app/services/case_agent_text.py": [],
+        "web/backend/app/services/case_generation_jobs.py": [],
+        "web/backend/app/services/case_generation.py": [],
+        "web/backend/app/services/case_import.py": [],
+        "web/backend/app/services/case_kb.py": [],
+        "web/backend/app/services/company_scope.py": [],
+        "web/backend/app/services/device_discovery.py": [],
+        "web/backend/app/services/device_platform.py": [],
+        "web/backend/app/services/device_pools.py": [],
+        "web/backend/app/services/device_screen.py": [],
+        "web/backend/app/services/feature_analysis_bridge.py": [],
+        "web/backend/app/services/feature_analysis_guard.py": [],
+        "web/backend/app/services/feature_analysis_service.py": [],
+        "web/backend/app/services/hdc_apps.py": [],
+        "web/backend/app/services/installed_apps_catalog.py": [],
+        "web/backend/app/services/kafka_functional.py": []
+      },
+      "neighborMap": {}
+    },
+    {
+      "batchIndex": 14,
+      "files": [
+        {
+          "path": "web/backend/app/services/knowledge_bootstrap.py",
+          "language": "python",
+          "sizeLines": 52,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/services/knowledge_collection.py",
+          "language": "python",
+          "sizeLines": 81,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/services/knowledge_document.py",
+          "language": "python",
+          "sizeLines": 55,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/services/knowledge_sync.py",
+          "language": "python",
+          "sizeLines": 80,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/services/llm_usage_log.py",
+          "language": "python",
+          "sizeLines": 105,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/services/mai_ui_service.py",
+          "language": "python",
+          "sizeLines": 283,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/services/marketplace_catalog.py",
+          "language": "python",
+          "sizeLines": 133,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/services/package_bundle.py",
+          "language": "python",
+          "sizeLines": 146,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/services/package_platform.py",
+          "language": "python",
+          "sizeLines": 75,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/services/project_dashboard.py",
+          "language": "python",
+          "sizeLines": 144,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/services/robot_agent_context.py",
+          "language": "python",
+          "sizeLines": 91,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/services/robot_catalog.py",
+          "language": "python",
+          "sizeLines": 13,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/services/robot_instance_out.py",
+          "language": "python",
+          "sizeLines": 29,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/services/robot_monitor.py",
+          "language": "python",
+          "sizeLines": 195,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/services/robot_run_guard.py",
+          "language": "python",
+          "sizeLines": 103,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/services/run_metrics.py",
+          "language": "python",
+          "sizeLines": 10,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/services/run_report.py",
+          "language": "python",
+          "sizeLines": 104,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/app/test_case_io.py",
+          "language": "python",
+          "sizeLines": 73,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/data/feature_analysis_exports/feature-analysis-3-9.xlsx",
+          "language": "xlsx",
+          "sizeLines": 31,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/data/knowledge/3/1/20260527103159_测试用例规范V1.0设计文档.docx",
+          "language": "docx",
+          "sizeLines": 205,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/requirements.txt",
+          "language": "txt",
+          "sizeLines": 22,
+          "fileCategory": "docs"
+        },
+        {
+          "path": "web/backend/tests/test_case_agent_text.py",
+          "language": "python",
+          "sizeLines": 62,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/backend/tests/test_knowledge_integration.py",
+          "language": "python",
+          "sizeLines": 126,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/scripts/test-feature-tree.mjs",
+          "language": "javascript",
+          "sizeLines": 293,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/api/client.js",
+          "language": "javascript",
+          "sizeLines": 64,
+          "fileCategory": "code"
+        }
+      ],
+      "batchImportData": {
+        "web/backend/app/services/knowledge_bootstrap.py": [],
+        "web/backend/app/services/knowledge_collection.py": [],
+        "web/backend/app/services/knowledge_document.py": [],
+        "web/backend/app/services/knowledge_sync.py": [],
+        "web/backend/app/services/llm_usage_log.py": [],
+        "web/backend/app/services/mai_ui_service.py": [],
+        "web/backend/app/services/marketplace_catalog.py": [],
+        "web/backend/app/services/package_bundle.py": [],
+        "web/backend/app/services/package_platform.py": [],
+        "web/backend/app/services/project_dashboard.py": [],
+        "web/backend/app/services/robot_agent_context.py": [],
+        "web/backend/app/services/robot_catalog.py": [],
+        "web/backend/app/services/robot_instance_out.py": [],
+        "web/backend/app/services/robot_monitor.py": [],
+        "web/backend/app/services/robot_run_guard.py": [],
+        "web/backend/app/services/run_metrics.py": [],
+        "web/backend/app/services/run_report.py": [],
+        "web/backend/app/test_case_io.py": [],
+        "web/backend/data/feature_analysis_exports/feature-analysis-3-9.xlsx": [],
+        "web/backend/data/knowledge/3/1/20260527103159_测试用例规范V1.0设计文档.docx": [],
+        "web/backend/requirements.txt": [],
+        "web/backend/tests/test_case_agent_text.py": [],
+        "web/backend/tests/test_knowledge_integration.py": [],
+        "web/frontend/scripts/test-feature-tree.mjs": [],
+        "web/frontend/src/api/client.js": []
+      },
+      "neighborMap": {}
+    },
+    {
+      "batchIndex": 15,
+      "files": [
+        {
+          "path": "web/frontend/src/App.vue",
+          "language": "vue",
+          "sizeLines": 533,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/components/AppSearchSelect.vue",
+          "language": "vue",
+          "sizeLines": 226,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/components/DeviceScreenMirror.vue",
+          "language": "vue",
+          "sizeLines": 252,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/components/FeatureAnalysisWorkbench.vue",
+          "language": "vue",
+          "sizeLines": 764,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/components/FeatureTreeBranch.vue",
+          "language": "vue",
+          "sizeLines": 209,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/components/RobotMascotAvatar.vue",
+          "language": "vue",
+          "sizeLines": 76,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/components/RunLivePanel.vue",
+          "language": "vue",
+          "sizeLines": 501,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/constants/robotCatalog.js",
+          "language": "javascript",
+          "sizeLines": 119,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/main.js",
+          "language": "javascript",
+          "sizeLines": 11,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/router/index.js",
+          "language": "javascript",
+          "sizeLines": 212,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/stores/activeTestRun.js",
+          "language": "javascript",
+          "sizeLines": 404,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/stores/auth.js",
+          "language": "javascript",
+          "sizeLines": 113,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/style.css",
+          "language": "css",
+          "sizeLines": 125,
+          "fileCategory": "markup"
+        },
+        {
+          "path": "web/frontend/src/utils/caseGenLive.js",
+          "language": "javascript",
+          "sizeLines": 94,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/utils/featureAnalysisLive.js",
+          "language": "javascript",
+          "sizeLines": 159,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/utils/featureTree.js",
+          "language": "javascript",
+          "sizeLines": 782,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/utils/fuzzyMatch.js",
+          "language": "javascript",
+          "sizeLines": 14,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/utils/knowledgeLabels.js",
+          "language": "javascript",
+          "sizeLines": 97,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/utils/knowledgeUpload.js",
+          "language": "javascript",
+          "sizeLines": 33,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/utils/packagePlatform.js",
+          "language": "javascript",
+          "sizeLines": 67,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/utils/runLive.js",
+          "language": "javascript",
+          "sizeLines": 53,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/views/AdminCompaniesView.vue",
+          "language": "vue",
+          "sizeLines": 155,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/views/AdminRentalOrdersView.vue",
+          "language": "vue",
+          "sizeLines": 349,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/views/AdminRobotInstancesView.vue",
+          "language": "vue",
+          "sizeLines": 265,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/views/AdminUsersView.vue",
+          "language": "vue",
+          "sizeLines": 167,
+          "fileCategory": "code"
+        }
+      ],
+      "batchImportData": {
+        "web/frontend/src/App.vue": [],
+        "web/frontend/src/components/AppSearchSelect.vue": [],
+        "web/frontend/src/components/DeviceScreenMirror.vue": [],
+        "web/frontend/src/components/FeatureAnalysisWorkbench.vue": [],
+        "web/frontend/src/components/FeatureTreeBranch.vue": [],
+        "web/frontend/src/components/RobotMascotAvatar.vue": [],
+        "web/frontend/src/components/RunLivePanel.vue": [],
+        "web/frontend/src/constants/robotCatalog.js": [],
+        "web/frontend/src/main.js": [],
+        "web/frontend/src/router/index.js": [],
+        "web/frontend/src/stores/activeTestRun.js": [],
+        "web/frontend/src/stores/auth.js": [],
+        "web/frontend/src/style.css": [],
+        "web/frontend/src/utils/caseGenLive.js": [],
+        "web/frontend/src/utils/featureAnalysisLive.js": [],
+        "web/frontend/src/utils/featureTree.js": [],
+        "web/frontend/src/utils/fuzzyMatch.js": [],
+        "web/frontend/src/utils/knowledgeLabels.js": [],
+        "web/frontend/src/utils/knowledgeUpload.js": [],
+        "web/frontend/src/utils/packagePlatform.js": [],
+        "web/frontend/src/utils/runLive.js": [],
+        "web/frontend/src/views/AdminCompaniesView.vue": [],
+        "web/frontend/src/views/AdminRentalOrdersView.vue": [],
+        "web/frontend/src/views/AdminRobotInstancesView.vue": [],
+        "web/frontend/src/views/AdminUsersView.vue": []
+      },
+      "neighborMap": {}
+    },
+    {
+      "batchIndex": 16,
+      "files": [
+        {
+          "path": "web/frontend/src/views/AppExploreView.vue",
+          "language": "vue",
+          "sizeLines": 594,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/views/CasesView.vue",
+          "language": "vue",
+          "sizeLines": 2872,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/views/DashboardView.vue",
+          "language": "vue",
+          "sizeLines": 208,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/views/FunctionalTaskWizardView.vue",
+          "language": "vue",
+          "sizeLines": 520,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/views/HomeDashboardView.vue",
+          "language": "vue",
+          "sizeLines": 537,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/views/KnowledgeReviewView.vue",
+          "language": "vue",
+          "sizeLines": 384,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/views/LoginView.vue",
+          "language": "vue",
+          "sizeLines": 198,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/views/MaiUiStudioView.vue",
+          "language": "vue",
+          "sizeLines": 509,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/views/MonitorOpsView.vue",
+          "language": "vue",
+          "sizeLines": 752,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/views/MyRentalApplicationsView.vue",
+          "language": "vue",
+          "sizeLines": 230,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/views/MyRobotDetailView.vue",
+          "language": "vue",
+          "sizeLines": 559,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/views/MyRobotsShell.vue",
+          "language": "vue",
+          "sizeLines": 3,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/views/MyRobotsView.vue",
+          "language": "vue",
+          "sizeLines": 351,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/views/PaymentView.vue",
+          "language": "vue",
+          "sizeLines": 207,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/views/PlatformIntroView.vue",
+          "language": "vue",
+          "sizeLines": 542,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/views/ProfileView.vue",
+          "language": "vue",
+          "sizeLines": 299,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/views/ProjectDashboardView.vue",
+          "language": "vue",
+          "sizeLines": 435,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/views/ProjectFeatureAnalysisHistoryView.vue",
+          "language": "vue",
+          "sizeLines": 244,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/views/ProjectFeatureAnalysisView.vue",
+          "language": "vue",
+          "sizeLines": 1753,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/views/ProjectFeatureTreeDetailView.vue",
+          "language": "vue",
+          "sizeLines": 301,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/views/ProjectKnowledgeView.vue",
+          "language": "vue",
+          "sizeLines": 2353,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/views/ProjectRunsHistoryView.vue",
+          "language": "vue",
+          "sizeLines": 369,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/views/ProjectsView.vue",
+          "language": "vue",
+          "sizeLines": 341,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/views/RegisterView.vue",
+          "language": "vue",
+          "sizeLines": 368,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/src/views/RobotMarketplaceView.vue",
+          "language": "vue",
+          "sizeLines": 468,
+          "fileCategory": "code"
+        }
+      ],
+      "batchImportData": {
+        "web/frontend/src/views/AppExploreView.vue": [],
+        "web/frontend/src/views/CasesView.vue": [],
+        "web/frontend/src/views/DashboardView.vue": [],
+        "web/frontend/src/views/FunctionalTaskWizardView.vue": [],
+        "web/frontend/src/views/HomeDashboardView.vue": [],
+        "web/frontend/src/views/KnowledgeReviewView.vue": [],
+        "web/frontend/src/views/LoginView.vue": [],
+        "web/frontend/src/views/MaiUiStudioView.vue": [],
+        "web/frontend/src/views/MonitorOpsView.vue": [],
+        "web/frontend/src/views/MyRentalApplicationsView.vue": [],
+        "web/frontend/src/views/MyRobotDetailView.vue": [],
+        "web/frontend/src/views/MyRobotsShell.vue": [],
+        "web/frontend/src/views/MyRobotsView.vue": [],
+        "web/frontend/src/views/PaymentView.vue": [],
+        "web/frontend/src/views/PlatformIntroView.vue": [],
+        "web/frontend/src/views/ProfileView.vue": [],
+        "web/frontend/src/views/ProjectDashboardView.vue": [],
+        "web/frontend/src/views/ProjectFeatureAnalysisHistoryView.vue": [],
+        "web/frontend/src/views/ProjectFeatureAnalysisView.vue": [],
+        "web/frontend/src/views/ProjectFeatureTreeDetailView.vue": [],
+        "web/frontend/src/views/ProjectKnowledgeView.vue": [],
+        "web/frontend/src/views/ProjectRunsHistoryView.vue": [],
+        "web/frontend/src/views/ProjectsView.vue": [],
+        "web/frontend/src/views/RegisterView.vue": [],
+        "web/frontend/src/views/RobotMarketplaceView.vue": []
+      },
+      "neighborMap": {}
+    },
+    {
+      "batchIndex": 17,
+      "files": [
+        {
+          "path": "web/frontend/src/views/RunExecutionLiveView.vue",
+          "language": "vue",
+          "sizeLines": 145,
+          "fileCategory": "code"
+        },
+        {
+          "path": "web/frontend/vite.config.js",
+          "language": "javascript",
+          "sizeLines": 22,
+          "fileCategory": "code"
+        }
+      ],
+      "batchImportData": {
+        "web/frontend/src/views/RunExecutionLiveView.vue": [],
+        "web/frontend/vite.config.js": []
+      },
+      "neighborMap": {}
+    }
+  ]
+}

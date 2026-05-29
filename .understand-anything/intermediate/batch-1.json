@@ -1,0 +1,152 @@
+{
+  "nodes": [
+    {
+      "id": "file:.env.example",
+      "type": "file",
+      "name": ".env.example",
+      "summary": "全平台环境变量参考模板，涵盖 Web 后端（数据库、JWT、知识库）、Agent Service（LLM 密钥、模型配置）及跨服务通信所需的所有环境变量定义。",
+      "tags": [
+        "环境变量",
+        "配置模板",
+        "多服务",
+        "Docker"
+      ],
+      "complexity": "moderate",
+      "language": "config"
+    },
+    {
+      "id": "file:ARCHITECTURE.md",
+      "type": "file",
+      "name": "ARCHITECTURE.md",
+      "summary": "系统架构详细说明文档，涵盖数字机器人概念模型、测试分析与执行两条技术路线、LangChain 1.x 统一层、Agentic RAG 知识库、运行时架构及数据存储等全部架构设计细节。",
+      "tags": [
+        "架构文档",
+        "系统设计",
+        "LangGraph",
+        "RAG知识库",
+        "维护指南"
+      ],
+      "complexity": "complex",
+      "language": "markdown"
+    },
+    {
+      "id": "file:CLAUDE.md",
+      "type": "file",
+      "name": "CLAUDE.md",
+      "summary": "面向 AI 编程助手的项目上下文速查文档，精炼描述项目定位、三进程服务架构、开发命令、目录结构及关键架构决策，供 Claude Code 等工具快速理解仓库。",
+      "tags": [
+        "AI上下文",
+        "项目概览",
+        "开发指南",
+        "Claude Code"
+      ],
+      "complexity": "moderate",
+      "language": "markdown"
+    },
+    {
+      "id": "file:README.md",
+      "type": "file",
+      "name": "README.md",
+      "summary": "仓库主入口文档，面向新用户介绍端到端工作流、系统模块、技术栈、Agentic RAG 知识库以及本地环境搭建（MySQL/Qdrant/前后端启动）的完整指引。",
+      "tags": [
+        "项目文档",
+        "快速开始",
+        "系统模块",
+        "部署指南"
+      ],
+      "complexity": "complex",
+      "language": "markdown"
+    },
+    {
+      "id": "file:docker-compose.yml",
+      "type": "file",
+      "name": "docker-compose.yml",
+      "summary": "本地开发基础设施编排文件，定义 MySQL 8 数据库和 Qdrant 向量搜索两个容器服务及其持久化卷。",
+      "tags": [
+        "Docker",
+        "基础设施",
+        "MySQL",
+        "Qdrant"
+      ],
+      "complexity": "simple",
+      "language": "yaml"
+    },
+    {
+      "id": "file:requirements.txt",
+      "type": "file",
+      "name": "requirements.txt",
+      "summary": "根目录级 Python 依赖声明，列出仓库级别的基础依赖包（仅 4 个包）。",
+      "tags": [
+        "Python依赖",
+        "包管理"
+      ],
+      "complexity": "simple",
+      "language": "python"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:CLAUDE.md",
+      "target": "file:ARCHITECTURE.md",
+      "type": "references",
+      "weight": 0.9,
+      "description": "CLAUDE.md 多处引用 ARCHITECTURE.md 的章节作为详细架构补充"
+    },
+    {
+      "source": "file:CLAUDE.md",
+      "target": "file:README.md",
+      "type": "summarizes",
+      "weight": 0.8,
+      "description": "CLAUDE.md 是 README.md 内容的精炼摘要，供 AI 工具快速消费"
+    },
+    {
+      "source": "file:.env.example",
+      "target": "file:docker-compose.yml",
+      "type": "configures",
+      "weight": 0.9,
+      "description": "环境变量模板中的 DATABASE_URL/QDRANT_URL 等直接对应 docker-compose 中定义的服务"
+    },
+    {
+      "source": "file:docker-compose.yml",
+      "target": "file:requirements.txt",
+      "type": "depends_on",
+      "weight": 0.5,
+      "description": "Docker 提供的基础设施（MySQL/Qdrant）是 requirements.txt 中 Python 依赖的运行前提"
+    },
+    {
+      "source": "file:README.md",
+      "target": "file:docker-compose.yml",
+      "type": "references",
+      "weight": 0.8,
+      "description": "README 的本地启动章节引导用户使用 docker compose 启动依赖服务"
+    },
+    {
+      "source": "file:README.md",
+      "target": "file:.env.example",
+      "type": "references",
+      "weight": 0.8,
+      "description": "README 的环境变量章节指向 .env.example 作为配置参考"
+    },
+    {
+      "source": "file:ARCHITECTURE.md",
+      "target": "file:.env.example",
+      "type": "references",
+      "weight": 0.7,
+      "description": "架构文档的外部依赖与环境变量章节引用 .env.example 作为完整变量参考"
+    },
+    {
+      "source": "file:CLAUDE.md",
+      "target": "file:docker-compose.yml",
+      "type": "references",
+      "weight": 0.6,
+      "description": "开发命令中包含 docker compose 启动指令"
+    },
+    {
+      "source": "file:CLAUDE.md",
+      "target": "file:.env.example",
+      "type": "references",
+      "weight": 0.6,
+      "description": "环境配置说明中引用 .env.example 作为变量参考"
+    }
+  ]
+}

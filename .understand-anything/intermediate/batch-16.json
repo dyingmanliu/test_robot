@@ -1,0 +1,577 @@
+{
+  "nodes": [
+    {
+      "id": "file:web/frontend/src/views/AppExploreView.vue",
+      "type": "file",
+      "name": "AppExploreView.vue",
+      "summary": "通过 Midscene + HDC 连接鸿蒙真机，遍历应用按钮与导航菜单生成功能菜单树并导出 Excel，支持选择机器人实例、APP ID 和探索深度配置。",
+      "tags": [
+        "应用探索",
+        "Midscene",
+        "HDC",
+        "功能菜单树",
+        "设备自动化"
+      ],
+      "complexity": "complex",
+      "language": "vue"
+    },
+    {
+      "id": "file:web/frontend/src/views/CasesView.vue",
+      "type": "file",
+      "name": "CasesView.vue",
+      "summary": "测试用例管理核心页面，支持手工创建、AI 自动生成（SSE 流式）、CSV/Excel 导入、项目空间切换、用例编辑与批量执行测试等完整 CRUD 操作。",
+      "tags": [
+        "测试用例",
+        "CRUD",
+        "AI生成",
+        "SSE",
+        "项目空间"
+      ],
+      "complexity": "complex",
+      "language": "vue"
+    },
+    {
+      "id": "file:web/frontend/src/views/DashboardView.vue",
+      "type": "file",
+      "name": "DashboardView.vue",
+      "summary": "平台数据看板，根据 RBAC 角色展示全平台或本租户的统计指标（项目数、用例数、执行记录、成功/失败率等），企业用户可查看消费明细。",
+      "tags": [
+        "数据看板",
+        "RBAC",
+        "统计",
+        "dashboard"
+      ],
+      "complexity": "simple",
+      "language": "vue"
+    },
+    {
+      "id": "file:web/frontend/src/views/FunctionalTaskWizardView.vue",
+      "type": "file",
+      "name": "FunctionalTaskWizardView.vue",
+      "summary": "功能测试任务下发向导，分四步完成：上传安装包 → 选择/创建用例集 → 配置设备池 → 下发任务至 Kafka 调度层。",
+      "tags": [
+        "任务下发",
+        "wizard",
+        "安装包",
+        "设备池",
+        "Kafka"
+      ],
+      "complexity": "moderate",
+      "language": "vue"
+    },
+    {
+      "id": "file:web/frontend/src/views/HomeDashboardView.vue",
+      "type": "file",
+      "name": "HomeDashboardView.vue",
+      "summary": "登录后工作台首页，展示测试资产总览（项目、用例、执行记录、机器人统计）和快捷导航入口，提供近期执行趋势图表。",
+      "tags": [
+        "工作台",
+        "首页",
+        "资产总览",
+        "导航",
+        "趋势图"
+      ],
+      "complexity": "moderate",
+      "language": "vue"
+    },
+    {
+      "id": "file:web/frontend/src/views/KnowledgeReviewView.vue",
+      "type": "file",
+      "name": "KnowledgeReviewView.vue",
+      "summary": "平台管理员知识库审核页面，展示待审核的规范/策略类上传文档，支持通过或驳回（含驳回备注）操作，审核通过后方可写入向量库。",
+      "tags": [
+        "知识库",
+        "审核",
+        "platform_admin",
+        "文档管理"
+      ],
+      "complexity": "moderate",
+      "language": "vue"
+    },
+    {
+      "id": "file:web/frontend/src/views/LoginView.vue",
+      "type": "file",
+      "name": "LoginView.vue",
+      "summary": "用户登录页面，支持手机号或邮箱 + 密码登录，登录成功后获取 JWT 并存入 auth store，含平台品牌展示与注册/介绍页链接。",
+      "tags": [
+        "登录",
+        "JWT",
+        "认证",
+        "auth"
+      ],
+      "complexity": "simple",
+      "language": "vue"
+    },
+    {
+      "id": "file:web/frontend/src/views/MaiUiStudioView.vue",
+      "type": "file",
+      "name": "MaiUiStudioView.vue",
+      "summary": "MAI-UI 识图工具页面，上传 APP 截图后自动识别页面全部菜单（顶栏/底栏/侧栏），依赖本地 MLX VLM Grounding 推理服务。",
+      "tags": [
+        "UI识图",
+        "MAI-UI",
+        "MLX",
+        "视觉模型",
+        "截图分析"
+      ],
+      "complexity": "moderate",
+      "language": "vue"
+    },
+    {
+      "id": "file:web/frontend/src/views/MonitorOpsView.vue",
+      "type": "file",
+      "name": "MonitorOpsView.vue",
+      "summary": "测试数字机器人运行监控中心，通过 WebSocket 实时推送 + HTTP 轮询兜底展示机群状态（执行中/等待/待机/离线），含状态占比环形图与设备详情表格。",
+      "tags": [
+        "运行监控",
+        "WebSocket",
+        "实时状态",
+        "设备管理",
+        "运维"
+      ],
+      "complexity": "complex",
+      "language": "vue"
+    },
+    {
+      "id": "file:web/frontend/src/views/MyRentalApplicationsView.vue",
+      "type": "file",
+      "name": "MyRentalApplicationsView.vue",
+      "summary": "租用申请清单页面，展示本公司范围内所有机器人租用申请（含同事提交），包括计费方式、金额、数量和审批状态。",
+      "tags": [
+        "租用申请",
+        "审批",
+        "计费",
+        "商城"
+      ],
+      "complexity": "simple",
+      "language": "vue"
+    },
+    {
+      "id": "file:web/frontend/src/views/MyRobotDetailView.vue",
+      "type": "file",
+      "name": "MyRobotDetailView.vue",
+      "summary": "机器人实例详情页，展示基础信息、运行状态、知识库绑定配置、执行引擎参数，并提供编辑展示名称和发起功能分析的入口。",
+      "tags": [
+        "机器人详情",
+        "实例管理",
+        "知识库绑定",
+        "配置"
+      ],
+      "complexity": "moderate",
+      "language": "vue"
+    },
+    {
+      "id": "file:web/frontend/src/views/MyRobotsShell.vue",
+      "type": "file",
+      "name": "MyRobotsShell.vue",
+      "summary": "我的机器人模块路由壳组件，仅包含一个 <router-view> 用于嵌套子路由页面。",
+      "tags": [
+        "路由壳",
+        "router-view",
+        "布局"
+      ],
+      "complexity": "simple",
+      "language": "vue"
+    },
+    {
+      "id": "file:web/frontend/src/views/MyRobotsView.vue",
+      "type": "file",
+      "name": "MyRobotsView.vue",
+      "summary": "我的机器人列表页，展示本公司已通过审批并实例化的所有机器人，包括实例编号、执行引擎、运行状态等信息，支持跳转详情编辑。",
+      "tags": [
+        "机器人列表",
+        "实例管理",
+        "我的机器人"
+      ],
+      "complexity": "moderate",
+      "language": "vue"
+    },
+    {
+      "id": "file:web/frontend/src/views/PaymentView.vue",
+      "type": "file",
+      "name": "PaymentView.vue",
+      "summary": "支付收银台页面（占位），根据预订单 ID 展示机器人名称、计费方式、应付金额等信息，当前为演示闭环，预留支付网关对接入口。",
+      "tags": [
+        "支付",
+        "预订单",
+        "计费",
+        "收银台"
+      ],
+      "complexity": "simple",
+      "language": "vue"
+    },
+    {
+      "id": "file:web/frontend/src/views/PlatformIntroView.vue",
+      "type": "file",
+      "name": "PlatformIntroView.vue",
+      "summary": "平台介绍着陆页，静态展示鸿蒙生态智能测试平台的核心能力、四类数字机器人介绍、技术架构亮点与 CTA 入口，无需后端 API 调用。",
+      "tags": [
+        "着陆页",
+        "平台介绍",
+        "静态展示",
+        "marketing"
+      ],
+      "complexity": "moderate",
+      "language": "vue"
+    },
+    {
+      "id": "file:web/frontend/src/views/ProfileView.vue",
+      "type": "file",
+      "name": "ProfileView.vue",
+      "summary": "用户个人资料页面，展示账号信息（手机号/邮箱/角色/公司）并支持修改密码，依赖 auth store 获取当前用户数据。",
+      "tags": [
+        "个人资料",
+        "账号管理",
+        "密码修改",
+        "auth"
+      ],
+      "complexity": "simple",
+      "language": "vue"
+    },
+    {
+      "id": "file:web/frontend/src/views/ProjectDashboardView.vue",
+      "type": "file",
+      "name": "ProjectDashboardView.vue",
+      "summary": "项目空间看板页，展示单个项目的测试资产统计、用例覆盖率、执行趋势和近期活动，提供项目维度的数据可视化。",
+      "tags": [
+        "项目看板",
+        "数据统计",
+        "趋势分析",
+        "项目空间"
+      ],
+      "complexity": "moderate",
+      "language": "vue"
+    },
+    {
+      "id": "file:web/frontend/src/views/ProjectFeatureAnalysisHistoryView.vue",
+      "type": "file",
+      "name": "ProjectFeatureAnalysisHistoryView.vue",
+      "summary": "项目功能分析历史记录页，展示该项目历次应用探索任务的结果列表，包括状态、耗时、发现的功能节点数和导出入口。",
+      "tags": [
+        "功能分析",
+        "历史记录",
+        "探索报告"
+      ],
+      "complexity": "simple",
+      "language": "vue"
+    },
+    {
+      "id": "file:web/frontend/src/views/ProjectFeatureAnalysisView.vue",
+      "type": "file",
+      "name": "ProjectFeatureAnalysisView.vue",
+      "summary": "项目功能分析执行页面，驱动 Midscene 自动化遍历应用生成功能菜单树，实时 SSE 流式展示探索进度、节点发现与截图，支持导出 Excel 和功能树可视化。",
+      "tags": [
+        "功能分析",
+        "SSE流式",
+        "功能菜单树",
+        "Midscene",
+        "Excel导出"
+      ],
+      "complexity": "complex",
+      "language": "vue"
+    },
+    {
+      "id": "file:web/frontend/src/views/ProjectFeatureTreeDetailView.vue",
+      "type": "file",
+      "name": "ProjectFeatureTreeDetailView.vue",
+      "summary": "功能菜单树详情页，以可视化树形结构展示单次功能分析的结果，包含节点层级、截图缩略图和操作路径标注。",
+      "tags": [
+        "功能树",
+        "树形可视化",
+        "分析详情",
+        "节点展示"
+      ],
+      "complexity": "moderate",
+      "language": "vue"
+    },
+    {
+      "id": "file:web/frontend/src/views/ProjectKnowledgeView.vue",
+      "type": "file",
+      "name": "ProjectKnowledgeView.vue",
+      "summary": "项目知识库管理页面，支持文档集合管理、文件上传（规范/策略/参考资料）、分块策略配置、向量化索引状态查看和全文检索测试，对接 Qdrant 向量库。",
+      "tags": [
+        "知识库",
+        "RAG",
+        "Qdrant",
+        "文档管理",
+        "分块策略"
+      ],
+      "complexity": "complex",
+      "language": "vue"
+    },
+    {
+      "id": "file:web/frontend/src/views/ProjectRunsHistoryView.vue",
+      "type": "file",
+      "name": "ProjectRunsHistoryView.vue",
+      "summary": "项目执行历史记录页，展示该项目所有测试执行任务的状态、结果（成功/失败/跳过）、耗时、执行机器人和查看详细日志的入口。",
+      "tags": [
+        "执行历史",
+        "测试报告",
+        "运行记录",
+        "日志"
+      ],
+      "complexity": "moderate",
+      "language": "vue"
+    },
+    {
+      "id": "file:web/frontend/src/views/ProjectsView.vue",
+      "type": "file",
+      "name": "ProjectsView.vue",
+      "summary": "项目空间管理列表页，支持创建、编辑项目空间并绑定被测应用与测试目标，是测试用例和功能分析的基础组织单元。",
+      "tags": [
+        "项目空间",
+        "CRUD",
+        "多租户",
+        "应用管理"
+      ],
+      "complexity": "moderate",
+      "language": "vue"
+    },
+    {
+      "id": "file:web/frontend/src/views/RegisterView.vue",
+      "type": "file",
+      "name": "RegisterView.vue",
+      "summary": "用户注册页面，支持手机号或邮箱注册方式，需选择或创建所属公司，注册成功后自动登录并创建个人空间，依赖 auth store。",
+      "tags": [
+        "注册",
+        "认证",
+        "公司管理",
+        "auth"
+      ],
+      "complexity": "moderate",
+      "language": "vue"
+    },
+    {
+      "id": "file:web/frontend/src/views/RobotMarketplaceView.vue",
+      "type": "file",
+      "name": "RobotMarketplaceView.vue",
+      "summary": "机器人商城页面，以卡片形式展示可租用的数字机器人目录（测试分析、测试执行等类型），支持查看规格详情并提交租用申请。",
+      "tags": [
+        "机器人商城",
+        "租用",
+        "目录展示",
+        "marketplace"
+      ],
+      "complexity": "moderate",
+      "language": "vue"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:web/frontend/src/views/LoginView.vue",
+      "target": "file:web/frontend/src/views/RegisterView.vue",
+      "type": "navigates_to",
+      "weight": 0.7
+    },
+    {
+      "source": "file:web/frontend/src/views/LoginView.vue",
+      "target": "file:web/frontend/src/views/PlatformIntroView.vue",
+      "type": "navigates_to",
+      "weight": 0.5
+    },
+    {
+      "source": "file:web/frontend/src/views/RegisterView.vue",
+      "target": "file:web/frontend/src/views/LoginView.vue",
+      "type": "navigates_to",
+      "weight": 0.5
+    },
+    {
+      "source": "file:web/frontend/src/views/HomeDashboardView.vue",
+      "target": "file:web/frontend/src/views/CasesView.vue",
+      "type": "navigates_to",
+      "weight": 0.8
+    },
+    {
+      "source": "file:web/frontend/src/views/HomeDashboardView.vue",
+      "target": "file:web/frontend/src/views/ProjectsView.vue",
+      "type": "navigates_to",
+      "weight": 0.7
+    },
+    {
+      "source": "file:web/frontend/src/views/HomeDashboardView.vue",
+      "target": "file:web/frontend/src/views/RobotMarketplaceView.vue",
+      "type": "navigates_to",
+      "weight": 0.6
+    },
+    {
+      "source": "file:web/frontend/src/views/HomeDashboardView.vue",
+      "target": "file:web/frontend/src/views/MyRentalApplicationsView.vue",
+      "type": "navigates_to",
+      "weight": 0.5
+    },
+    {
+      "source": "file:web/frontend/src/views/HomeDashboardView.vue",
+      "target": "file:web/frontend/src/views/MyRobotsView.vue",
+      "type": "navigates_to",
+      "weight": 0.5
+    },
+    {
+      "source": "file:web/frontend/src/views/CasesView.vue",
+      "target": "file:web/frontend/src/views/ProjectsView.vue",
+      "type": "navigates_to",
+      "weight": 0.6
+    },
+    {
+      "source": "file:web/frontend/src/views/CasesView.vue",
+      "target": "file:web/frontend/src/views/ProjectDashboardView.vue",
+      "type": "navigates_to",
+      "weight": 0.5
+    },
+    {
+      "source": "file:web/frontend/src/views/MyRobotsShell.vue",
+      "target": "file:web/frontend/src/views/MyRobotsView.vue",
+      "type": "contains_route",
+      "weight": 0.9
+    },
+    {
+      "source": "file:web/frontend/src/views/MyRobotsShell.vue",
+      "target": "file:web/frontend/src/views/MyRobotDetailView.vue",
+      "type": "contains_route",
+      "weight": 0.8
+    },
+    {
+      "source": "file:web/frontend/src/views/MyRobotsView.vue",
+      "target": "file:web/frontend/src/views/MyRobotDetailView.vue",
+      "type": "navigates_to",
+      "weight": 0.9
+    },
+    {
+      "source": "file:web/frontend/src/views/MyRobotsView.vue",
+      "target": "file:web/frontend/src/views/MyRentalApplicationsView.vue",
+      "type": "navigates_to",
+      "weight": 0.4
+    },
+    {
+      "source": "file:web/frontend/src/views/MyRobotDetailView.vue",
+      "target": "file:web/frontend/src/views/MyRobotsView.vue",
+      "type": "navigates_to",
+      "weight": 0.7
+    },
+    {
+      "source": "file:web/frontend/src/views/MyRobotDetailView.vue",
+      "target": "file:web/frontend/src/views/ProjectFeatureAnalysisView.vue",
+      "type": "navigates_to",
+      "weight": 0.5
+    },
+    {
+      "source": "file:web/frontend/src/views/RobotMarketplaceView.vue",
+      "target": "file:web/frontend/src/views/PaymentView.vue",
+      "type": "navigates_to",
+      "weight": 0.7
+    },
+    {
+      "source": "file:web/frontend/src/views/RobotMarketplaceView.vue",
+      "target": "file:web/frontend/src/views/MyRentalApplicationsView.vue",
+      "type": "navigates_to",
+      "weight": 0.5
+    },
+    {
+      "source": "file:web/frontend/src/views/MyRentalApplicationsView.vue",
+      "target": "file:web/frontend/src/views/RobotMarketplaceView.vue",
+      "type": "navigates_to",
+      "weight": 0.5
+    },
+    {
+      "source": "file:web/frontend/src/views/PaymentView.vue",
+      "target": "file:web/frontend/src/views/RobotMarketplaceView.vue",
+      "type": "navigates_to",
+      "weight": 0.5
+    },
+    {
+      "source": "file:web/frontend/src/views/ProjectsView.vue",
+      "target": "file:web/frontend/src/views/ProjectDashboardView.vue",
+      "type": "navigates_to",
+      "weight": 0.8
+    },
+    {
+      "source": "file:web/frontend/src/views/ProjectsView.vue",
+      "target": "file:web/frontend/src/views/CasesView.vue",
+      "type": "navigates_to",
+      "weight": 0.6
+    },
+    {
+      "source": "file:web/frontend/src/views/ProjectDashboardView.vue",
+      "target": "file:web/frontend/src/views/ProjectKnowledgeView.vue",
+      "type": "navigates_to",
+      "weight": 0.6
+    },
+    {
+      "source": "file:web/frontend/src/views/ProjectDashboardView.vue",
+      "target": "file:web/frontend/src/views/ProjectRunsHistoryView.vue",
+      "type": "navigates_to",
+      "weight": 0.6
+    },
+    {
+      "source": "file:web/frontend/src/views/ProjectDashboardView.vue",
+      "target": "file:web/frontend/src/views/ProjectFeatureAnalysisHistoryView.vue",
+      "type": "navigates_to",
+      "weight": 0.5
+    },
+    {
+      "source": "file:web/frontend/src/views/AppExploreView.vue",
+      "target": "file:web/frontend/src/views/ProjectsView.vue",
+      "type": "navigates_to",
+      "weight": 0.5
+    },
+    {
+      "source": "file:web/frontend/src/views/ProjectFeatureAnalysisView.vue",
+      "target": "file:web/frontend/src/views/ProjectFeatureTreeDetailView.vue",
+      "type": "navigates_to",
+      "weight": 0.8
+    },
+    {
+      "source": "file:web/frontend/src/views/ProjectFeatureAnalysisHistoryView.vue",
+      "target": "file:web/frontend/src/views/ProjectFeatureTreeDetailView.vue",
+      "type": "navigates_to",
+      "weight": 0.7
+    },
+    {
+      "source": "file:web/frontend/src/views/ProjectFeatureAnalysisHistoryView.vue",
+      "target": "file:web/frontend/src/views/ProjectFeatureAnalysisView.vue",
+      "type": "navigates_to",
+      "weight": 0.6
+    },
+    {
+      "source": "file:web/frontend/src/views/FunctionalTaskWizardView.vue",
+      "target": "file:web/frontend/src/views/ProjectsView.vue",
+      "type": "navigates_to",
+      "weight": 0.5
+    },
+    {
+      "source": "file:web/frontend/src/views/PlatformIntroView.vue",
+      "target": "file:web/frontend/src/views/RobotMarketplaceView.vue",
+      "type": "navigates_to",
+      "weight": 0.4
+    },
+    {
+      "source": "file:web/frontend/src/views/CasesView.vue",
+      "target": "file:web/frontend/src/views/ProjectKnowledgeView.vue",
+      "type": "depends_on",
+      "weight": 0.4
+    },
+    {
+      "source": "file:web/frontend/src/views/MonitorOpsView.vue",
+      "target": "file:web/frontend/src/views/MyRobotDetailView.vue",
+      "type": "navigates_to",
+      "weight": 0.5
+    },
+    {
+      "source": "file:web/frontend/src/views/LoginView.vue",
+      "target": "file:web/frontend/src/views/HomeDashboardView.vue",
+      "type": "navigates_to",
+      "weight": 0.9
+    },
+    {
+      "source": "file:web/frontend/src/views/KnowledgeReviewView.vue",
+      "target": "file:web/frontend/src/views/ProjectKnowledgeView.vue",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:web/frontend/src/views/ProjectKnowledgeView.vue",
+      "target": "file:web/frontend/src/views/KnowledgeReviewView.vue",
+      "type": "triggers",
+      "weight": 0.4
+    }
+  ]
+}

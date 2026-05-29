@@ -1,0 +1,2112 @@
+{
+  "nodes": [
+    {
+      "id": "file:web/backend/app/routers/test_cases.py",
+      "type": "file",
+      "name": "test_cases.py",
+      "summary": "测试用例 CRUD 与执行的核心路由模块，提供用例列表、创建、更新、删除、导入、AI 生成、版本管理以及用例执行（含 SSE 流）等完整 API 端点",
+      "tags": [
+        "router",
+        "test-case",
+        "crud",
+        "execution",
+        "api"
+      ],
+      "complexity": "high",
+      "lines": 532
+    },
+    {
+      "id": "func:web/backend/app/routers/test_cases.py:_run_in_thread",
+      "type": "function",
+      "name": "_run_in_thread",
+      "summary": "在独立线程中执行测试运行任务，管理数据库会话生命周期",
+      "tags": [
+        "threading",
+        "test-run"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "func:web/backend/app/routers/test_cases.py:_get_case_for_read",
+      "type": "function",
+      "name": "_get_case_for_read",
+      "summary": "根据用户权限获取测试用例用于只读操作",
+      "tags": [
+        "authorization",
+        "query"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "func:web/backend/app/routers/test_cases.py:_get_case_for_write",
+      "type": "function",
+      "name": "_get_case_for_write",
+      "summary": "根据用户权限获取测试用例用于写操作",
+      "tags": [
+        "authorization",
+        "query"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "func:web/backend/app/routers/test_cases.py:_resolve_project_for_case",
+      "type": "function",
+      "name": "_resolve_project_for_case",
+      "summary": "解析并验证用例所属项目的可访问性",
+      "tags": [
+        "authorization",
+        "project"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "func:web/backend/app/routers/test_cases.py:_require_project_readable",
+      "type": "function",
+      "name": "_require_project_readable",
+      "summary": "验证项目对用户可读，不可读则抛出 403 异常",
+      "tags": [
+        "authorization",
+        "project"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "func:web/backend/app/routers/test_cases.py:_append_revision_snapshot",
+      "type": "function",
+      "name": "_append_revision_snapshot",
+      "summary": "为测试用例追加版本修订快照记录",
+      "tags": [
+        "versioning",
+        "revision"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "func:web/backend/app/routers/test_cases.py:_validate_test_case_row",
+      "type": "function",
+      "name": "_validate_test_case_row",
+      "summary": "校验测试用例数据行的 task_text 和 steps_json 字段完整性",
+      "tags": [
+        "validation"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "func:web/backend/app/routers/test_cases.py:list_cases",
+      "type": "function",
+      "name": "list_cases",
+      "summary": "按项目列出所有测试用例，支持按标签和关键词过滤",
+      "tags": [
+        "api",
+        "list",
+        "query"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "func:web/backend/app/routers/test_cases.py:submit_generate_case_job",
+      "type": "function",
+      "name": "submit_generate_case_job",
+      "summary": "提交 AI 用例生成任务，返回 202 异步任务 ID",
+      "tags": [
+        "api",
+        "ai-generation",
+        "async"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "func:web/backend/app/routers/test_cases.py:get_generate_case_job",
+      "type": "function",
+      "name": "get_generate_case_job",
+      "summary": "查询 AI 用例生成任务状态及结果",
+      "tags": [
+        "api",
+        "ai-generation",
+        "status"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "func:web/backend/app/routers/test_cases.py:cancel_generate_case_job",
+      "type": "function",
+      "name": "cancel_generate_case_job",
+      "summary": "取消正在进行的 AI 用例生成任务",
+      "tags": [
+        "api",
+        "ai-generation",
+        "cancel"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "func:web/backend/app/routers/test_cases.py:create_case",
+      "type": "function",
+      "name": "create_case",
+      "summary": "创建新的测试用例并追加版本快照",
+      "tags": [
+        "api",
+        "crud",
+        "create"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "func:web/backend/app/routers/test_cases.py:import_cases_file",
+      "type": "function",
+      "name": "import_cases_file",
+      "summary": "从 CSV/XLSX 文件批量导入测试用例",
+      "tags": [
+        "api",
+        "import",
+        "bulk"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "func:web/backend/app/routers/test_cases.py:list_runs",
+      "type": "function",
+      "name": "list_runs",
+      "summary": "列出项目的测试运行记录，支持分页",
+      "tags": [
+        "api",
+        "list",
+        "test-run"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "func:web/backend/app/routers/test_cases.py:get_run",
+      "type": "function",
+      "name": "get_run",
+      "summary": "获取单个测试运行的详细信息",
+      "tags": [
+        "api",
+        "test-run",
+        "detail"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "func:web/backend/app/routers/test_cases.py:download_run_report",
+      "type": "function",
+      "name": "download_run_report",
+      "summary": "下载测试运行的报告文件",
+      "tags": [
+        "api",
+        "test-run",
+        "report"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "func:web/backend/app/routers/test_cases.py:cancel_run",
+      "type": "function",
+      "name": "cancel_run",
+      "summary": "取消正在进行的测试运行",
+      "tags": [
+        "api",
+        "test-run",
+        "cancel"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "func:web/backend/app/routers/test_cases.py:list_case_versions",
+      "type": "function",
+      "name": "list_case_versions",
+      "summary": "列出测试用例的历史版本记录",
+      "tags": [
+        "api",
+        "versioning"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "func:web/backend/app/routers/test_cases.py:get_case",
+      "type": "function",
+      "name": "get_case",
+      "summary": "获取单个测试用例详情",
+      "tags": [
+        "api",
+        "crud",
+        "read"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "func:web/backend/app/routers/test_cases.py:update_case",
+      "type": "function",
+      "name": "update_case",
+      "summary": "更新测试用例并追加版本快照",
+      "tags": [
+        "api",
+        "crud",
+        "update"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "func:web/backend/app/routers/test_cases.py:delete_case",
+      "type": "function",
+      "name": "delete_case",
+      "summary": "删除测试用例",
+      "tags": [
+        "api",
+        "crud",
+        "delete"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "func:web/backend/app/routers/test_cases.py:run_case",
+      "type": "function",
+      "name": "run_case",
+      "summary": "执行单个测试用例，创建测试运行记录并在后台线程中执行",
+      "tags": [
+        "api",
+        "test-run",
+        "execution"
+      ],
+      "complexity": "high"
+    },
+    {
+      "id": "file:web/backend/app/routers/ws_monitor.py",
+      "type": "file",
+      "name": "ws_monitor.py",
+      "summary": "WebSocket 实时监控路由，提供机器人设备状态的 SSE 流式推送",
+      "tags": [
+        "router",
+        "websocket",
+        "monitoring",
+        "sse"
+      ],
+      "complexity": "low",
+      "lines": 65
+    },
+    {
+      "id": "func:web/backend/app/routers/ws_monitor.py:robot_monitor_stream",
+      "type": "function",
+      "name": "robot_monitor_stream",
+      "summary": "WebSocket 端点，持续推送机器人设备连接状态和指标数据",
+      "tags": [
+        "websocket",
+        "sse",
+        "monitoring"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "file:web/backend/app/schemas.py",
+      "type": "file",
+      "name": "schemas.py",
+      "summary": "全局 Pydantic 数据模型定义，涵盖用户、项目、测试用例、运行、机器人目录、租赁订单、设备、功能分析等 66 个 schema 类",
+      "tags": [
+        "schemas",
+        "pydantic",
+        "models",
+        "validation"
+      ],
+      "complexity": "high",
+      "lines": 821
+    },
+    {
+      "id": "class:web/backend/app/schemas.py:TestCaseCreate",
+      "type": "class",
+      "name": "TestCaseCreate",
+      "summary": "测试用例创建请求模型，包含步骤 JSON 和任务文本",
+      "tags": [
+        "schema",
+        "test-case"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "class:web/backend/app/schemas.py:TestRunOut",
+      "type": "class",
+      "name": "TestRunOut",
+      "summary": "测试运行输出响应模型，包含运行状态和结果",
+      "tags": [
+        "schema",
+        "test-run"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "class:web/backend/app/schemas.py:RobotInstanceOut",
+      "type": "class",
+      "name": "RobotInstanceOut",
+      "summary": "机器人实例输出模型，包含设备平台、后端类型和运行时状态",
+      "tags": [
+        "schema",
+        "robot"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "class:web/backend/app/schemas.py:FeatureAnalysisRunOut",
+      "type": "class",
+      "name": "FeatureAnalysisRunOut",
+      "summary": "功能分析运行输出模型",
+      "tags": [
+        "schema",
+        "feature-analysis"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "class:web/backend/app/schemas.py:RentalOrderOut",
+      "type": "class",
+      "name": "RentalOrderOut",
+      "summary": "租赁订单输出模型",
+      "tags": [
+        "schema",
+        "rental"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "file:web/backend/app/services/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "summary": "services 包的初始化文件（空）",
+      "tags": [
+        "init",
+        "package"
+      ],
+      "complexity": "none",
+      "lines": 1
+    },
+    {
+      "id": "file:web/backend/app/services/agent_service_client.py",
+      "type": "file",
+      "name": "agent_service_client.py",
+      "summary": "Agent Service HTTP 客户端封装，提供与 agent_service (端口 8100) 通信的所有方法，包括用例生成、功能执行、探索运行、SSE 事件流解析和任务取消",
+      "tags": [
+        "service",
+        "http-client",
+        "agent-service",
+        "sse"
+      ],
+      "complexity": "high",
+      "lines": 213
+    },
+    {
+      "id": "class:web/backend/app/services/agent_service_client.py:AgentServiceError",
+      "type": "class",
+      "name": "AgentServiceError",
+      "summary": "Agent Service 调用异常的自定义异常类",
+      "tags": [
+        "exception",
+        "error"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "func:web/backend/app/services/agent_service_client.py:submit_case_gen_generate",
+      "type": "function",
+      "name": "submit_case_gen_generate",
+      "summary": "向 agent_service 提交用例生成请求",
+      "tags": [
+        "http",
+        "case-generation"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "func:web/backend/app/services/agent_service_client.py:stream_case_gen_events",
+      "type": "function",
+      "name": "stream_case_gen_events",
+      "summary": "流式读取用例生成任务的 SSE 事件",
+      "tags": [
+        "http",
+        "sse",
+        "case-generation"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "func:web/backend/app/services/agent_service_client.py:submit_func_agent_dispatch",
+      "type": "function",
+      "name": "submit_func_agent_dispatch",
+      "summary": "提交功能测试执行任务到 agent_service",
+      "tags": [
+        "http",
+        "test-execution"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "func:web/backend/app/services/agent_service_client.py:submit_explore_run",
+      "type": "function",
+      "name": "submit_explore_run",
+      "summary": "提交应用探索运行任务到 agent_service",
+      "tags": [
+        "http",
+        "explore"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "func:web/backend/app/services/agent_service_client.py:cancel_task",
+      "type": "function",
+      "name": "cancel_task",
+      "summary": "向 agent_service 发送取消任务请求",
+      "tags": [
+        "http",
+        "cancel"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "func:web/backend/app/services/agent_service_client.py:_parse_sse_lines",
+      "type": "function",
+      "name": "_parse_sse_lines",
+      "summary": "解析 SSE 响应流中的事件行，提取 event 和 data 字段",
+      "tags": [
+        "sse",
+        "parser"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "file:web/backend/app/services/analysis_instance_guard.py",
+      "type": "file",
+      "name": "analysis_instance_guard.py",
+      "summary": "分析实例并发保护模块，通过锁机制防止同一实例同时发起多个用例生成任务",
+      "tags": [
+        "service",
+        "concurrency",
+        "guard",
+        "case-generation"
+      ],
+      "complexity": "low",
+      "lines": 61
+    },
+    {
+      "id": "func:web/backend/app/services/analysis_instance_guard.py:analysis_generation_lock",
+      "type": "function",
+      "name": "analysis_generation_lock",
+      "summary": "上下文管理器，为实例获取用例生成锁",
+      "tags": [
+        "concurrency",
+        "lock"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "func:web/backend/app/services/analysis_instance_guard.py:instance_available_for_generation",
+      "type": "function",
+      "name": "instance_available_for_generation",
+      "summary": "检查实例是否可用于发起新的用例生成任务",
+      "tags": [
+        "concurrency",
+        "check"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "file:web/backend/app/services/app_explore_export.py",
+      "type": "file",
+      "name": "app_explore_export.py",
+      "summary": "应用探索结果导出模块，支持将探索结果和功能树生成为 Excel 工作簿",
+      "tags": [
+        "service",
+        "export",
+        "excel",
+        "feature-tree"
+      ],
+      "complexity": "medium",
+      "lines": 282
+    },
+    {
+      "id": "func:web/backend/app/services/app_explore_export.py:build_feature_workbook",
+      "type": "function",
+      "name": "build_feature_workbook",
+      "summary": "将探索运行结果构建为 Excel 工作簿",
+      "tags": [
+        "export",
+        "excel"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "func:web/backend/app/services/app_explore_export.py:build_feature_tree_detail_workbook",
+      "type": "function",
+      "name": "build_feature_tree_detail_workbook",
+      "summary": "将功能树详情构建为 Excel 工作簿，包含层级结构和节点属性",
+      "tags": [
+        "export",
+        "excel",
+        "feature-tree"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "file:web/backend/app/services/app_explore_service.py",
+      "type": "file",
+      "name": "app_explore_service.py",
+      "summary": "应用探索运行服务，管理探索任务的提交、取消和执行流程",
+      "tags": [
+        "service",
+        "explore",
+        "execution"
+      ],
+      "complexity": "medium",
+      "lines": 267
+    },
+    {
+      "id": "func:web/backend/app/services/app_explore_service.py:execute_app_explore_run",
+      "type": "function",
+      "name": "execute_app_explore_run",
+      "summary": "执行应用探索运行，调用 agent_service 并处理 SSE 事件流更新运行状态",
+      "tags": [
+        "execution",
+        "explore",
+        "sse"
+      ],
+      "complexity": "high"
+    },
+    {
+      "id": "file:web/backend/app/services/app_install.py",
+      "type": "file",
+      "name": "app_install.py",
+      "summary": "应用安装服务，支持通过 ADB/HDC 在 Android/HarmonyOS 设备上安装应用包",
+      "tags": [
+        "service",
+        "device",
+        "install",
+        "adb",
+        "hdc"
+      ],
+      "complexity": "medium",
+      "lines": 132
+    },
+    {
+      "id": "func:web/backend/app/services/app_install.py:install_package_file",
+      "type": "function",
+      "name": "install_package_file",
+      "summary": "根据设备平台安装应用包文件（APK/HAP）",
+      "tags": [
+        "install",
+        "device"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "func:web/backend/app/services/app_install.py:list_installed_apps",
+      "type": "function",
+      "name": "list_installed_apps",
+      "summary": "列出设备上已安装的应用列表",
+      "tags": [
+        "device",
+        "query"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "file:web/backend/app/services/case_agent_text.py",
+      "type": "file",
+      "name": "case_agent_text.py",
+      "summary": "测试用例任务文本构建模块，将结构化步骤 JSON 转换为 Agent 可执行的自然语言任务文本，支持 Midscene 和 AutoGLM 两种格式",
+      "tags": [
+        "service",
+        "case-generation",
+        "text-builder",
+        "midscene",
+        "autoglm"
+      ],
+      "complexity": "medium",
+      "lines": 142
+    },
+    {
+      "id": "func:web/backend/app/services/case_agent_text.py:build_agent_task_text",
+      "type": "function",
+      "name": "build_agent_task_text",
+      "summary": "将测试用例的步骤 JSON 和任务文本构建为 Agent 可执行的任务描述",
+      "tags": [
+        "text-builder",
+        "agent"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "func:web/backend/app/services/case_agent_text.py:build_midscene_tech_steps",
+      "type": "function",
+      "name": "build_midscene_tech_steps",
+      "summary": "将结构化步骤转换为 Midscene 专用的自然语言步骤格式",
+      "tags": [
+        "text-builder",
+        "midscene"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "file:web/backend/app/services/case_generation_jobs.py",
+      "type": "file",
+      "name": "case_generation_jobs.py",
+      "summary": "用例生成任务的异步作业管理模块，提供任务启动、执行、取消、日志追加和过期清理功能，通过 SSE 流推送进度",
+      "tags": [
+        "service",
+        "case-generation",
+        "async-job",
+        "sse"
+      ],
+      "complexity": "high",
+      "lines": 396
+    },
+    {
+      "id": "class:web/backend/app/services/case_generation_jobs.py:CaseGenerationJob",
+      "type": "class",
+      "name": "CaseGenerationJob",
+      "summary": "用例生成作业的数据模型，包含任务状态、日志、结果和 SSE 事件队列",
+      "tags": [
+        "model",
+        "async-job"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "func:web/backend/app/services/case_generation_jobs.py:start_case_generation_job",
+      "type": "function",
+      "name": "start_case_generation_job",
+      "summary": "启动异步用例生成任务，创建后台任务并返回作业 ID",
+      "tags": [
+        "async",
+        "case-generation"
+      ],
+      "complexity": "high"
+    },
+    {
+      "id": "func:web/backend/app/services/case_generation_jobs.py:cancel_case_generation_job",
+      "type": "function",
+      "name": "cancel_case_generation_job",
+      "summary": "取消正在进行的用例生成任务，向 agent_service 发送取消信号",
+      "tags": [
+        "cancel",
+        "case-generation"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "func:web/backend/app/services/case_generation_jobs.py:_execute_job",
+      "type": "function",
+      "name": "_execute_job",
+      "summary": "用例生成任务的核心执行逻辑，调用 agent_service SSE 流并处理结果",
+      "tags": [
+        "execution",
+        "case-generation"
+      ],
+      "complexity": "high"
+    },
+    {
+      "id": "file:web/backend/app/services/case_generation.py",
+      "type": "file",
+      "name": "case_generation.py",
+      "summary": "用例生成预检和草稿处理模块，提供知识库示例检索、项目上下文构建和 Agent 输出结果转换为标准用例格式",
+      "tags": [
+        "service",
+        "case-generation",
+        "knowledge-base",
+        "precheck"
+      ],
+      "complexity": "medium",
+      "lines": 124
+    },
+    {
+      "id": "func:web/backend/app/services/case_generation.py:generate_case_draft_precheck",
+      "type": "function",
+      "name": "generate_case_draft_precheck",
+      "summary": "用例生成前的预检查，验证项目和知识库配置",
+      "tags": [
+        "precheck",
+        "case-generation"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "func:web/backend/app/services/case_generation.py:build_draft_from_agent_dict",
+      "type": "function",
+      "name": "build_draft_from_agent_dict",
+      "summary": "将 Agent 返回的原始字典转换为标准用例草稿格式",
+      "tags": [
+        "transform",
+        "case-generation"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "file:web/backend/app/services/case_import.py",
+      "type": "file",
+      "name": "case_import.py",
+      "summary": "测试用例文件导入模块，支持从 CSV 和 XLSX 文件解析用例数据并转换为标准格式",
+      "tags": [
+        "service",
+        "import",
+        "csv",
+        "xlsx"
+      ],
+      "complexity": "medium",
+      "lines": 136
+    },
+    {
+      "id": "func:web/backend/app/services/case_import.py:parse_import_file",
+      "type": "function",
+      "name": "parse_import_file",
+      "summary": "根据文件类型自动选择 CSV 或 XLSX 解析器导入用例",
+      "tags": [
+        "import",
+        "parser"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "func:web/backend/app/services/case_import.py:row_to_create",
+      "type": "function",
+      "name": "row_to_create",
+      "summary": "将导入的行数据转换为 TestCaseCreate 模型",
+      "tags": [
+        "import",
+        "transform"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "file:web/backend/app/services/case_kb.py",
+      "type": "file",
+      "name": "case_kb.py",
+      "summary": "测试用例知识库搜索模块，提供用例搜索文本构建、知识库更新和基于知识库的用例搜索功能",
+      "tags": [
+        "service",
+        "knowledge-base",
+        "search",
+        "case"
+      ],
+      "complexity": "low",
+      "lines": 76
+    },
+    {
+      "id": "func:web/backend/app/services/case_kb.py:search_cases_kb",
+      "type": "function",
+      "name": "search_cases_kb",
+      "summary": "基于知识库搜索相关测试用例，用于 RAG 增强用例生成",
+      "tags": [
+        "search",
+        "knowledge-base",
+        "rag"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "func:web/backend/app/services/case_kb.py:upsert_case_kb",
+      "type": "function",
+      "name": "upsert_case_kb",
+      "summary": "将测试用例数据更新到知识库索引中",
+      "tags": [
+        "knowledge-base",
+        "upsert"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "file:web/backend/app/services/company_scope.py",
+      "type": "file",
+      "name": "company_scope.py",
+      "summary": "公司级多租户数据隔离服务，提供基于公司维度的项目/用例/运行权限查询和资源共享控制",
+      "tags": [
+        "service",
+        "multi-tenancy",
+        "authorization",
+        "company"
+      ],
+      "complexity": "medium",
+      "lines": 80
+    },
+    {
+      "id": "func:web/backend/app/services/company_scope.py:project_readable_by_user",
+      "type": "function",
+      "name": "project_readable_by_user",
+      "summary": "判断用户是否有权限读取指定项目（含公司内部共享）",
+      "tags": [
+        "authorization",
+        "project"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "func:web/backend/app/services/company_scope.py:can_use_robot_instance",
+      "type": "function",
+      "name": "can_use_robot_instance",
+      "summary": "判断用户是否有权使用指定机器人实例",
+      "tags": [
+        "authorization",
+        "robot"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "file:web/backend/app/services/device_discovery.py",
+      "type": "file",
+      "name": "device_discovery.py",
+      "summary": "设备发现服务，通过 ADB/HDC 扫描已连接的 Android 和 HarmonyOS 设备，带 3 秒 TTL 缓存",
+      "tags": [
+        "service",
+        "device",
+        "discovery",
+        "adb",
+        "hdc"
+      ],
+      "complexity": "medium",
+      "lines": 148
+    },
+    {
+      "id": "class:web/backend/app/services/device_discovery.py:ConnectedDevice",
+      "type": "class",
+      "name": "ConnectedDevice",
+      "summary": "已连接设备的数据模型，包含设备 ID、平台、型号等信息",
+      "tags": [
+        "model",
+        "device"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "func:web/backend/app/services/device_discovery.py:list_connected_devices",
+      "type": "function",
+      "name": "list_connected_devices",
+      "summary": "聚合列出所有已连接的 Android 和 HarmonyOS 设备",
+      "tags": [
+        "device",
+        "discovery"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "file:web/backend/app/services/device_platform.py",
+      "type": "file",
+      "name": "device_platform.py",
+      "summary": "设备平台解析服务，根据机器人实例配置推断设备平台（Android/HarmonyOS）和执行技术路线（AutoGLM/Midscene）",
+      "tags": [
+        "service",
+        "device",
+        "platform",
+        "routing"
+      ],
+      "complexity": "low",
+      "lines": 79
+    },
+    {
+      "id": "func:web/backend/app/services/device_platform.py:resolve_execution_device_id",
+      "type": "function",
+      "name": "resolve_execution_device_id",
+      "summary": "解析执行时使用的设备 ID",
+      "tags": [
+        "device",
+        "resolve"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "func:web/backend/app/services/device_platform.py:uses_midscene_runner",
+      "type": "function",
+      "name": "uses_midscene_runner",
+      "summary": "判断指定实例是否使用 Midscene 执行路线",
+      "tags": [
+        "device",
+        "routing"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "file:web/backend/app/services/device_pools.py",
+      "type": "file",
+      "name": "device_pools.py",
+      "summary": "设备池管理服务，列出已知设备池和验证设备池标识",
+      "tags": [
+        "service",
+        "device",
+        "pool"
+      ],
+      "complexity": "low",
+      "lines": 32
+    },
+    {
+      "id": "file:web/backend/app/services/device_screen.py",
+      "type": "file",
+      "name": "device_screen.py",
+      "summary": "设备屏幕截图服务，支持通过 ADB 和 HDC 捕获 Android/HarmonyOS 设备屏幕并缩放为 JPEG 格式",
+      "tags": [
+        "service",
+        "device",
+        "screen-capture",
+        "adb",
+        "hdc"
+      ],
+      "complexity": "medium",
+      "lines": 131
+    },
+    {
+      "id": "class:web/backend/app/services/device_screen.py:DeviceScreenFrame",
+      "type": "class",
+      "name": "DeviceScreenFrame",
+      "summary": "设备屏幕帧数据模型，包含 Base64 编码的图像和尺寸信息",
+      "tags": [
+        "model",
+        "screen-capture"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "func:web/backend/app/services/device_screen.py:capture_device_screen",
+      "type": "function",
+      "name": "capture_device_screen",
+      "summary": "根据设备平台自动选择 ADB 或 HDC 方式捕获屏幕截图",
+      "tags": [
+        "screen-capture",
+        "device"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "file:web/backend/app/services/feature_analysis_bridge.py",
+      "type": "file",
+      "name": "feature_analysis_bridge.py",
+      "summary": "功能分析桥接模块，将 agent_service 的 SSE 事件流转换为功能树结构并持久化到数据库，支持导出 Excel",
+      "tags": [
+        "service",
+        "feature-analysis",
+        "sse",
+        "bridge"
+      ],
+      "complexity": "high",
+      "lines": 323
+    },
+    {
+      "id": "func:web/backend/app/services/feature_analysis_bridge.py:execute_feature_analysis_run",
+      "type": "function",
+      "name": "execute_feature_analysis_run",
+      "summary": "执行功能分析运行，处理 agent_service SSE 流并构建功能树",
+      "tags": [
+        "execution",
+        "feature-analysis"
+      ],
+      "complexity": "high"
+    },
+    {
+      "id": "file:web/backend/app/services/feature_analysis_guard.py",
+      "type": "file",
+      "name": "feature_analysis_guard.py",
+      "summary": "功能分析并发保护模块，防止同一实例同时运行多个功能分析任务，并在启动时清理过期任务",
+      "tags": [
+        "service",
+        "concurrency",
+        "guard",
+        "feature-analysis"
+      ],
+      "complexity": "low",
+      "lines": 76
+    },
+    {
+      "id": "func:web/backend/app/services/feature_analysis_guard.py:instance_available_for_feature_analysis",
+      "type": "function",
+      "name": "instance_available_for_feature_analysis",
+      "summary": "检查实例是否可用于启动新的功能分析",
+      "tags": [
+        "concurrency",
+        "check"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "file:web/backend/app/services/feature_analysis_service.py",
+      "type": "file",
+      "name": "feature_analysis_service.py",
+      "summary": "功能分析服务层，管理功能分析的取消事件和执行入口",
+      "tags": [
+        "service",
+        "feature-analysis",
+        "cancel"
+      ],
+      "complexity": "low",
+      "lines": 39
+    },
+    {
+      "id": "file:web/backend/app/services/hdc_apps.py",
+      "type": "file",
+      "name": "hdc_apps.py",
+      "summary": "HarmonyOS 设备应用管理服务，通过 HDC 命令查询设备上已安装的鸿蒙应用和 Bundle ID",
+      "tags": [
+        "service",
+        "harmonyos",
+        "hdc",
+        "app-management"
+      ],
+      "complexity": "medium",
+      "lines": 113
+    },
+    {
+      "id": "func:web/backend/app/services/hdc_apps.py:list_installed_harmony_apps",
+      "type": "function",
+      "name": "list_installed_harmony_apps",
+      "summary": "列出 HarmonyOS 设备上已安装的应用列表",
+      "tags": [
+        "harmonyos",
+        "query"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "file:web/backend/app/services/installed_apps_catalog.py",
+      "type": "file",
+      "name": "installed_apps_catalog.py",
+      "summary": "已安装应用目录服务，构建设备上已安装应用的统一目录视图",
+      "tags": [
+        "service",
+        "device",
+        "app-catalog"
+      ],
+      "complexity": "low",
+      "lines": 67
+    },
+    {
+      "id": "func:web/backend/app/services/installed_apps_catalog.py:build_installed_apps_catalog",
+      "type": "function",
+      "name": "build_installed_apps_catalog",
+      "summary": "构建设备上已安装应用的完整目录列表",
+      "tags": [
+        "device",
+        "catalog"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "file:web/backend/app/services/kafka_functional.py",
+      "type": "file",
+      "name": "kafka_functional.py",
+      "summary": "Kafka 消息发布服务，将功能测试执行事件发布到 Kafka 主题用于异步消费",
+      "tags": [
+        "service",
+        "kafka",
+        "messaging",
+        "test-execution"
+      ],
+      "complexity": "low",
+      "lines": 67
+    },
+    {
+      "id": "func:web/backend/app/services/kafka_functional.py:publish_functional_dispatch",
+      "type": "function",
+      "name": "publish_functional_dispatch",
+      "summary": "将功能测试执行结果发布到 Kafka 消息队列",
+      "tags": [
+        "kafka",
+        "publish"
+      ],
+      "complexity": "low"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:web/backend/app/routers/test_cases.py",
+      "target": "func:web/backend/app/routers/test_cases.py:_run_in_thread",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/test_cases.py",
+      "target": "func:web/backend/app/routers/test_cases.py:_get_case_for_read",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/test_cases.py",
+      "target": "func:web/backend/app/routers/test_cases.py:_get_case_for_write",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/test_cases.py",
+      "target": "func:web/backend/app/routers/test_cases.py:_resolve_project_for_case",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/test_cases.py",
+      "target": "func:web/backend/app/routers/test_cases.py:_require_project_readable",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/test_cases.py",
+      "target": "func:web/backend/app/routers/test_cases.py:_append_revision_snapshot",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/test_cases.py",
+      "target": "func:web/backend/app/routers/test_cases.py:_validate_test_case_row",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/test_cases.py",
+      "target": "func:web/backend/app/routers/test_cases.py:list_cases",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/test_cases.py",
+      "target": "func:web/backend/app/routers/test_cases.py:submit_generate_case_job",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/test_cases.py",
+      "target": "func:web/backend/app/routers/test_cases.py:get_generate_case_job",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/test_cases.py",
+      "target": "func:web/backend/app/routers/test_cases.py:cancel_generate_case_job",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/test_cases.py",
+      "target": "func:web/backend/app/routers/test_cases.py:create_case",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/test_cases.py",
+      "target": "func:web/backend/app/routers/test_cases.py:import_cases_file",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/test_cases.py",
+      "target": "func:web/backend/app/routers/test_cases.py:list_runs",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/test_cases.py",
+      "target": "func:web/backend/app/routers/test_cases.py:get_run",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/test_cases.py",
+      "target": "func:web/backend/app/routers/test_cases.py:download_run_report",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/test_cases.py",
+      "target": "func:web/backend/app/routers/test_cases.py:cancel_run",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/test_cases.py",
+      "target": "func:web/backend/app/routers/test_cases.py:list_case_versions",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/test_cases.py",
+      "target": "func:web/backend/app/routers/test_cases.py:get_case",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/test_cases.py",
+      "target": "func:web/backend/app/routers/test_cases.py:update_case",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/test_cases.py",
+      "target": "func:web/backend/app/routers/test_cases.py:delete_case",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/test_cases.py",
+      "target": "func:web/backend/app/routers/test_cases.py:run_case",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/ws_monitor.py",
+      "target": "func:web/backend/app/routers/ws_monitor.py:robot_monitor_stream",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/schemas.py",
+      "target": "class:web/backend/app/schemas.py:TestCaseCreate",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/schemas.py",
+      "target": "class:web/backend/app/schemas.py:TestRunOut",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/schemas.py",
+      "target": "class:web/backend/app/schemas.py:RobotInstanceOut",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/schemas.py",
+      "target": "class:web/backend/app/schemas.py:FeatureAnalysisRunOut",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/schemas.py",
+      "target": "class:web/backend/app/schemas.py:RentalOrderOut",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/agent_service_client.py",
+      "target": "class:web/backend/app/services/agent_service_client.py:AgentServiceError",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/agent_service_client.py",
+      "target": "func:web/backend/app/services/agent_service_client.py:submit_case_gen_generate",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/agent_service_client.py",
+      "target": "func:web/backend/app/services/agent_service_client.py:stream_case_gen_events",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/agent_service_client.py",
+      "target": "func:web/backend/app/services/agent_service_client.py:submit_func_agent_dispatch",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/agent_service_client.py",
+      "target": "func:web/backend/app/services/agent_service_client.py:submit_explore_run",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/agent_service_client.py",
+      "target": "func:web/backend/app/services/agent_service_client.py:cancel_task",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/agent_service_client.py",
+      "target": "func:web/backend/app/services/agent_service_client.py:_parse_sse_lines",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/analysis_instance_guard.py",
+      "target": "func:web/backend/app/services/analysis_instance_guard.py:analysis_generation_lock",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/analysis_instance_guard.py",
+      "target": "func:web/backend/app/services/analysis_instance_guard.py:instance_available_for_generation",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/app_explore_export.py",
+      "target": "func:web/backend/app/services/app_explore_export.py:build_feature_workbook",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/app_explore_export.py",
+      "target": "func:web/backend/app/services/app_explore_export.py:build_feature_tree_detail_workbook",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/app_explore_service.py",
+      "target": "func:web/backend/app/services/app_explore_service.py:execute_app_explore_run",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/app_install.py",
+      "target": "func:web/backend/app/services/app_install.py:install_package_file",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/app_install.py",
+      "target": "func:web/backend/app/services/app_install.py:list_installed_apps",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/case_agent_text.py",
+      "target": "func:web/backend/app/services/case_agent_text.py:build_agent_task_text",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/case_agent_text.py",
+      "target": "func:web/backend/app/services/case_agent_text.py:build_midscene_tech_steps",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/case_generation_jobs.py",
+      "target": "class:web/backend/app/services/case_generation_jobs.py:CaseGenerationJob",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/case_generation_jobs.py",
+      "target": "func:web/backend/app/services/case_generation_jobs.py:start_case_generation_job",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/case_generation_jobs.py",
+      "target": "func:web/backend/app/services/case_generation_jobs.py:cancel_case_generation_job",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/case_generation_jobs.py",
+      "target": "func:web/backend/app/services/case_generation_jobs.py:_execute_job",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/case_generation.py",
+      "target": "func:web/backend/app/services/case_generation.py:generate_case_draft_precheck",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/case_generation.py",
+      "target": "func:web/backend/app/services/case_generation.py:build_draft_from_agent_dict",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/case_import.py",
+      "target": "func:web/backend/app/services/case_import.py:parse_import_file",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/case_import.py",
+      "target": "func:web/backend/app/services/case_import.py:row_to_create",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/case_kb.py",
+      "target": "func:web/backend/app/services/case_kb.py:search_cases_kb",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/case_kb.py",
+      "target": "func:web/backend/app/services/case_kb.py:upsert_case_kb",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/company_scope.py",
+      "target": "func:web/backend/app/services/company_scope.py:project_readable_by_user",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/company_scope.py",
+      "target": "func:web/backend/app/services/company_scope.py:can_use_robot_instance",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/device_discovery.py",
+      "target": "class:web/backend/app/services/device_discovery.py:ConnectedDevice",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/device_discovery.py",
+      "target": "func:web/backend/app/services/device_discovery.py:list_connected_devices",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/device_platform.py",
+      "target": "func:web/backend/app/services/device_platform.py:resolve_execution_device_id",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/device_platform.py",
+      "target": "func:web/backend/app/services/device_platform.py:uses_midscene_runner",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/device_screen.py",
+      "target": "class:web/backend/app/services/device_screen.py:DeviceScreenFrame",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/device_screen.py",
+      "target": "func:web/backend/app/services/device_screen.py:capture_device_screen",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/feature_analysis_bridge.py",
+      "target": "func:web/backend/app/services/feature_analysis_bridge.py:execute_feature_analysis_run",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/feature_analysis_guard.py",
+      "target": "func:web/backend/app/services/feature_analysis_guard.py:instance_available_for_feature_analysis",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/hdc_apps.py",
+      "target": "func:web/backend/app/services/hdc_apps.py:list_installed_harmony_apps",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/installed_apps_catalog.py",
+      "target": "func:web/backend/app/services/installed_apps_catalog.py:build_installed_apps_catalog",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/kafka_functional.py",
+      "target": "func:web/backend/app/services/kafka_functional.py:publish_functional_dispatch",
+      "type": "contains"
+    },
+    {
+      "source": "func:web/backend/app/routers/test_cases.py:submit_generate_case_job",
+      "target": "func:web/backend/app/services/case_generation_jobs.py:start_case_generation_job",
+      "type": "calls"
+    },
+    {
+      "source": "func:web/backend/app/routers/test_cases.py:run_case",
+      "target": "func:web/backend/app/routers/test_cases.py:_run_in_thread",
+      "type": "calls"
+    },
+    {
+      "source": "func:web/backend/app/services/case_generation_jobs.py:_execute_job",
+      "target": "func:web/backend/app/services/agent_service_client.py:submit_case_gen_generate",
+      "type": "calls"
+    },
+    {
+      "source": "func:web/backend/app/services/case_generation_jobs.py:_execute_job",
+      "target": "func:web/backend/app/services/agent_service_client.py:stream_case_gen_events",
+      "type": "calls"
+    },
+    {
+      "source": "func:web/backend/app/services/app_explore_service.py:execute_app_explore_run",
+      "target": "func:web/backend/app/services/agent_service_client.py:submit_explore_run",
+      "type": "calls"
+    },
+    {
+      "source": "func:web/backend/app/services/feature_analysis_bridge.py:execute_feature_analysis_run",
+      "target": "func:web/backend/app/services/agent_service_client.py:submit_func_agent_dispatch",
+      "type": "calls"
+    },
+    {
+      "source": "file:web/backend/app/routers/test_cases.py",
+      "target": "file:web/backend/app/schemas.py",
+      "type": "depends_on"
+    },
+    {
+      "source": "file:web/backend/app/routers/test_cases.py",
+      "target": "file:web/backend/app/services/case_generation_jobs.py",
+      "type": "depends_on"
+    },
+    {
+      "source": "file:web/backend/app/routers/test_cases.py",
+      "target": "file:web/backend/app/services/case_import.py",
+      "type": "depends_on"
+    },
+    {
+      "source": "file:web/backend/app/routers/test_cases.py",
+      "target": "file:web/backend/app/services/company_scope.py",
+      "type": "depends_on"
+    },
+    {
+      "source": "file:web/backend/app/services/case_generation_jobs.py",
+      "target": "file:web/backend/app/services/agent_service_client.py",
+      "type": "depends_on"
+    },
+    {
+      "source": "file:web/backend/app/services/case_generation_jobs.py",
+      "target": "file:web/backend/app/services/case_generation.py",
+      "type": "depends_on"
+    },
+    {
+      "source": "file:web/backend/app/services/case_generation_jobs.py",
+      "target": "file:web/backend/app/services/analysis_instance_guard.py",
+      "type": "depends_on"
+    },
+    {
+      "source": "file:web/backend/app/services/app_explore_service.py",
+      "target": "file:web/backend/app/services/agent_service_client.py",
+      "type": "depends_on"
+    },
+    {
+      "source": "file:web/backend/app/services/feature_analysis_bridge.py",
+      "target": "file:web/backend/app/services/agent_service_client.py",
+      "type": "depends_on"
+    },
+    {
+      "source": "file:web/backend/app/services/feature_analysis_bridge.py",
+      "target": "file:web/backend/app/services/feature_analysis_guard.py",
+      "type": "depends_on"
+    },
+    {
+      "source": "file:web/backend/app/services/case_generation.py",
+      "target": "file:web/backend/app/services/case_kb.py",
+      "type": "depends_on"
+    },
+    {
+      "source": "file:web/backend/app/services/installed_apps_catalog.py",
+      "target": "file:web/backend/app/services/app_install.py",
+      "type": "depends_on"
+    },
+    {
+      "source": "file:web/backend/app/services/device_platform.py",
+      "target": "file:web/backend/app/services/device_discovery.py",
+      "type": "depends_on"
+    },
+    {
+      "source": "file:web/backend/app/services/device_screen.py",
+      "target": "file:web/backend/app/services/device_platform.py",
+      "type": "depends_on"
+    },
+    {
+      "source": "file:web/backend/app/routers/test_cases.py",
+      "target": "function:web/backend/app/routers/test_cases.py:_append_revision_snapshot",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/test_cases.py",
+      "target": "function:web/backend/app/routers/test_cases.py:list_cases",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/test_cases.py",
+      "target": "function:web/backend/app/routers/test_cases.py:submit_generate_case_job",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/test_cases.py",
+      "target": "function:web/backend/app/routers/test_cases.py:get_generate_case_job",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/test_cases.py",
+      "target": "function:web/backend/app/routers/test_cases.py:create_case",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/test_cases.py",
+      "target": "function:web/backend/app/routers/test_cases.py:import_cases_file",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/test_cases.py",
+      "target": "function:web/backend/app/routers/test_cases.py:list_runs",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/test_cases.py",
+      "target": "function:web/backend/app/routers/test_cases.py:get_run",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/test_cases.py",
+      "target": "function:web/backend/app/routers/test_cases.py:download_run_report",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/test_cases.py",
+      "target": "function:web/backend/app/routers/test_cases.py:cancel_run",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/test_cases.py",
+      "target": "function:web/backend/app/routers/test_cases.py:list_case_versions",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/test_cases.py",
+      "target": "function:web/backend/app/routers/test_cases.py:update_case",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/test_cases.py",
+      "target": "function:web/backend/app/routers/test_cases.py:delete_case",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/test_cases.py",
+      "target": "function:web/backend/app/routers/test_cases.py:run_case",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/ws_monitor.py",
+      "target": "function:web/backend/app/routers/ws_monitor.py:robot_monitor_stream",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/schemas.py",
+      "target": "class:web/backend/app/schemas.py:RegisterBody",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/schemas.py",
+      "target": "class:web/backend/app/schemas.py:ProfileUpdate",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/schemas.py",
+      "target": "class:web/backend/app/schemas.py:RobotInstanceOut",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/schemas.py",
+      "target": "class:web/backend/app/schemas.py:RobotInstancePatch",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/schemas.py",
+      "target": "class:web/backend/app/schemas.py:AppExploreRunOut",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/schemas.py",
+      "target": "class:web/backend/app/schemas.py:FeatureAnalysisRunCreate",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/schemas.py",
+      "target": "class:web/backend/app/schemas.py:FeatureAnalysisRunOut",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/agent_service_client.py",
+      "target": "function:web/backend/app/services/agent_service_client.py:_case_gen_payload",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/agent_service_client.py",
+      "target": "function:web/backend/app/services/agent_service_client.py:submit_case_gen_generate",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/agent_service_client.py",
+      "target": "function:web/backend/app/services/agent_service_client.py:_parse_sse_lines",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/agent_service_client.py",
+      "target": "function:web/backend/app/services/agent_service_client.py:_stream_events",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/agent_service_client.py",
+      "target": "function:web/backend/app/services/agent_service_client.py:cancel_task",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/analysis_instance_guard.py",
+      "target": "function:web/backend/app/services/analysis_instance_guard.py:instance_available_for_generation",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/app_explore_export.py",
+      "target": "function:web/backend/app/services/app_explore_export.py:build_feature_workbook",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/app_explore_export.py",
+      "target": "function:web/backend/app/services/app_explore_export.py:write_explore_excel",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/app_explore_export.py",
+      "target": "function:web/backend/app/services/app_explore_export.py:_iter_tree_rows",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/app_explore_export.py",
+      "target": "function:web/backend/app/services/app_explore_export.py:_resolve_function_tree_root",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/app_explore_export.py",
+      "target": "function:web/backend/app/services/app_explore_export.py:build_feature_tree_detail_workbook",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/app_explore_service.py",
+      "target": "function:web/backend/app/services/app_explore_service.py:find_active_explore_for_instance",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/app_explore_service.py",
+      "target": "function:web/backend/app/services/app_explore_service.py:execute_app_explore_run",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/app_install.py",
+      "target": "function:web/backend/app/services/app_install.py:install_package_file",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/app_install.py",
+      "target": "function:web/backend/app/services/app_install.py:_parse_android_label",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/app_install.py",
+      "target": "function:web/backend/app/services/app_install.py:_list_android_user_package_ids",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/app_install.py",
+      "target": "function:web/backend/app/services/app_install.py:_list_android_apps",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/case_agent_text.py",
+      "target": "function:web/backend/app/services/case_agent_text.py:build_agent_task_text",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/case_agent_text.py",
+      "target": "function:web/backend/app/services/case_agent_text.py:_sanitize_midscene_instruction",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/case_agent_text.py",
+      "target": "function:web/backend/app/services/case_agent_text.py:_split_compound_midscene_description",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/case_agent_text.py",
+      "target": "function:web/backend/app/services/case_agent_text.py:build_midscene_tech_steps",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/case_generation_jobs.py",
+      "target": "function:web/backend/app/services/case_generation_jobs.py:start_case_generation_job",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/case_generation_jobs.py",
+      "target": "function:web/backend/app/services/case_generation_jobs.py:cancel_case_generation_job",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/case_generation_jobs.py",
+      "target": "function:web/backend/app/services/case_generation_jobs.py:_execute_job",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/case_generation_jobs.py",
+      "target": "function:web/backend/app/services/case_generation_jobs.py:_prepare_agent_run_context",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/case_generation_jobs.py",
+      "target": "function:web/backend/app/services/case_generation_jobs.py:_run_with_agent",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/case_generation.py",
+      "target": "function:web/backend/app/services/case_generation.py:_fetch_kb_examples",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/case_generation.py",
+      "target": "function:web/backend/app/services/case_generation.py:build_draft_from_agent_dict",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/case_generation.py",
+      "target": "function:web/backend/app/services/case_generation.py:generate_case_draft_precheck",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/case_import.py",
+      "target": "function:web/backend/app/services/case_import.py:_steps_from_cell",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/case_import.py",
+      "target": "function:web/backend/app/services/case_import.py:rows_from_xlsx",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/case_import.py",
+      "target": "function:web/backend/app/services/case_import.py:parse_import_file",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/case_import.py",
+      "target": "function:web/backend/app/services/case_import.py:row_to_create",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/case_kb.py",
+      "target": "function:web/backend/app/services/case_kb.py:build_kb_search_blob",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/case_kb.py",
+      "target": "function:web/backend/app/services/case_kb.py:search_cases_kb",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/company_scope.py",
+      "target": "function:web/backend/app/services/company_scope.py:project_readable_by_user",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/device_discovery.py",
+      "target": "function:web/backend/app/services/device_discovery.py:_resolve_adb",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/device_discovery.py",
+      "target": "function:web/backend/app/services/device_discovery.py:list_android_devices",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/device_discovery.py",
+      "target": "function:web/backend/app/services/device_discovery.py:list_harmonyos_devices",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/device_discovery.py",
+      "target": "function:web/backend/app/services/device_discovery.py:list_connected_devices",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/device_platform.py",
+      "target": "function:web/backend/app/services/device_platform.py:resolve_execution_platform",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/device_platform.py",
+      "target": "function:web/backend/app/services/device_platform.py:resolve_execution_device_id",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/device_pools.py",
+      "target": "function:web/backend/app/services/device_pools.py:list_device_pools",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/device_screen.py",
+      "target": "function:web/backend/app/services/device_screen.py:capture_harmony_screen",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/device_screen.py",
+      "target": "function:web/backend/app/services/device_screen.py:capture_android_screen",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/feature_analysis_bridge.py",
+      "target": "function:web/backend/app/services/feature_analysis_bridge.py:_merge_feature_from_line",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/feature_analysis_bridge.py",
+      "target": "function:web/backend/app/services/feature_analysis_bridge.py:_finalize_tree",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/feature_analysis_bridge.py",
+      "target": "function:web/backend/app/services/feature_analysis_bridge.py:_persist_finalized_tree",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/feature_analysis_bridge.py",
+      "target": "function:web/backend/app/services/feature_analysis_bridge.py:_try_write_explore_excel",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/feature_analysis_bridge.py",
+      "target": "function:web/backend/app/services/feature_analysis_bridge.py:execute_feature_analysis_run",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/feature_analysis_guard.py",
+      "target": "function:web/backend/app/services/feature_analysis_guard.py:find_active_feature_analysis_for_instance",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/feature_analysis_guard.py",
+      "target": "function:web/backend/app/services/feature_analysis_guard.py:instance_available_for_feature_analysis",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/feature_analysis_guard.py",
+      "target": "function:web/backend/app/services/feature_analysis_guard.py:reconcile_stale_feature_analysis_on_startup",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/hdc_apps.py",
+      "target": "function:web/backend/app/services/hdc_apps.py:_run_hdc_shell",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/hdc_apps.py",
+      "target": "function:web/backend/app/services/hdc_apps.py:_parse_bundle_lines",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/hdc_apps.py",
+      "target": "function:web/backend/app/services/hdc_apps.py:_parse_labeled_json",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/installed_apps_catalog.py",
+      "target": "function:web/backend/app/services/installed_apps_catalog.py:build_installed_apps_catalog",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/kafka_functional.py",
+      "target": "function:web/backend/app/services/kafka_functional.py:_get_producer",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/kafka_functional.py",
+      "target": "function:web/backend/app/services/kafka_functional.py:publish_functional_dispatch",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    }
+  ]
+}

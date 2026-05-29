@@ -1,0 +1,65 @@
+{
+  "nodes": [
+    {
+      "id": "file:web/frontend/src/views/RunExecutionLiveView.vue",
+      "type": "file",
+      "name": "RunExecutionLiveView.vue",
+      "summary": "测试执行实时视图，展示正在运行的测试用例的执行进度、设备屏幕镜像、步骤日志和取消操作，通过SSE接收实时更新",
+      "tags": [
+        "vue",
+        "view",
+        "test-execution",
+        "live",
+        "sse",
+        "real-time"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "file:web/frontend/vite.config.js",
+      "type": "file",
+      "name": "vite.config.js",
+      "summary": "Vite构建配置，配置Vue插件、开发服务器端口(5173)、API代理(将/api请求转发到后端8000端口)和路径别名",
+      "tags": [
+        "config",
+        "vite",
+        "build",
+        "dev-server",
+        "proxy"
+      ],
+      "complexity": "low"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:web/frontend/src/views/RunExecutionLiveView.vue",
+      "target": "file:web/frontend/src/components/RunLivePanel.vue",
+      "type": "imports",
+      "label": "嵌入实时面板组件"
+    },
+    {
+      "source": "file:web/frontend/src/views/RunExecutionLiveView.vue",
+      "target": "file:web/frontend/src/stores/activeTestRun.js",
+      "type": "imports",
+      "label": "管理运行状态"
+    },
+    {
+      "source": "file:web/frontend/src/views/RunExecutionLiveView.vue",
+      "target": "file:web/frontend/src/utils/runEventFormat.js",
+      "type": "imports",
+      "label": "格式化SSE事件"
+    },
+    {
+      "source": "file:web/frontend/src/views/RunExecutionLiveView.vue",
+      "target": "file:web/frontend/src/api/client.js",
+      "type": "imports",
+      "label": "API请求"
+    },
+    {
+      "source": "file:web/frontend/vite.config.js",
+      "target": "file:web/frontend/src/main.js",
+      "type": "contains",
+      "label": "构建入口"
+    }
+  ]
+}

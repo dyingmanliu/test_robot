@@ -1,0 +1,1837 @@
+{
+  "scriptCompleted": true,
+  "files": [
+    {
+      "path": ".claude/settings.json",
+      "language": "json",
+      "sizeLines": 21,
+      "fileCategory": "config"
+    },
+    {
+      "path": ".cursor/mcp.json",
+      "language": "json",
+      "sizeLines": 14,
+      "fileCategory": "config"
+    },
+    {
+      "path": ".cursor/rules/python-venv.mdc",
+      "language": "mdc",
+      "sizeLines": 55,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".env.example",
+      "language": "config",
+      "sizeLines": 144,
+      "fileCategory": "config"
+    },
+    {
+      "path": ".understand-anything/config.json",
+      "language": "json",
+      "sizeLines": 1,
+      "fileCategory": "config"
+    },
+    {
+      "path": "agent_service/__init__.py",
+      "language": "python",
+      "sizeLines": 7,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/analysis_agent/__init__.py",
+      "language": "python",
+      "sizeLines": 24,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/analysis_agent/agent.py",
+      "language": "python",
+      "sizeLines": 59,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/analysis_agent/config/__init__.py",
+      "language": "python",
+      "sizeLines": 71,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/analysis_agent/config/prompts.py",
+      "language": "python",
+      "sizeLines": 24,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/analysis_agent/errors.py",
+      "language": "python",
+      "sizeLines": 5,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/analysis_agent/feature_explore/__init__.py",
+      "language": "python",
+      "sizeLines": 9,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/analysis_agent/feature_explore/agent.py",
+      "language": "python",
+      "sizeLines": 111,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/analysis_agent/feature_explore/README.md",
+      "language": "markdown",
+      "sizeLines": 43,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "agent_service/analysis_agent/feature_explore/tree_build.py",
+      "language": "python",
+      "sizeLines": 387,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/analysis_agent/feature_explore/types.py",
+      "language": "python",
+      "sizeLines": 63,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/analysis_agent/model/__init__.py",
+      "language": "python",
+      "sizeLines": 3,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/analysis_agent/model/client.py",
+      "language": "python",
+      "sizeLines": 124,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/analysis_agent/parser.py",
+      "language": "python",
+      "sizeLines": 94,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/analysis_agent/progress.py",
+      "language": "python",
+      "sizeLines": 238,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/analysis_agent/README.md",
+      "language": "markdown",
+      "sizeLines": 50,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "agent_service/analysis_agent/types.py",
+      "language": "python",
+      "sizeLines": 35,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/common/__init__.py",
+      "language": "python",
+      "sizeLines": 0,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/common/device_resolve.py",
+      "language": "python",
+      "sizeLines": 18,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/func_agent/__init__.py",
+      "language": "python",
+      "sizeLines": 9,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/func_agent/backends/__init__.py",
+      "language": "python",
+      "sizeLines": 4,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/func_agent/backends/autoglm_runner.py",
+      "language": "python",
+      "sizeLines": 64,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/func_agent/backends/autoglm/__init__.py",
+      "language": "python",
+      "sizeLines": 5,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/func_agent/backends/autoglm/agent.py",
+      "language": "python",
+      "sizeLines": 167,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/func_agent/backends/midscene/__init__.py",
+      "language": "python",
+      "sizeLines": 5,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/func_agent/backends/midscene/runtime.py",
+      "language": "python",
+      "sizeLines": 280,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/func_agent/cli.py",
+      "language": "python",
+      "sizeLines": 116,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/func_agent/core.py",
+      "language": "python",
+      "sizeLines": 12,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/func_agent/orchestrator.py",
+      "language": "python",
+      "sizeLines": 23,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/func_agent/README.md",
+      "language": "markdown",
+      "sizeLines": 28,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "agent_service/langchain_platform/__init__.py",
+      "language": "python",
+      "sizeLines": 13,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/langchain_platform/callbacks/__init__.py",
+      "language": "python",
+      "sizeLines": 0,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/langchain_platform/callbacks/sse.py",
+      "language": "python",
+      "sizeLines": 26,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/langchain_platform/chains/__init__.py",
+      "language": "python",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/langchain_platform/chains/case_generation.py",
+      "language": "python",
+      "sizeLines": 194,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/langchain_platform/config.py",
+      "language": "python",
+      "sizeLines": 78,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/langchain_platform/explore_core.py",
+      "language": "python",
+      "sizeLines": 70,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/langchain_platform/facades/__init__.py",
+      "language": "python",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/langchain_platform/facades/analysis.py",
+      "language": "python",
+      "sizeLines": 22,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/langchain_platform/facades/func_dispatch.py",
+      "language": "python",
+      "sizeLines": 24,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/langchain_platform/graphs/__init__.py",
+      "language": "python",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/langchain_platform/graphs/autoglm_exec.py",
+      "language": "python",
+      "sizeLines": 192,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/langchain_platform/graphs/case_gen_agentic.py",
+      "language": "python",
+      "sizeLines": 308,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/langchain_platform/graphs/explore_run.py",
+      "language": "python",
+      "sizeLines": 137,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/langchain_platform/graphs/func_dispatch.py",
+      "language": "python",
+      "sizeLines": 141,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/langchain_platform/graphs/midscene_exec.py",
+      "language": "python",
+      "sizeLines": 55,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/langchain_platform/models.py",
+      "language": "python",
+      "sizeLines": 66,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/langchain_platform/README.md",
+      "language": "markdown",
+      "sizeLines": 184,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "agent_service/langchain_platform/retrievers/__init__.py",
+      "language": "python",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/langchain_platform/retrievers/web_case_kb.py",
+      "language": "python",
+      "sizeLines": 64,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/langchain_platform/tools/__init__.py",
+      "language": "python",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/langchain_platform/tools/device_autoglm.py",
+      "language": "python",
+      "sizeLines": 51,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/langchain_platform/tools/knowledge_query.py",
+      "language": "python",
+      "sizeLines": 221,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/langchain_platform/tools/midscene_dispatch.py",
+      "language": "python",
+      "sizeLines": 38,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/langchain_platform/tools/registry.py",
+      "language": "python",
+      "sizeLines": 38,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/requirements.txt",
+      "language": "txt",
+      "sizeLines": 10,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "agent_service/service/__init__.py",
+      "language": "python",
+      "sizeLines": 0,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/service/__main__.py",
+      "language": "python",
+      "sizeLines": 14,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/service/app.py",
+      "language": "python",
+      "sizeLines": 134,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/service/config.py",
+      "language": "python",
+      "sizeLines": 15,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/service/logging_config.py",
+      "language": "python",
+      "sizeLines": 101,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/service/routers/__init__.py",
+      "language": "python",
+      "sizeLines": 0,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/service/routers/analysis.py",
+      "language": "python",
+      "sizeLines": 151,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/service/routers/explore.py",
+      "language": "python",
+      "sizeLines": 102,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/service/routers/func_agent.py",
+      "language": "python",
+      "sizeLines": 102,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/service/routers/health.py",
+      "language": "python",
+      "sizeLines": 15,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/service/routers/midscene.py",
+      "language": "python",
+      "sizeLines": 81,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/service/routers/tree.py",
+      "language": "python",
+      "sizeLines": 31,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/service/schemas.py",
+      "language": "python",
+      "sizeLines": 112,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/service/sse.py",
+      "language": "python",
+      "sizeLines": 17,
+      "fileCategory": "code"
+    },
+    {
+      "path": "agent_service/service/task_manager.py",
+      "language": "python",
+      "sizeLines": 112,
+      "fileCategory": "code"
+    },
+    {
+      "path": "ARCHITECTURE.md",
+      "language": "markdown",
+      "sizeLines": 1002,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "autoglm_phone_tech/__init__.py",
+      "language": "python",
+      "sizeLines": 8,
+      "fileCategory": "code"
+    },
+    {
+      "path": "autoglm_phone_tech/actions/__init__.py",
+      "language": "python",
+      "sizeLines": 3,
+      "fileCategory": "code"
+    },
+    {
+      "path": "autoglm_phone_tech/actions/handler.py",
+      "language": "python",
+      "sizeLines": 212,
+      "fileCategory": "code"
+    },
+    {
+      "path": "autoglm_phone_tech/config/__init__.py",
+      "language": "python",
+      "sizeLines": 10,
+      "fileCategory": "code"
+    },
+    {
+      "path": "autoglm_phone_tech/config/apps_harmonyos.py",
+      "language": "python",
+      "sizeLines": 53,
+      "fileCategory": "code"
+    },
+    {
+      "path": "autoglm_phone_tech/config/apps.py",
+      "language": "python",
+      "sizeLines": 56,
+      "fileCategory": "code"
+    },
+    {
+      "path": "autoglm_phone_tech/config/prompts_zh.py",
+      "language": "python",
+      "sizeLines": 79,
+      "fileCategory": "code"
+    },
+    {
+      "path": "autoglm_phone_tech/config/timing.py",
+      "language": "python",
+      "sizeLines": 15,
+      "fileCategory": "code"
+    },
+    {
+      "path": "autoglm_phone_tech/device/__init__.py",
+      "language": "python",
+      "sizeLines": 14,
+      "fileCategory": "code"
+    },
+    {
+      "path": "autoglm_phone_tech/device/adb_bridge.py",
+      "language": "python",
+      "sizeLines": 225,
+      "fileCategory": "code"
+    },
+    {
+      "path": "autoglm_phone_tech/device/adb_resolve.py",
+      "language": "python",
+      "sizeLines": 34,
+      "fileCategory": "code"
+    },
+    {
+      "path": "autoglm_phone_tech/device/device_factory.py",
+      "language": "python",
+      "sizeLines": 45,
+      "fileCategory": "code"
+    },
+    {
+      "path": "autoglm_phone_tech/device/hdc_bridge.py",
+      "language": "python",
+      "sizeLines": 219,
+      "fileCategory": "code"
+    },
+    {
+      "path": "autoglm_phone_tech/device/hdc_resolve.py",
+      "language": "python",
+      "sizeLines": 24,
+      "fileCategory": "code"
+    },
+    {
+      "path": "autoglm_phone_tech/device/platform.py",
+      "language": "python",
+      "sizeLines": 23,
+      "fileCategory": "code"
+    },
+    {
+      "path": "autoglm_phone_tech/model/__init__.py",
+      "language": "python",
+      "sizeLines": 3,
+      "fileCategory": "code"
+    },
+    {
+      "path": "autoglm_phone_tech/model/client.py",
+      "language": "python",
+      "sizeLines": 187,
+      "fileCategory": "code"
+    },
+    {
+      "path": "autoglm_phone_tech/README.md",
+      "language": "markdown",
+      "sizeLines": 85,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "CLAUDE.md",
+      "language": "markdown",
+      "sizeLines": 193,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docker-compose.yml",
+      "language": "yaml",
+      "sizeLines": 40,
+      "fileCategory": "infra"
+    },
+    {
+      "path": "mai_ui_tech/__init__.py",
+      "language": "python",
+      "sizeLines": 12,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mai_ui_tech/__main__.py",
+      "language": "python",
+      "sizeLines": 4,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mai_ui_tech/.env.example",
+      "language": "config",
+      "sizeLines": 25,
+      "fileCategory": "config"
+    },
+    {
+      "path": "mai_ui_tech/cli.py",
+      "language": "python",
+      "sizeLines": 75,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mai_ui_tech/config.py",
+      "language": "python",
+      "sizeLines": 115,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mai_ui_tech/coords.py",
+      "language": "python",
+      "sizeLines": 19,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mai_ui_tech/grounding_server.py",
+      "language": "python",
+      "sizeLines": 230,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mai_ui_tech/grounding.py",
+      "language": "python",
+      "sizeLines": 329,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mai_ui_tech/health.py",
+      "language": "python",
+      "sizeLines": 60,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mai_ui_tech/image_utils.py",
+      "language": "python",
+      "sizeLines": 27,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mai_ui_tech/menu_detect.py",
+      "language": "python",
+      "sizeLines": 361,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mai_ui_tech/mlx_inference.py",
+      "language": "python",
+      "sizeLines": 236,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mai_ui_tech/prompt.py",
+      "language": "python",
+      "sizeLines": 40,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mai_ui_tech/pyproject.toml",
+      "language": "toml",
+      "sizeLines": 25,
+      "fileCategory": "config"
+    },
+    {
+      "path": "mai_ui_tech/README.md",
+      "language": "markdown",
+      "sizeLines": 223,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "mai_ui_tech/requirements-mlx.txt",
+      "language": "txt",
+      "sizeLines": 4,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "mai_ui_tech/requirements.txt",
+      "language": "txt",
+      "sizeLines": 5,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "mai_ui_tech/scripts/download_model_hf.py",
+      "language": "python",
+      "sizeLines": 102,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mai_ui_tech/scripts/pull_ollama_model.sh",
+      "language": "shell",
+      "sizeLines": 6,
+      "fileCategory": "script"
+    },
+    {
+      "path": "mai_ui_tech/scripts/run_cli.sh",
+      "language": "shell",
+      "sizeLines": 13,
+      "fileCategory": "script"
+    },
+    {
+      "path": "mai_ui_tech/scripts/serve_grounding_mlx.sh",
+      "language": "shell",
+      "sizeLines": 30,
+      "fileCategory": "script"
+    },
+    {
+      "path": "mai_ui_tech/scripts/serve_vllm_mlx.sh",
+      "language": "shell",
+      "sizeLines": 48,
+      "fileCategory": "script"
+    },
+    {
+      "path": "mai_ui_tech/scripts/setup_mlx_mac.sh",
+      "language": "shell",
+      "sizeLines": 69,
+      "fileCategory": "script"
+    },
+    {
+      "path": "midscene_tech/.env.example",
+      "language": "config",
+      "sizeLines": 37,
+      "fileCategory": "config"
+    },
+    {
+      "path": "midscene_tech/package.json",
+      "language": "json",
+      "sizeLines": 29,
+      "fileCategory": "config"
+    },
+    {
+      "path": "midscene_tech/README.md",
+      "language": "markdown",
+      "sizeLines": 129,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "midscene_tech/scripts/demo-settings.ts",
+      "language": "typescript",
+      "sizeLines": 65,
+      "fileCategory": "code"
+    },
+    {
+      "path": "midscene_tech/src/agent.ts",
+      "language": "typescript",
+      "sizeLines": 148,
+      "fileCategory": "code"
+    },
+    {
+      "path": "midscene_tech/src/app_scope.ts",
+      "language": "typescript",
+      "sizeLines": 104,
+      "fileCategory": "code"
+    },
+    {
+      "path": "midscene_tech/src/cli.ts",
+      "language": "typescript",
+      "sizeLines": 307,
+      "fileCategory": "code"
+    },
+    {
+      "path": "midscene_tech/src/config.ts",
+      "language": "typescript",
+      "sizeLines": 193,
+      "fileCategory": "code"
+    },
+    {
+      "path": "midscene_tech/src/device_runtime.ts",
+      "language": "typescript",
+      "sizeLines": 116,
+      "fileCategory": "code"
+    },
+    {
+      "path": "midscene_tech/src/explore_agent.ts",
+      "language": "typescript",
+      "sizeLines": 97,
+      "fileCategory": "code"
+    },
+    {
+      "path": "midscene_tech/src/explore_common.test.ts",
+      "language": "typescript",
+      "sizeLines": 103,
+      "fileCategory": "code"
+    },
+    {
+      "path": "midscene_tech/src/explore_common.ts",
+      "language": "typescript",
+      "sizeLines": 403,
+      "fileCategory": "code"
+    },
+    {
+      "path": "midscene_tech/src/explore_fair_share.ts",
+      "language": "typescript",
+      "sizeLines": 85,
+      "fileCategory": "code"
+    },
+    {
+      "path": "midscene_tech/src/explore_metrics.ts",
+      "language": "typescript",
+      "sizeLines": 84,
+      "fileCategory": "code"
+    },
+    {
+      "path": "midscene_tech/src/explore_nav.ts",
+      "language": "typescript",
+      "sizeLines": 124,
+      "fileCategory": "code"
+    },
+    {
+      "path": "midscene_tech/src/explore_snapshot.ts",
+      "language": "typescript",
+      "sizeLines": 373,
+      "fileCategory": "code"
+    },
+    {
+      "path": "midscene_tech/src/explore_traverse.ts",
+      "language": "typescript",
+      "sizeLines": 356,
+      "fileCategory": "code"
+    },
+    {
+      "path": "midscene_tech/src/explore_types.ts",
+      "language": "typescript",
+      "sizeLines": 158,
+      "fileCategory": "code"
+    },
+    {
+      "path": "midscene_tech/src/explore.ts",
+      "language": "typescript",
+      "sizeLines": 831,
+      "fileCategory": "code"
+    },
+    {
+      "path": "midscene_tech/src/feature_tree_build.ts",
+      "language": "typescript",
+      "sizeLines": 364,
+      "fileCategory": "code"
+    },
+    {
+      "path": "midscene_tech/src/hdc.ts",
+      "language": "typescript",
+      "sizeLines": 183,
+      "fileCategory": "code"
+    },
+    {
+      "path": "midscene_tech/src/index.ts",
+      "language": "typescript",
+      "sizeLines": 33,
+      "fileCategory": "code"
+    },
+    {
+      "path": "midscene_tech/src/model_log.ts",
+      "language": "typescript",
+      "sizeLines": 90,
+      "fileCategory": "code"
+    },
+    {
+      "path": "midscene_tech/src/platform.ts",
+      "language": "typescript",
+      "sizeLines": 20,
+      "fileCategory": "code"
+    },
+    {
+      "path": "midscene_tech/src/resolve_app_launch.ts",
+      "language": "typescript",
+      "sizeLines": 166,
+      "fileCategory": "code"
+    },
+    {
+      "path": "midscene_tech/src/step_timeout.ts",
+      "language": "typescript",
+      "sizeLines": 41,
+      "fileCategory": "code"
+    },
+    {
+      "path": "midscene_tech/src/web_dispatch.ts",
+      "language": "typescript",
+      "sizeLines": 169,
+      "fileCategory": "code"
+    },
+    {
+      "path": "midscene_tech/src/yaml_runner.ts",
+      "language": "typescript",
+      "sizeLines": 66,
+      "fileCategory": "code"
+    },
+    {
+      "path": "midscene_tech/tsconfig.json",
+      "language": "json",
+      "sizeLines": 15,
+      "fileCategory": "config"
+    },
+    {
+      "path": "README.md",
+      "language": "markdown",
+      "sizeLines": 497,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "requirements.txt",
+      "language": "txt",
+      "sizeLines": 4,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "web/backend/app/__init__.py",
+      "language": "python",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/auth_utils.py",
+      "language": "python",
+      "sizeLines": 63,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/database.py",
+      "language": "python",
+      "sizeLines": 483,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/deps.py",
+      "language": "python",
+      "sizeLines": 66,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/executor.py",
+      "language": "python",
+      "sizeLines": 499,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/knowledge/__init__.py",
+      "language": "python",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/knowledge/chunk_policy.py",
+      "language": "python",
+      "sizeLines": 171,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/knowledge/config.py",
+      "language": "python",
+      "sizeLines": 90,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/knowledge/index/__init__.py",
+      "language": "python",
+      "sizeLines": 0,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/knowledge/index/embeddings.py",
+      "language": "python",
+      "sizeLines": 69,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/knowledge/index/pipeline.py",
+      "language": "python",
+      "sizeLines": 276,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/knowledge/index/qdrant_store.py",
+      "language": "python",
+      "sizeLines": 102,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/knowledge/ingestion/__init__.py",
+      "language": "python",
+      "sizeLines": 0,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/knowledge/ingestion/chunkers.py",
+      "language": "python",
+      "sizeLines": 124,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/knowledge/ingestion/parsers.py",
+      "language": "python",
+      "sizeLines": 195,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/knowledge/ingestion/router.py",
+      "language": "python",
+      "sizeLines": 23,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/knowledge/ingestion/upload_types.py",
+      "language": "python",
+      "sizeLines": 44,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/knowledge/query/__init__.py",
+      "language": "python",
+      "sizeLines": 0,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/knowledge/query/engine.py",
+      "language": "python",
+      "sizeLines": 25,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/knowledge/query/service.py",
+      "language": "python",
+      "sizeLines": 85,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/logging_config.py",
+      "language": "python",
+      "sizeLines": 91,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/main.py",
+      "language": "python",
+      "sizeLines": 177,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/models.py",
+      "language": "python",
+      "sizeLines": 518,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/rbac.py",
+      "language": "python",
+      "sizeLines": 45,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/routers/__init__.py",
+      "language": "python",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/routers/admin.py",
+      "language": "python",
+      "sizeLines": 209,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/routers/app_explore.py",
+      "language": "python",
+      "sizeLines": 178,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/routers/auth.py",
+      "language": "python",
+      "sizeLines": 170,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/routers/billing.py",
+      "language": "python",
+      "sizeLines": 64,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/routers/companies.py",
+      "language": "python",
+      "sizeLines": 17,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/routers/dashboard.py",
+      "language": "python",
+      "sizeLines": 80,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/routers/device_pools_api.py",
+      "language": "python",
+      "sizeLines": 14,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/routers/devices.py",
+      "language": "python",
+      "sizeLines": 40,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/routers/internal_knowledge.py",
+      "language": "python",
+      "sizeLines": 137,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/routers/knowledge.py",
+      "language": "python",
+      "sizeLines": 871,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/routers/mai_ui.py",
+      "language": "python",
+      "sizeLines": 110,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/routers/marketplace.py",
+      "language": "python",
+      "sizeLines": 30,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/routers/monitor_api.py",
+      "language": "python",
+      "sizeLines": 32,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/routers/platform_api.py",
+      "language": "python",
+      "sizeLines": 73,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/routers/project_feature_analysis.py",
+      "language": "python",
+      "sizeLines": 823,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/routers/project_functional.py",
+      "language": "python",
+      "sizeLines": 327,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/routers/projects.py",
+      "language": "python",
+      "sizeLines": 199,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/routers/rentals.py",
+      "language": "python",
+      "sizeLines": 70,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/routers/robot_instances.py",
+      "language": "python",
+      "sizeLines": 119,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/routers/test_cases.py",
+      "language": "python",
+      "sizeLines": 532,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/routers/ws_monitor.py",
+      "language": "python",
+      "sizeLines": 65,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/schemas.py",
+      "language": "python",
+      "sizeLines": 821,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/services/__init__.py",
+      "language": "python",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/services/agent_service_client.py",
+      "language": "python",
+      "sizeLines": 213,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/services/analysis_instance_guard.py",
+      "language": "python",
+      "sizeLines": 61,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/services/app_explore_export.py",
+      "language": "python",
+      "sizeLines": 282,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/services/app_explore_service.py",
+      "language": "python",
+      "sizeLines": 267,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/services/app_install.py",
+      "language": "python",
+      "sizeLines": 132,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/services/case_agent_text.py",
+      "language": "python",
+      "sizeLines": 142,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/services/case_generation_jobs.py",
+      "language": "python",
+      "sizeLines": 396,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/services/case_generation.py",
+      "language": "python",
+      "sizeLines": 124,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/services/case_import.py",
+      "language": "python",
+      "sizeLines": 136,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/services/case_kb.py",
+      "language": "python",
+      "sizeLines": 76,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/services/company_scope.py",
+      "language": "python",
+      "sizeLines": 80,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/services/device_discovery.py",
+      "language": "python",
+      "sizeLines": 148,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/services/device_platform.py",
+      "language": "python",
+      "sizeLines": 79,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/services/device_pools.py",
+      "language": "python",
+      "sizeLines": 32,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/services/device_screen.py",
+      "language": "python",
+      "sizeLines": 131,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/services/feature_analysis_bridge.py",
+      "language": "python",
+      "sizeLines": 323,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/services/feature_analysis_guard.py",
+      "language": "python",
+      "sizeLines": 76,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/services/feature_analysis_service.py",
+      "language": "python",
+      "sizeLines": 39,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/services/hdc_apps.py",
+      "language": "python",
+      "sizeLines": 113,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/services/installed_apps_catalog.py",
+      "language": "python",
+      "sizeLines": 67,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/services/kafka_functional.py",
+      "language": "python",
+      "sizeLines": 67,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/services/knowledge_bootstrap.py",
+      "language": "python",
+      "sizeLines": 52,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/services/knowledge_collection.py",
+      "language": "python",
+      "sizeLines": 81,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/services/knowledge_document.py",
+      "language": "python",
+      "sizeLines": 55,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/services/knowledge_sync.py",
+      "language": "python",
+      "sizeLines": 80,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/services/llm_usage_log.py",
+      "language": "python",
+      "sizeLines": 105,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/services/mai_ui_service.py",
+      "language": "python",
+      "sizeLines": 283,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/services/marketplace_catalog.py",
+      "language": "python",
+      "sizeLines": 133,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/services/package_bundle.py",
+      "language": "python",
+      "sizeLines": 146,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/services/package_platform.py",
+      "language": "python",
+      "sizeLines": 75,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/services/project_dashboard.py",
+      "language": "python",
+      "sizeLines": 144,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/services/robot_agent_context.py",
+      "language": "python",
+      "sizeLines": 91,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/services/robot_catalog.py",
+      "language": "python",
+      "sizeLines": 13,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/services/robot_instance_out.py",
+      "language": "python",
+      "sizeLines": 29,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/services/robot_monitor.py",
+      "language": "python",
+      "sizeLines": 195,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/services/robot_run_guard.py",
+      "language": "python",
+      "sizeLines": 103,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/services/run_metrics.py",
+      "language": "python",
+      "sizeLines": 10,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/services/run_report.py",
+      "language": "python",
+      "sizeLines": 104,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/app/test_case_io.py",
+      "language": "python",
+      "sizeLines": 73,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/data/feature_analysis_exports/feature-analysis-3-9.xlsx",
+      "language": "xlsx",
+      "sizeLines": 31,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/data/knowledge/3/1/20260527103159_测试用例规范V1.0设计文档.docx",
+      "language": "docx",
+      "sizeLines": 205,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/requirements.txt",
+      "language": "txt",
+      "sizeLines": 22,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "web/backend/tests/test_case_agent_text.py",
+      "language": "python",
+      "sizeLines": 62,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/backend/tests/test_knowledge_integration.py",
+      "language": "python",
+      "sizeLines": 126,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/.env.example",
+      "language": "config",
+      "sizeLines": 12,
+      "fileCategory": "config"
+    },
+    {
+      "path": "web/frontend/index.html",
+      "language": "html",
+      "sizeLines": 12,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "web/frontend/package.json",
+      "language": "json",
+      "sizeLines": 21,
+      "fileCategory": "config"
+    },
+    {
+      "path": "web/frontend/scripts/test-feature-tree.mjs",
+      "language": "javascript",
+      "sizeLines": 293,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/api/client.js",
+      "language": "javascript",
+      "sizeLines": 64,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/App.vue",
+      "language": "vue",
+      "sizeLines": 533,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/components/AppSearchSelect.vue",
+      "language": "vue",
+      "sizeLines": 226,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/components/DeviceScreenMirror.vue",
+      "language": "vue",
+      "sizeLines": 252,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/components/FeatureAnalysisWorkbench.vue",
+      "language": "vue",
+      "sizeLines": 764,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/components/FeatureTreeBranch.vue",
+      "language": "vue",
+      "sizeLines": 209,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/components/RobotMascotAvatar.vue",
+      "language": "vue",
+      "sizeLines": 76,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/components/RunLivePanel.vue",
+      "language": "vue",
+      "sizeLines": 501,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/constants/robotCatalog.js",
+      "language": "javascript",
+      "sizeLines": 119,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/main.js",
+      "language": "javascript",
+      "sizeLines": 11,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/router/index.js",
+      "language": "javascript",
+      "sizeLines": 212,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/stores/activeTestRun.js",
+      "language": "javascript",
+      "sizeLines": 404,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/stores/auth.js",
+      "language": "javascript",
+      "sizeLines": 113,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/style.css",
+      "language": "css",
+      "sizeLines": 125,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "web/frontend/src/utils/caseGenLive.js",
+      "language": "javascript",
+      "sizeLines": 94,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/utils/featureAnalysisLive.js",
+      "language": "javascript",
+      "sizeLines": 159,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/utils/featureTree.js",
+      "language": "javascript",
+      "sizeLines": 782,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/utils/fuzzyMatch.js",
+      "language": "javascript",
+      "sizeLines": 14,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/utils/knowledgeLabels.js",
+      "language": "javascript",
+      "sizeLines": 97,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/utils/knowledgeUpload.js",
+      "language": "javascript",
+      "sizeLines": 33,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/utils/packagePlatform.js",
+      "language": "javascript",
+      "sizeLines": 67,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/utils/runLive.js",
+      "language": "javascript",
+      "sizeLines": 53,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/views/AdminCompaniesView.vue",
+      "language": "vue",
+      "sizeLines": 155,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/views/AdminRentalOrdersView.vue",
+      "language": "vue",
+      "sizeLines": 349,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/views/AdminRobotInstancesView.vue",
+      "language": "vue",
+      "sizeLines": 265,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/views/AdminUsersView.vue",
+      "language": "vue",
+      "sizeLines": 167,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/views/AppExploreView.vue",
+      "language": "vue",
+      "sizeLines": 594,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/views/CasesView.vue",
+      "language": "vue",
+      "sizeLines": 2872,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/views/DashboardView.vue",
+      "language": "vue",
+      "sizeLines": 208,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/views/FunctionalTaskWizardView.vue",
+      "language": "vue",
+      "sizeLines": 520,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/views/HomeDashboardView.vue",
+      "language": "vue",
+      "sizeLines": 537,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/views/KnowledgeReviewView.vue",
+      "language": "vue",
+      "sizeLines": 384,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/views/LoginView.vue",
+      "language": "vue",
+      "sizeLines": 198,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/views/MaiUiStudioView.vue",
+      "language": "vue",
+      "sizeLines": 509,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/views/MonitorOpsView.vue",
+      "language": "vue",
+      "sizeLines": 752,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/views/MyRentalApplicationsView.vue",
+      "language": "vue",
+      "sizeLines": 230,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/views/MyRobotDetailView.vue",
+      "language": "vue",
+      "sizeLines": 559,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/views/MyRobotsShell.vue",
+      "language": "vue",
+      "sizeLines": 3,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/views/MyRobotsView.vue",
+      "language": "vue",
+      "sizeLines": 351,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/views/PaymentView.vue",
+      "language": "vue",
+      "sizeLines": 207,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/views/PlatformIntroView.vue",
+      "language": "vue",
+      "sizeLines": 542,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/views/ProfileView.vue",
+      "language": "vue",
+      "sizeLines": 299,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/views/ProjectDashboardView.vue",
+      "language": "vue",
+      "sizeLines": 435,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/views/ProjectFeatureAnalysisHistoryView.vue",
+      "language": "vue",
+      "sizeLines": 244,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/views/ProjectFeatureAnalysisView.vue",
+      "language": "vue",
+      "sizeLines": 1753,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/views/ProjectFeatureTreeDetailView.vue",
+      "language": "vue",
+      "sizeLines": 301,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/views/ProjectKnowledgeView.vue",
+      "language": "vue",
+      "sizeLines": 2353,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/views/ProjectRunsHistoryView.vue",
+      "language": "vue",
+      "sizeLines": 369,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/views/ProjectsView.vue",
+      "language": "vue",
+      "sizeLines": 341,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/views/RegisterView.vue",
+      "language": "vue",
+      "sizeLines": 368,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/views/RobotMarketplaceView.vue",
+      "language": "vue",
+      "sizeLines": 468,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/src/views/RunExecutionLiveView.vue",
+      "language": "vue",
+      "sizeLines": 145,
+      "fileCategory": "code"
+    },
+    {
+      "path": "web/frontend/vite.config.js",
+      "language": "javascript",
+      "sizeLines": 22,
+      "fileCategory": "code"
+    }
+  ],
+  "totalFiles": 300,
+  "filteredByIgnore": 0,
+  "estimatedComplexity": "large",
+  "stats": {
+    "filesScanned": 300,
+    "byCategory": {
+      "config": 11,
+      "code": 266,
+      "docs": 15,
+      "infra": 1,
+      "script": 5,
+      "markup": 2
+    },
+    "byLanguage": {
+      "json": 6,
+      "mdc": 1,
+      "config": 4,
+      "python": 185,
+      "markdown": 10,
+      "txt": 5,
+      "yaml": 1,
+      "toml": 1,
+      "shell": 5,
+      "typescript": 25,
+      "xlsx": 1,
+      "docx": 1,
+      "html": 1,
+      "javascript": 16,
+      "vue": 37,
+      "css": 1
+    }
+  }
+}

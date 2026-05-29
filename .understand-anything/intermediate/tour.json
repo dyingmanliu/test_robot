@@ -1,0 +1,98 @@
+[
+  {
+    "order": 1,
+    "title": "项目概览与配置",
+    "description": "从环境变量示例文件开始，了解项目所需的核心配置项。这个文件定义了数据库连接、API 密钥、服务端口等关键参数，是理解整个系统架构的起点。通过阅读 .env.example，你可以快速掌握项目依赖的外部服务和配置边界。",
+    "nodeIds": ["file:.env.example"],
+    "languageLesson": "环境变量文件使用 KEY=VALUE 格式，注释行以 # 开头。在部署时需要复制此文件为 .env 并填入实际值，避免将敏感信息提交到版本控制。"
+  },
+  {
+    "order": 2,
+    "title": "Web 后端服务入口",
+    "description": "FastAPI 应用的主入口文件，定义了 HTTP 服务、路由挂载和生命周期管理。这个文件是整个 Web 后端的起点，负责初始化数据库连接、注册 API 路由和启动定时任务。理解这个文件可以帮助你掌握后端服务的整体结构和请求处理流程。",
+    "nodeIds": ["file:web/backend/app/main.py"],
+    "languageLesson": "FastAPI 使用 lifespan 上下文管理器处理应用启动和关闭时的资源清理，这是现代异步 Python Web 框架的标准模式。"
+  },
+  {
+    "order": 3,
+    "title": "智能服务核心调度",
+    "description": "Agent Service 的 FastAPI 应用定义，拥有最高的扇出度（9），连接了分析代理、功能调度、设备管理等多个子系统。这个文件是智能服务的神经中枢，协调 LLM 调用、SSE 流式推送和后台任务管理。通过它可以理解整个智能服务层的架构拓扑。",
+    "nodeIds": ["file:agent_service/service/app.py"],
+    "languageLesson": "高扇出度的模块通常是系统的协调者或网关，它们导入大量依赖但被较少模块直接依赖，适合作为架构理解的切入点。"
+  },
+  {
+    "order": 4,
+    "title": "数据模型与 API 契约",
+    "description": "Pydantic 数据模型定义文件，定义了所有 API 请求/响应的数据结构。这个文件拥有高扇入度（5），被多个服务模块依赖，是整个系统的类型契约中心。通过它可以了解系统间传递的数据格式和业务实体的定义。",
+    "nodeIds": ["file:agent_service/service/schemas.py", "file:web/backend/app/models.py"],
+    "languageLesson": "Pydantic 使用类型注解实现数据验证和序列化，相比手动检查参数类型，这种方式在运行时自动完成校验并生成清晰的错误信息。"
+  },
+  {
+    "order": 5,
+    "title": "测试用例生成引擎",
+    "description": "基于 LLM 的测试用例生成代理，使用 RAG 检索增强生成技术从需求文档中提取测试点。这个模块展示了如何将自然语言描述转换为结构化的测试步骤，是平台智能化能力的核心体现。它结合了 LangChain、向量检索和提示工程等多种技术。",
+    "nodeIds": ["file:agent_service/analysis_agent/agent.py"],
+    "languageLesson": "Agent 模式通过组合多个工具（检索、生成、验证）实现复杂任务，相比单一 LLM 调用，这种方式可以处理更长的上下文和更精确的输出。"
+  },
+  {
+    "order": 6,
+    "title": "设备自动化双轨架构",
+    "description": "平台支持两条设备自动化技术路线：AutoGLM（基于 LLM 的视觉理解）和 Midscene（基于视觉定位的精确操作）。这种双轨设计允许用户根据测试场景选择合适的执行引擎。AutoGLM 适合复杂的 UI 交互理解，而 Midscene 提供更稳定的元素定位能力。",
+    "nodeIds": ["file:agent_service/func_agent/orchestrator.py", "file:autoglm_phone_tech/device/__init__.py", "file:midscene_tech/src/explore.ts"]
+  },
+  {
+    "order": 7,
+    "title": "视觉定位推理引擎",
+    "description": "MAI-UI 模块使用 Apple Silicon 的 MLX 框架运行视觉定位模型，能够从截图精确识别 UI 元素的坐标和类型。这个模块是设备自动化的关键支撑，为 Midscene 提供底层视觉理解能力。配置模块（扇入度 8）管理模型加载和推理参数。",
+    "nodeIds": ["file:mai_ui_tech/__main__.py", "file:mai_ui_tech/config.py", "file:mai_ui_tech/grounding.py"],
+    "languageLesson": "MLX 是 Apple 专为 Silicon 芯片设计的机器学习框架，利用统一内存架构实现高效的模型推理，相比 CUDA 在 Mac 上有更好的能效比。"
+  },
+  {
+    "order": 8,
+    "title": "前端核心视图集群",
+    "description": "前端界面层的核心视图组件集群，包括项目管理、测试用例管理、仪表板等关键页面。这些视图通过共享的 API 客户端和路由系统紧密协作，构成了用户与平台交互的主要界面。它们展示了 Vue 3 组合式 API 在复杂业务场景下的应用模式。",
+    "nodeIds": ["file:web/frontend/src/views/CasesView.vue", "file:web/frontend/src/views/ProjectsView.vue", "file:web/frontend/src/views/HomeDashboardView.vue", "file:web/frontend/src/api/client.js"]
+  },
+  {
+    "order": 9,
+    "title": "机器人商城与租赁系统",
+    "description": "机器人市场视图和相关支付、租赁申请功能，展示了平台的商业化运营能力。用户可以通过商城浏览和租用不同能力的测试机器人，系统通过支付网关和租赁管理实现完整的交易闭环。这个模块体现了 SaaS 平台的典型业务模式。",
+    "nodeIds": ["file:web/frontend/src/views/RobotMarketplaceView.vue", "file:web/frontend/src/views/PaymentView.vue", "file:web/frontend/src/views/MyRentalApplicationsView.vue"]
+  },
+  {
+    "order": 10,
+    "title": "知识库管理与审核",
+    "description": "项目知识库的上传、索引和审核流程，支持 RAG 检索增强的测试用例生成。平台管理员可以审核上传的文档，确保知识库内容的质量和合规性。这个模块展示了企业级应用中的内容治理和权限控制模式。",
+    "nodeIds": ["file:web/frontend/src/views/KnowledgeReviewView.vue", "file:web/frontend/src/views/ProjectKnowledgeView.vue"]
+  },
+  {
+    "order": 11,
+    "title": "用户认证与权限体系",
+    "description": "登录注册视图和 RBAC 权限控制模块，支持平台管理员、TSE 和企业用户三种角色。认证系统使用 JWT 令牌和 bcrypt 密码哈希，确保用户身份安全。权限控制贯穿整个应用，从前端路由守卫到后端 API 鉴权形成完整的防护体系。",
+    "nodeIds": ["file:web/frontend/src/views/LoginView.vue", "file:web/frontend/src/views/RegisterView.vue", "file:web/backend/app/rbac.py"]
+  },
+  {
+    "order": 12,
+    "title": "实时通信与状态推送",
+    "description": "SSE（Server-Sent Events）流式推送模块和任务管理器，实现长时任务的进度实时反馈。在测试用例生成、设备自动化执行等耗时操作中，SSE 允许前端实时接收状态更新而无需轮询。这个模块展示了异步任务处理和实时通信的工程实践。",
+    "nodeIds": ["file:agent_service/service/sse.py", "file:agent_service/service/task_manager.py", "file:web/backend/app/routers/ws_monitor.py"]
+  },
+  {
+    "order": 13,
+    "title": "多设备平台支持",
+    "description": "设备发现和平台适配模块，支持 Android（ADB）和 HarmonyOS（HDC）两种移动操作系统。设备发现服务使用 TTL 缓存优化性能，设备池管理实现资源的动态分配。这个模块展示了跨平台自动化测试的技术挑战和解决方案。",
+    "nodeIds": ["file:web/backend/app/services/device_discovery.py", "file:web/backend/app/services/device_platform.py", "file:web/backend/app/services/device_discovery.py"]
+  },
+  {
+    "order": 14,
+    "title": "容器化与服务编排",
+    "description": "Docker Compose 配置定义了 MySQL 数据库、Qdrant 向量存储和后端服务的编排方式。这个文件是本地开发和部署的基础，通过服务依赖和健康检查确保各组件按正确顺序启动。理解这个文件可以帮助你快速搭建完整的运行环境。",
+    "nodeIds": ["file:docker-compose.yml"]
+  },
+  {
+    "order": 15,
+    "title": "项目文档与开发指南",
+    "description": "CLAUDE.md 等文档提供了项目的开发规范、架构说明和贡献指南。这些文档是团队协作的基础，记录了技术决策、最佳实践和常见问题解决方案。在开始贡献代码之前，阅读这些文档可以避免重复踩坑并快速融入开发流程。",
+    "nodeIds": ["file:CLAUDE.md", "document:agent_service/func_agent/README.md"]
+  }
+]

@@ -1,0 +1,780 @@
+{
+  "nodes": [
+    {
+      "id": "file:agent_service/langchain_platform/models.py",
+      "type": "file",
+      "name": "models.py",
+      "summary": "LLM 模型工厂模块，提供 get_chat_model() 工厂函数，根据环境变量配置构建 ChatOpenAI 实例，支持多套凭证回退（CASE_GEN / BIGMODEL / ZHIPU）和 httpx 客户端定制。",
+      "tags": [
+        "LLM模型",
+        "ChatOpenAI",
+        "工厂函数",
+        "凭证管理",
+        "httpx"
+      ],
+      "complexity": "moderate",
+      "language": "python"
+    },
+    {
+      "id": "file:agent_service/langchain_platform/README.md",
+      "type": "file",
+      "name": "README.md",
+      "summary": "langchain_platform 模块的技术文档，详细描述用例生成、功能点分析、测试执行三条业务链路的调用流程、环境配置和 Internal API 接口规范。",
+      "tags": [
+        "文档",
+        "架构说明",
+        "业务链路",
+        "配置指南"
+      ],
+      "complexity": "simple",
+      "language": "markdown"
+    },
+    {
+      "id": "file:agent_service/langchain_platform/retrievers/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "summary": "retrievers 包的初始化文件，作为模块命名空间占位符。",
+      "tags": [
+        "包初始化",
+        "命名空间"
+      ],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "file:agent_service/langchain_platform/retrievers/web_case_kb.py",
+      "type": "file",
+      "name": "web_case_kb.py",
+      "summary": "实现 WebCaseKbRetriever（继承 LangChain BaseRetriever），通过 HTTP 调用 Web 后端内部 API 检索用例知识库文档，支持项目范围和 owner 权限过滤。",
+      "tags": [
+        "Retriever",
+        "知识库检索",
+        "HTTP调用",
+        "权限控制",
+        "LangChain"
+      ],
+      "complexity": "moderate",
+      "language": "python"
+    },
+    {
+      "id": "file:agent_service/langchain_platform/tools/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "summary": "tools 包的初始化文件，作为模块命名空间占位符。",
+      "tags": [
+        "包初始化",
+        "命名空间"
+      ],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "file:agent_service/langchain_platform/tools/device_autoglm.py",
+      "type": "file",
+      "name": "device_autoglm.py",
+      "summary": "AutoGLM 设备操作工具层，提供 build_phone_test_agent() 构建 PhoneTestAgent 实例、list_connected_devices_hint() 列出已连接设备、execute_autoglm_action() 执行设备动作。",
+      "tags": [
+        "AutoGLM",
+        "设备操作",
+        "PhoneTestAgent",
+        "工具函数"
+      ],
+      "complexity": "moderate",
+      "language": "python"
+    },
+    {
+      "id": "file:agent_service/langchain_platform/tools/knowledge_query.py",
+      "type": "file",
+      "name": "knowledge_query.py",
+      "summary": "知识库查询工具集，封装多个 LangChain StructuredTool（知识查询、UI 元素搜索、执行提示搜索、用例草稿校验），通过 HTTP 调用 Web 后端 RAG 接口，支持 RAG 调用计数和追踪。",
+      "tags": [
+        "RAG工具",
+        "知识库查询",
+        "StructuredTool",
+        "LangChain Tools",
+        "ToolContext"
+      ],
+      "complexity": "complex",
+      "language": "python"
+    },
+    {
+      "id": "file:agent_service/langchain_platform/tools/midscene_dispatch.py",
+      "type": "file",
+      "name": "midscene_dispatch.py",
+      "summary": "Midscene 任务分发桥接模块，提供 run_midscene_explore_dispatch() 和 run_midscene_web_dispatch() 两个函数，将调度请求转换为 Midscene 子进程任务执行。",
+      "tags": [
+        "Midscene",
+        "任务分发",
+        "子进程",
+        "桥接层"
+      ],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "file:agent_service/langchain_platform/tools/registry.py",
+      "type": "file",
+      "name": "registry.py",
+      "summary": "技能注册中心，通过全局字典 SKILLS_BY_CATALOG 管理按机器人目录分组的技能注册、查询和获取，支持运行时动态扩展技能。",
+      "tags": [
+        "技能注册",
+        "注册中心",
+        "动态扩展",
+        "工具管理"
+      ],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "file:agent_service/requirements.txt",
+      "type": "file",
+      "name": "requirements.txt",
+      "summary": "agent_service 的 Python 依赖声明文件，列出 langchain-core、langchain-openai、langgraph、httpx 等核心依赖包及版本。",
+      "tags": [
+        "依赖管理",
+        "pip",
+        "requirements"
+      ],
+      "complexity": "simple",
+      "language": "txt"
+    },
+    {
+      "id": "file:agent_service/service/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "summary": "service 包的初始化文件，空文件作为模块命名空间占位符。",
+      "tags": [
+        "包初始化",
+        "命名空间"
+      ],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "file:agent_service/service/__main__.py",
+      "type": "file",
+      "name": "__main__.py",
+      "summary": "agent_service 的模块入口点，支持通过 `python -m agent_service.service` 启动服务，调用 configure_logging 和 uvicorn.run。",
+      "tags": [
+        "入口点",
+        "服务启动",
+        "uvicorn"
+      ],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "file:agent_service/service/app.py",
+      "type": "file",
+      "name": "app.py",
+      "summary": "FastAPI 应用核心，定义 app 实例、lifespan 生命周期（LangSmith 追踪初始化、定时清理过期任务）、HTTP 请求日志中间件及路由挂载。",
+      "tags": [
+        "FastAPI应用",
+        "生命周期",
+        "中间件",
+        "路由挂载",
+        "日志"
+      ],
+      "complexity": "complex",
+      "language": "python"
+    },
+    {
+      "id": "file:agent_service/service/config.py",
+      "type": "file",
+      "name": "config.py",
+      "summary": "服务配置常量模块，定义 HOST、PORT 等服务级配置项。",
+      "tags": [
+        "配置",
+        "常量",
+        "服务设置"
+      ],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "file:agent_service/service/logging_config.py",
+      "type": "file",
+      "name": "logging_config.py",
+      "summary": "日志配置模块，提供 configure_logging() 函数，支持通过环境变量控制日志级别、格式模板和 HTTP 日志开关，使用 dictConfig 统一配置多个 logger。",
+      "tags": [
+        "日志配置",
+        "dictConfig",
+        "环境变量",
+        "格式化"
+      ],
+      "complexity": "moderate",
+      "language": "python"
+    },
+    {
+      "id": "file:agent_service/service/routers/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "summary": "routers 包的初始化文件，空文件作为模块命名空间占位符。",
+      "tags": [
+        "包初始化",
+        "命名空间"
+      ],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "file:agent_service/service/routers/analysis.py",
+      "type": "file",
+      "name": "analysis.py",
+      "summary": "用例生成 API 路由，提供异步提交用例生成任务、SSE 实时流推送进度、查询任务状态和取消任务等端点，内部调用 AnalysisAgent 驱动 LangChain 用例生成流程。",
+      "tags": [
+        "API路由",
+        "用例生成",
+        "SSE流",
+        "异步任务",
+        "AnalysisAgent"
+      ],
+      "complexity": "complex",
+      "language": "python"
+    },
+    {
+      "id": "file:agent_service/service/routers/explore.py",
+      "type": "file",
+      "name": "explore.py",
+      "summary": "功能点探索 API 路由，提供异步提交探索任务、SSE 流推送和取消功能，内部调用 FeatureExploreAgent 在真机上自动遍历应用功能并生成 GIIC 功能树。",
+      "tags": [
+        "API路由",
+        "功能探索",
+        "SSE流",
+        "FeatureExploreAgent",
+        "GIIC树"
+      ],
+      "complexity": "complex",
+      "language": "python"
+    },
+    {
+      "id": "file:agent_service/service/routers/func_agent.py",
+      "type": "file",
+      "name": "func_agent.py",
+      "summary": "测试执行调度 API 路由，提供异步提交、SSE 流推送和取消功能，支持 AutoGLM 和 Midscene 两种执行后端，通过 run_func_agent_dispatch 统一调度。",
+      "tags": [
+        "API路由",
+        "测试执行",
+        "SSE流",
+        "AutoGLM",
+        "Midscene"
+      ],
+      "complexity": "complex",
+      "language": "python"
+    },
+    {
+      "id": "file:agent_service/service/routers/health.py",
+      "type": "file",
+      "name": "health.py",
+      "summary": "健康检查 API 路由，提供 GET /api/agent/health 端点返回服务状态、活跃任务数等信息。",
+      "tags": [
+        "API路由",
+        "健康检查",
+        "监控"
+      ],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "file:agent_service/service/routers/midscene.py",
+      "type": "file",
+      "name": "midscene.py",
+      "summary": "Midscene 直接任务 API 路由，提供异步提交、SSE 流推送和取消功能，直接调用 run_midscene_task 执行 Midscene 子进程任务。",
+      "tags": [
+        "API路由",
+        "Midscene",
+        "SSE流",
+        "异步任务"
+      ],
+      "complexity": "moderate",
+      "language": "python"
+    },
+    {
+      "id": "file:agent_service/service/routers/tree.py",
+      "type": "file",
+      "name": "tree.py",
+      "summary": "功能树 API 路由，提供 GIIC 功能树同步（sync_giic）和功能树构建（build_function_tree）两个端点。",
+      "tags": [
+        "API路由",
+        "功能树",
+        "GIIC",
+        "树结构"
+      ],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "file:agent_service/service/schemas.py",
+      "type": "file",
+      "name": "schemas.py",
+      "summary": "Pydantic 请求/响应模型定义集，包含用例生成、测试执行、功能探索、Midscene 任务等全部 API 端点的数据模型，共 13 个 Pydantic 类。",
+      "tags": [
+        "Pydantic模型",
+        "API契约",
+        "请求响应",
+        "数据校验"
+      ],
+      "complexity": "moderate",
+      "language": "python"
+    },
+    {
+      "id": "file:agent_service/service/sse.py",
+      "type": "file",
+      "name": "sse.py",
+      "summary": "SSE（Server-Sent Events）事件格式化工具类，定义 SSEEvent 数据类及其 format() 方法，将事件类型和数据序列化为标准 SSE 协议格式。",
+      "tags": [
+        "SSE",
+        "事件格式",
+        "协议",
+        "流推送"
+      ],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "file:agent_service/service/task_manager.py",
+      "type": "file",
+      "name": "task_manager.py",
+      "summary": "内存任务管理器，提供 TaskManager 单例管理异步任务的创建、取消（通过 threading.Event）、过期清理和后台线程执行，使用 asyncio.Queue 实现 SSE 事件推送。",
+      "tags": [
+        "任务管理",
+        "异步任务",
+        "线程池",
+        "取消机制",
+        "内存管理"
+      ],
+      "complexity": "complex",
+      "language": "python"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:agent_service/service/app.py",
+      "target": "file:agent_service/service/routers/analysis.py",
+      "type": "mounts_router",
+      "weight": 0.9
+    },
+    {
+      "source": "file:agent_service/service/app.py",
+      "target": "file:agent_service/service/routers/explore.py",
+      "type": "mounts_router",
+      "weight": 0.9
+    },
+    {
+      "source": "file:agent_service/service/app.py",
+      "target": "file:agent_service/service/routers/func_agent.py",
+      "type": "mounts_router",
+      "weight": 0.9
+    },
+    {
+      "source": "file:agent_service/service/app.py",
+      "target": "file:agent_service/service/routers/health.py",
+      "type": "mounts_router",
+      "weight": 0.9
+    },
+    {
+      "source": "file:agent_service/service/app.py",
+      "target": "file:agent_service/service/routers/midscene.py",
+      "type": "mounts_router",
+      "weight": 0.9
+    },
+    {
+      "source": "file:agent_service/service/app.py",
+      "target": "file:agent_service/service/routers/tree.py",
+      "type": "mounts_router",
+      "weight": 0.9
+    },
+    {
+      "source": "file:agent_service/service/app.py",
+      "target": "file:agent_service/service/task_manager.py",
+      "type": "depends_on",
+      "weight": 0.8
+    },
+    {
+      "source": "file:agent_service/service/app.py",
+      "target": "file:agent_service/service/logging_config.py",
+      "type": "depends_on",
+      "weight": 0.7
+    },
+    {
+      "source": "file:agent_service/service/app.py",
+      "target": "file:agent_service/service/config.py",
+      "type": "depends_on",
+      "weight": 0.7
+    },
+    {
+      "source": "file:agent_service/service/__main__.py",
+      "target": "file:agent_service/service/app.py",
+      "type": "depends_on",
+      "weight": 0.9
+    },
+    {
+      "source": "file:agent_service/service/__main__.py",
+      "target": "file:agent_service/service/logging_config.py",
+      "type": "depends_on",
+      "weight": 0.8
+    },
+    {
+      "source": "file:agent_service/service/routers/analysis.py",
+      "target": "file:agent_service/service/task_manager.py",
+      "type": "depends_on",
+      "weight": 0.9
+    },
+    {
+      "source": "file:agent_service/service/routers/analysis.py",
+      "target": "file:agent_service/service/schemas.py",
+      "type": "depends_on",
+      "weight": 0.9
+    },
+    {
+      "source": "file:agent_service/service/routers/analysis.py",
+      "target": "file:agent_service/service/sse.py",
+      "type": "depends_on",
+      "weight": 0.8
+    },
+    {
+      "source": "file:agent_service/service/routers/explore.py",
+      "target": "file:agent_service/service/task_manager.py",
+      "type": "depends_on",
+      "weight": 0.9
+    },
+    {
+      "source": "file:agent_service/service/routers/explore.py",
+      "target": "file:agent_service/service/schemas.py",
+      "type": "depends_on",
+      "weight": 0.9
+    },
+    {
+      "source": "file:agent_service/service/routers/explore.py",
+      "target": "file:agent_service/service/sse.py",
+      "type": "depends_on",
+      "weight": 0.8
+    },
+    {
+      "source": "file:agent_service/service/routers/func_agent.py",
+      "target": "file:agent_service/service/task_manager.py",
+      "type": "depends_on",
+      "weight": 0.9
+    },
+    {
+      "source": "file:agent_service/service/routers/func_agent.py",
+      "target": "file:agent_service/service/schemas.py",
+      "type": "depends_on",
+      "weight": 0.9
+    },
+    {
+      "source": "file:agent_service/service/routers/func_agent.py",
+      "target": "file:agent_service/service/sse.py",
+      "type": "depends_on",
+      "weight": 0.8
+    },
+    {
+      "source": "file:agent_service/service/routers/midscene.py",
+      "target": "file:agent_service/service/task_manager.py",
+      "type": "depends_on",
+      "weight": 0.9
+    },
+    {
+      "source": "file:agent_service/service/routers/midscene.py",
+      "target": "file:agent_service/service/schemas.py",
+      "type": "depends_on",
+      "weight": 0.9
+    },
+    {
+      "source": "file:agent_service/service/routers/midscene.py",
+      "target": "file:agent_service/service/sse.py",
+      "type": "depends_on",
+      "weight": 0.8
+    },
+    {
+      "source": "file:agent_service/service/routers/tree.py",
+      "target": "file:agent_service/service/schemas.py",
+      "type": "depends_on",
+      "weight": 0.8
+    },
+    {
+      "source": "file:agent_service/service/routers/analysis.py",
+      "target": "file:agent_service/langchain_platform/models.py",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:agent_service/langchain_platform/tools/knowledge_query.py",
+      "target": "file:agent_service/langchain_platform/tools/registry.py",
+      "type": "depends_on",
+      "weight": 0.7
+    },
+    {
+      "source": "file:agent_service/langchain_platform/tools/knowledge_query.py",
+      "target": "file:agent_service/langchain_platform/retrievers/web_case_kb.py",
+      "type": "related_to",
+      "weight": 0.5
+    },
+    {
+      "source": "file:agent_service/service/routers/func_agent.py",
+      "target": "file:agent_service/langchain_platform/tools/device_autoglm.py",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:agent_service/service/routers/func_agent.py",
+      "target": "file:agent_service/langchain_platform/tools/midscene_dispatch.py",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:agent_service/service/routers/midscene.py",
+      "target": "file:agent_service/langchain_platform/tools/midscene_dispatch.py",
+      "type": "depends_on",
+      "weight": 0.7
+    },
+    {
+      "source": "file:agent_service/service/task_manager.py",
+      "target": "file:agent_service/service/sse.py",
+      "type": "depends_on",
+      "weight": 0.8
+    },
+    {
+      "source": "file:agent_service/langchain_platform/models.py",
+      "target": "file:agent_service/langchain_platform/tools/knowledge_query.py",
+      "type": "related_to",
+      "weight": 0.4
+    },
+    {
+      "source": "file:agent_service/langchain_platform/README.md",
+      "target": "file:agent_service/langchain_platform/models.py",
+      "type": "documents",
+      "weight": 0.5
+    },
+    {
+      "source": "file:agent_service/langchain_platform/README.md",
+      "target": "file:agent_service/langchain_platform/tools/knowledge_query.py",
+      "type": "documents",
+      "weight": 0.5
+    },
+    {
+      "source": "file:agent_service/langchain_platform/README.md",
+      "target": "file:agent_service/service/app.py",
+      "type": "documents",
+      "weight": 0.5
+    },
+    {
+      "source": "file:agent_service/requirements.txt",
+      "target": "file:agent_service/service/app.py",
+      "type": "provides_deps",
+      "weight": 0.6
+    },
+    {
+      "source": "file:agent_service/langchain_platform/retrievers/__init__.py",
+      "target": "file:agent_service/langchain_platform/retrievers/web_case_kb.py",
+      "type": "contains",
+      "weight": 0.9
+    },
+    {
+      "source": "file:agent_service/langchain_platform/tools/__init__.py",
+      "target": "file:agent_service/langchain_platform/tools/knowledge_query.py",
+      "type": "contains",
+      "weight": 0.9
+    },
+    {
+      "source": "file:agent_service/langchain_platform/tools/__init__.py",
+      "target": "file:agent_service/langchain_platform/tools/device_autoglm.py",
+      "type": "contains",
+      "weight": 0.9
+    },
+    {
+      "source": "file:agent_service/langchain_platform/tools/__init__.py",
+      "target": "file:agent_service/langchain_platform/tools/midscene_dispatch.py",
+      "type": "contains",
+      "weight": 0.9
+    },
+    {
+      "source": "file:agent_service/langchain_platform/tools/__init__.py",
+      "target": "file:agent_service/langchain_platform/tools/registry.py",
+      "type": "contains",
+      "weight": 0.9
+    },
+    {
+      "source": "file:agent_service/langchain_platform/models.py",
+      "target": "function:agent_service/langchain_platform/models.py:_case_gen_credentials",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/langchain_platform/models.py",
+      "target": "function:agent_service/langchain_platform/models.py:get_chat_model",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/langchain_platform/retrievers/web_case_kb.py",
+      "target": "class:agent_service/langchain_platform/retrievers/web_case_kb.py:WebCaseKbRetriever",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/langchain_platform/tools/device_autoglm.py",
+      "target": "function:agent_service/langchain_platform/tools/device_autoglm.py:build_phone_test_agent",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/langchain_platform/tools/knowledge_query.py",
+      "target": "function:agent_service/langchain_platform/tools/knowledge_query.py:query_knowledge_http",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/langchain_platform/tools/knowledge_query.py",
+      "target": "function:agent_service/langchain_platform/tools/knowledge_query.py:fetch_agent_context",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/langchain_platform/tools/knowledge_query.py",
+      "target": "function:agent_service/langchain_platform/tools/knowledge_query.py:_format_hits",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/langchain_platform/tools/knowledge_query.py",
+      "target": "function:agent_service/langchain_platform/tools/knowledge_query.py:build_query_knowledge_tool",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/langchain_platform/tools/knowledge_query.py",
+      "target": "function:agent_service/langchain_platform/tools/knowledge_query.py:build_search_ui_element_tool",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/langchain_platform/tools/knowledge_query.py",
+      "target": "function:agent_service/langchain_platform/tools/knowledge_query.py:build_search_execution_hint_tool",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/langchain_platform/tools/knowledge_query.py",
+      "target": "function:agent_service/langchain_platform/tools/knowledge_query.py:build_validate_case_draft_tool",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/langchain_platform/tools/knowledge_query.py",
+      "target": "function:agent_service/langchain_platform/tools/knowledge_query.py:build_tools_for_context",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/langchain_platform/tools/midscene_dispatch.py",
+      "target": "function:agent_service/langchain_platform/tools/midscene_dispatch.py:run_midscene_explore_dispatch",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/langchain_platform/tools/midscene_dispatch.py",
+      "target": "function:agent_service/langchain_platform/tools/midscene_dispatch.py:run_midscene_web_dispatch",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/service/app.py",
+      "target": "function:agent_service/service/app.py:request_logging_middleware",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/service/logging_config.py",
+      "target": "function:agent_service/service/logging_config.py:configure_logging",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/service/routers/analysis.py",
+      "target": "function:agent_service/service/routers/analysis.py:_draft_to_payload",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/service/routers/analysis.py",
+      "target": "function:agent_service/service/routers/analysis.py:submit_generate_case_draft",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/service/routers/analysis.py",
+      "target": "function:agent_service/service/routers/analysis.py:stream_generate_case_draft",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/service/routers/explore.py",
+      "target": "function:agent_service/service/routers/explore.py:submit_explore",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/service/routers/explore.py",
+      "target": "function:agent_service/service/routers/explore.py:stream_explore",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/service/routers/func_agent.py",
+      "target": "function:agent_service/service/routers/func_agent.py:submit_dispatch",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/service/routers/func_agent.py",
+      "target": "function:agent_service/service/routers/func_agent.py:stream_dispatch",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/service/routers/midscene.py",
+      "target": "function:agent_service/service/routers/midscene.py:submit_midscene",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/service/routers/midscene.py",
+      "target": "function:agent_service/service/routers/midscene.py:stream_midscene",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/service/task_manager.py",
+      "target": "class:agent_service/service/task_manager.py:TaskManager",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    }
+  ]
+}

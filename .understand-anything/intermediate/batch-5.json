@@ -1,0 +1,67 @@
+{
+  "nodes": [
+    {
+      "id": "file:web/frontend/.env.example",
+      "type": "file",
+      "name": ".env.example",
+      "summary": "前端环境变量配置模板，定义 VITE_API_BASE 和 WebSocket 相关变量，用于开发环境 Vite 代理及部署时后端 API 地址配置。",
+      "tags": [
+        "环境变量",
+        "配置模板",
+        "Vite",
+        "前端配置"
+      ],
+      "complexity": "simple",
+      "language": "config"
+    },
+    {
+      "id": "file:web/frontend/index.html",
+      "type": "file",
+      "name": "index.html",
+      "summary": "Vue 3 单页应用入口 HTML，挂载 #app 根节点并加载 src/main.js 作为 ES Module 入口，标题为「鸿蒙生态智能测试平台」。",
+      "tags": [
+        "入口文件",
+        "SPA",
+        "HTML",
+        "Vue"
+      ],
+      "complexity": "simple",
+      "language": "html"
+    },
+    {
+      "id": "file:web/frontend/package.json",
+      "type": "file",
+      "name": "package.json",
+      "summary": "前端项目包管理配置，声明 Vue 3 + Pinia + Vue Router + Axios 依赖及 Vite 构建脚本，定义 dev/build/preview 三个命令。",
+      "tags": [
+        "依赖管理",
+        "Vue 3",
+        "Vite",
+        "package.json",
+        "项目配置"
+      ],
+      "complexity": "simple",
+      "language": "json"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:web/frontend/index.html",
+      "target": "file:web/frontend/package.json",
+      "type": "configured_by",
+      "weight": 0.8
+    },
+    {
+      "source": "file:web/frontend/.env.example",
+      "target": "file:web/frontend/package.json",
+      "type": "configures",
+      "weight": 0.5
+    },
+    {
+      "source": "file:web/frontend/.env.example",
+      "target": "file:web/frontend/index.html",
+      "type": "configures",
+      "weight": 0.3
+    }
+  ]
+}

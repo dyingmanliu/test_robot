@@ -1,0 +1,126 @@
+{
+  "nodes": [
+    {
+      "id": "file:mai_ui_tech/.env.example",
+      "type": "file",
+      "name": ".env.example",
+      "summary": "MAI-UI 本地推理服务的环境变量配置模板，定义了推理后端类型、模型路径、API 端点地址以及温度/top_p/max_tokens 等模型推理参数。",
+      "tags": [
+        "环境配置",
+        "推理参数",
+        "MAI-UI",
+        "OpenAI兼容"
+      ],
+      "complexity": "simple",
+      "language": "config"
+    },
+    {
+      "id": "file:mai_ui_tech/README.md",
+      "type": "file",
+      "name": "README.md",
+      "summary": "MAI-UI-2B GUI Grounding 子项目的完整技术文档，涵盖硬件选型（Mac M5 16GB）、三种部署方式（Ollama/vllm-mlx/Linux vLLM）的详细步骤、常见问题排查指南，以及 CLI、Python API 和 Web 平台集成的使用说明。",
+      "tags": [
+        "项目文档",
+        "GUI Grounding",
+        "部署指南",
+        "故障排查",
+        "MAI-UI"
+      ],
+      "complexity": "moderate",
+      "language": "markdown"
+    },
+    {
+      "id": "file:mai_ui_tech/pyproject.toml",
+      "type": "file",
+      "name": "pyproject.toml",
+      "summary": "Python 项目构建配置文件（setuptools），定义 mai-ui-agent 包的元数据、运行时依赖（openai/Pillow/httpx）以及 CLI 入口点 mai-ui。",
+      "tags": [
+        "构建配置",
+        "setuptools",
+        "依赖管理",
+        "CLI入口"
+      ],
+      "complexity": "simple",
+      "language": "toml"
+    },
+    {
+      "id": "file:mai_ui_tech/requirements-mlx.txt",
+      "type": "file",
+      "name": "requirements-mlx.txt",
+      "summary": "Apple Silicon Mac 上 MLX 本地推理的专用依赖列表，包含 mlx-vlm 和 huggingface_hub，用于加载 MLX 格式的 MAI-UI 模型权重。",
+      "tags": [
+        "MLX依赖",
+        "Apple Silicon",
+        "模型推理",
+        "huggingface"
+      ],
+      "complexity": "simple",
+      "language": "txt"
+    },
+    {
+      "id": "file:mai_ui_tech/requirements.txt",
+      "type": "file",
+      "name": "requirements.txt",
+      "summary": "MAI-UI 客户端核心依赖列表，包含调用 OpenAI 兼容推理服务所需的 openai、Pillow、python-dotenv、httpx 四个包。",
+      "tags": [
+        "Python依赖",
+        "OpenAI客户端",
+        "图像处理",
+        "HTTP客户端"
+      ],
+      "complexity": "simple",
+      "language": "txt"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:mai_ui_tech/README.md",
+      "target": "file:mai_ui_tech/.env.example",
+      "type": "references",
+      "weight": 0.9,
+      "detail": "README 直接引用 .env.example 作为配置模板，指导用户复制到仓库根目录或本目录 .env"
+    },
+    {
+      "source": "file:mai_ui_tech/README.md",
+      "target": "file:mai_ui_tech/requirements.txt",
+      "type": "references",
+      "weight": 0.6,
+      "detail": "README 的安装与配置章节隐含使用 requirements.txt 进行依赖安装"
+    },
+    {
+      "source": "file:mai_ui_tech/README.md",
+      "target": "file:mai_ui_tech/requirements-mlx.txt",
+      "type": "references",
+      "weight": 0.8,
+      "detail": "README 方式 B（vllm-mlx 部署）章节指导用户使用 requirements-mlx.txt 安装 MLX 推理依赖"
+    },
+    {
+      "source": "file:mai_ui_tech/README.md",
+      "target": "file:mai_ui_tech/pyproject.toml",
+      "type": "references",
+      "weight": 0.7,
+      "detail": "README 安装章节通过 pip install -e . 引用 pyproject.toml 定义的包配置"
+    },
+    {
+      "source": "file:mai_ui_tech/pyproject.toml",
+      "target": "file:mai_ui_tech/requirements.txt",
+      "type": "duplicates_deps",
+      "weight": 0.95,
+      "detail": "pyproject.toml 的 dependencies 与 requirements.txt 声明了完全相同的四个运行时依赖包"
+    },
+    {
+      "source": "file:mai_ui_tech/requirements-mlx.txt",
+      "target": "file:mai_ui_tech/requirements.txt",
+      "type": "extends",
+      "weight": 0.5,
+      "detail": "requirements-mlx.txt 是 MLX 部署场景的补充依赖集，与 requirements.txt 共同构成完整的环境依赖"
+    },
+    {
+      "source": "file:mai_ui_tech/.env.example",
+      "target": "file:mai_ui_tech/requirements-mlx.txt",
+      "type": "configures",
+      "weight": 0.6,
+      "detail": ".env.example 中 MAI_UI_BACKEND=mlx_vlm 配置项对应 MLX 推理路径，需配合 requirements-mlx.txt 的依赖使用"
+    }
+  ]
+}

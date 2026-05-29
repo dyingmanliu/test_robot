@@ -1,0 +1,1122 @@
+{
+  "nodes": [
+    {
+      "id": "file:autoglm_phone_tech/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "summary": "AutoGLM手机技术模块的初始化文件，定义模块的公共接口",
+      "tags": [
+        "autoglm",
+        "phone",
+        "module-init"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "file:autoglm_phone_tech/actions/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "summary": "动作处理模块的初始化文件",
+      "tags": [
+        "actions",
+        "module-init"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "file:autoglm_phone_tech/actions/handler.py",
+      "type": "file",
+      "name": "handler.py",
+      "summary": "AutoGLM动作处理器，负责解析和执行模型生成的设备操作指令，包括点击、滑动、输入等",
+      "tags": [
+        "action-handler",
+        "device-control",
+        "autoglm",
+        "core-logic"
+      ],
+      "complexity": "high"
+    },
+    {
+      "id": "class:autoglm_phone_tech/actions/handler.py:ActionResult",
+      "type": "class",
+      "name": "ActionResult",
+      "summary": "动作执行结果的数据结构，包含成功状态、完成标志、消息和确认需求",
+      "file": "autoglm_phone_tech/actions/handler.py"
+    },
+    {
+      "id": "class:autoglm_phone_tech/actions/handler.py:ActionHandler",
+      "type": "class",
+      "name": "ActionHandler",
+      "summary": "动作处理器核心类，管理设备操作的分发和执行，支持多种交互动作类型",
+      "file": "autoglm_phone_tech/actions/handler.py"
+    },
+    {
+      "id": "function:autoglm_phone_tech/actions/handler.py:parse_action",
+      "type": "function",
+      "name": "parse_action",
+      "summary": "解析模型返回的动作响应字符串，提取动作类型和参数",
+      "file": "autoglm_phone_tech/actions/handler.py"
+    },
+    {
+      "id": "file:autoglm_phone_tech/config/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "summary": "配置模块初始化，提供系统提示词获取函数",
+      "tags": [
+        "config",
+        "module-init"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "function:autoglm_phone_tech/config/__init__.py:get_system_prompt",
+      "type": "function",
+      "name": "get_system_prompt",
+      "summary": "根据语言参数获取系统提示词",
+      "file": "autoglm_phone_tech/config/__init__.py"
+    },
+    {
+      "id": "file:autoglm_phone_tech/config/apps_harmonyos.py",
+      "type": "file",
+      "name": "apps_harmonyos.py",
+      "summary": "鸿蒙系统应用包名映射配置",
+      "tags": [
+        "config",
+        "harmonyos",
+        "app-mapping"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "file:autoglm_phone_tech/config/apps.py",
+      "type": "file",
+      "name": "apps.py",
+      "summary": "Android应用包名映射和查询工具，支持应用名称和包名的双向转换",
+      "tags": [
+        "config",
+        "android",
+        "app-mapping"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "function:autoglm_phone_tech/config/apps.py:get_package_name",
+      "type": "function",
+      "name": "get_package_name",
+      "summary": "根据应用名称获取对应的包名",
+      "file": "autoglm_phone_tech/config/apps.py"
+    },
+    {
+      "id": "function:autoglm_phone_tech/config/apps.py:get_app_name",
+      "type": "function",
+      "name": "get_app_name",
+      "summary": "根据包名获取对应的应用名称",
+      "file": "autoglm_phone_tech/config/apps.py"
+    },
+    {
+      "id": "function:autoglm_phone_tech/config/apps.py:list_supported_apps",
+      "type": "function",
+      "name": "list_supported_apps",
+      "summary": "列出所有支持的应用名称",
+      "file": "autoglm_phone_tech/config/apps.py"
+    },
+    {
+      "id": "file:autoglm_phone_tech/config/prompts_zh.py",
+      "type": "file",
+      "name": "prompts_zh.py",
+      "summary": "中文系统提示词和动作指令模板定义",
+      "tags": [
+        "config",
+        "prompts",
+        "chinese"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "file:autoglm_phone_tech/config/timing.py",
+      "type": "file",
+      "name": "timing.py",
+      "summary": "操作时序参数配置，定义各种设备操作的延迟时间",
+      "tags": [
+        "config",
+        "timing",
+        "delays"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "file:autoglm_phone_tech/device/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "summary": "设备模块初始化，导出设备相关类和工厂函数",
+      "tags": [
+        "device",
+        "module-init"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "file:autoglm_phone_tech/device/adb_bridge.py",
+      "type": "file",
+      "name": "adb_bridge.py",
+      "summary": "Android设备ADB桥接层，通过ADB命令实现设备控制、截图、输入等操作",
+      "tags": [
+        "device",
+        "adb",
+        "android",
+        "bridge",
+        "core-logic"
+      ],
+      "complexity": "high"
+    },
+    {
+      "id": "class:autoglm_phone_tech/device/adb_bridge.py:Screenshot",
+      "type": "class",
+      "name": "Screenshot",
+      "summary": "截图数据类，包含Base64图像数据、尺寸和敏感内容标志",
+      "file": "autoglm_phone_tech/device/adb_bridge.py"
+    },
+    {
+      "id": "class:autoglm_phone_tech/device/adb_bridge.py:AdbBridge",
+      "type": "class",
+      "name": "AdbBridge",
+      "summary": "ADB设备桥接类，封装所有通过ADB与Android设备交互的操作",
+      "file": "autoglm_phone_tech/device/adb_bridge.py"
+    },
+    {
+      "id": "function:autoglm_phone_tech/device/adb_bridge.py:_adb_bin",
+      "type": "function",
+      "name": "_adb_bin",
+      "summary": "解析ADB可执行文件路径",
+      "file": "autoglm_phone_tech/device/adb_bridge.py"
+    },
+    {
+      "id": "function:autoglm_phone_tech/device/adb_bridge.py:_adb_prefix",
+      "type": "function",
+      "name": "_adb_prefix",
+      "summary": "构建ADB命令前缀，包含设备ID参数",
+      "file": "autoglm_phone_tech/device/adb_bridge.py"
+    },
+    {
+      "id": "function:autoglm_phone_tech/device/adb_bridge.py:_fallback",
+      "type": "function",
+      "name": "_fallback",
+      "summary": "生成黑色占位截图作为错误回退方案",
+      "file": "autoglm_phone_tech/device/adb_bridge.py"
+    },
+    {
+      "id": "file:autoglm_phone_tech/device/adb_resolve.py",
+      "type": "file",
+      "name": "adb_resolve.py",
+      "summary": "ADB可执行文件路径解析器，自动查找系统中的ADB工具",
+      "tags": [
+        "device",
+        "adb",
+        "path-resolve"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "function:autoglm_phone_tech/device/adb_resolve.py:resolve_adb_executable",
+      "type": "function",
+      "name": "resolve_adb_executable",
+      "summary": "解析ADB可执行文件的完整路径，支持多种查找策略",
+      "file": "autoglm_phone_tech/device/adb_resolve.py"
+    },
+    {
+      "id": "file:autoglm_phone_tech/device/device_factory.py",
+      "type": "file",
+      "name": "device_factory.py",
+      "summary": "设备工厂模块，根据平台类型创建对应的设备桥接实例",
+      "tags": [
+        "device",
+        "factory",
+        "platform"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "function:autoglm_phone_tech/device/device_factory.py:create_device",
+      "type": "function",
+      "name": "create_device",
+      "summary": "根据平台和设备ID创建设备桥接实例（ADB或HDC）",
+      "file": "autoglm_phone_tech/device/device_factory.py"
+    },
+    {
+      "id": "function:autoglm_phone_tech/device/device_factory.py:get_device_factory",
+      "type": "function",
+      "name": "get_device_factory",
+      "summary": "获取设备工厂函数的包装器",
+      "file": "autoglm_phone_tech/device/device_factory.py"
+    },
+    {
+      "id": "file:autoglm_phone_tech/device/hdc_bridge.py",
+      "type": "file",
+      "name": "hdc_bridge.py",
+      "summary": "鸿蒙设备HDC桥接层，通过HDC命令实现HarmonyOS设备控制",
+      "tags": [
+        "device",
+        "hdc",
+        "harmonyos",
+        "bridge",
+        "core-logic"
+      ],
+      "complexity": "high"
+    },
+    {
+      "id": "class:autoglm_phone_tech/device/hdc_bridge.py:HdcBridge",
+      "type": "class",
+      "name": "HdcBridge",
+      "summary": "HDC设备桥接类，封装所有通过HDC与HarmonyOS设备交互的操作",
+      "file": "autoglm_phone_tech/device/hdc_bridge.py"
+    },
+    {
+      "id": "file:autoglm_phone_tech/device/hdc_resolve.py",
+      "type": "file",
+      "name": "hdc_resolve.py",
+      "summary": "HDC可执行文件路径解析器，自动查找系统中的HDC工具",
+      "tags": [
+        "device",
+        "hdc",
+        "path-resolve"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "function:autoglm_phone_tech/device/hdc_resolve.py:resolve_hdc_executable",
+      "type": "function",
+      "name": "resolve_hdc_executable",
+      "summary": "解析HDC可执行文件的完整路径",
+      "file": "autoglm_phone_tech/device/hdc_resolve.py"
+    },
+    {
+      "id": "file:autoglm_phone_tech/device/platform.py",
+      "type": "file",
+      "name": "platform.py",
+      "summary": "设备平台枚举定义，支持Android和HarmonyOS两种平台类型",
+      "tags": [
+        "device",
+        "platform",
+        "enum"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "class:autoglm_phone_tech/device/platform.py:DevicePlatform",
+      "type": "class",
+      "name": "DevicePlatform",
+      "summary": "设备平台枚举类，定义支持的平台类型",
+      "file": "autoglm_phone_tech/device/platform.py"
+    },
+    {
+      "id": "file:autoglm_phone_tech/model/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "summary": "模型模块初始化文件",
+      "tags": [
+        "model",
+        "module-init"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "file:autoglm_phone_tech/model/client.py",
+      "type": "file",
+      "name": "client.py",
+      "summary": "AutoGLM模型客户端，封装与视觉大模型的交互，包括图片编码、请求发送和响应处理",
+      "tags": [
+        "model",
+        "client",
+        "api",
+        "autoglm",
+        "core-logic"
+      ],
+      "complexity": "high"
+    },
+    {
+      "id": "class:autoglm_phone_tech/model/client.py:AutoGLMClient",
+      "type": "class",
+      "name": "AutoGLMClient",
+      "summary": "AutoGLM客户端主类，管理与模型的交互会话",
+      "file": "autoglm_phone_tech/model/client.py"
+    },
+    {
+      "id": "class:autoglm_phone_tech/model/client.py:ModelConfig",
+      "type": "class",
+      "name": "ModelConfig",
+      "summary": "模型配置类，包含API密钥、模型名称等参数",
+      "file": "autoglm_phone_tech/model/client.py"
+    },
+    {
+      "id": "class:autoglm_phone_tech/model/client.py:ModelResponse",
+      "type": "class",
+      "name": "ModelResponse",
+      "summary": "模型响应数据结构，包含生成的文本和元数据",
+      "file": "autoglm_phone_tech/model/client.py"
+    },
+    {
+      "id": "file:autoglm_phone_tech/README.md",
+      "type": "file",
+      "name": "README.md",
+      "summary": "AutoGLM手机技术模块的文档说明，包含架构设计和使用指南",
+      "tags": [
+        "docs",
+        "autoglm",
+        "readme"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "file:mai_ui_tech/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "summary": "Mai UI技术模块初始化，导出主要组件和配置",
+      "tags": [
+        "mai-ui",
+        "module-init"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "file:mai_ui_tech/__main__.py",
+      "type": "file",
+      "name": "__main__.py",
+      "summary": "Mai UI模块的命令行入口点",
+      "tags": [
+        "mai-ui",
+        "entry-point",
+        "cli"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "file:mai_ui_tech/cli.py",
+      "type": "file",
+      "name": "cli.py",
+      "summary": "Mai UI命令行接口，提供模型测试和功能演示的CLI工具",
+      "tags": [
+        "mai-ui",
+        "cli",
+        "entry-point"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "function:mai_ui_tech/cli.py:main",
+      "type": "function",
+      "name": "main",
+      "summary": "CLI主函数，解析参数并执行相应操作",
+      "file": "mai_ui_tech/cli.py"
+    },
+    {
+      "id": "file:mai_ui_tech/config.py",
+      "type": "file",
+      "name": "config.py",
+      "summary": "Mai UI配置管理，支持从YAML文件和环境变量加载配置",
+      "tags": [
+        "mai-ui",
+        "config",
+        "settings"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "class:mai_ui_tech/config.py:MaiUiConfig",
+      "type": "class",
+      "name": "MaiUiConfig",
+      "summary": "Mai UI配置数据类，包含模型路径、API参数等配置项",
+      "file": "mai_ui_tech/config.py"
+    },
+    {
+      "id": "function:mai_ui_tech/config.py:load_config",
+      "type": "function",
+      "name": "load_config",
+      "summary": "从配置文件和环境变量加载Mai UI配置",
+      "file": "mai_ui_tech/config.py"
+    },
+    {
+      "id": "function:mai_ui_tech/config.py:_deep_merge",
+      "type": "function",
+      "name": "_deep_merge",
+      "summary": "深度合并两个字典，用于配置继承和覆盖",
+      "file": "mai_ui_tech/config.py"
+    },
+    {
+      "id": "function:mai_ui_tech/config.py:_from_env",
+      "type": "function",
+      "name": "_from_env",
+      "summary": "从环境变量读取配置参数",
+      "file": "mai_ui_tech/config.py"
+    },
+    {
+      "id": "file:mai_ui_tech/coords.py",
+      "type": "file",
+      "name": "coords.py",
+      "summary": "坐标转换工具集，处理归一化坐标与像素坐标的相互转换",
+      "tags": [
+        "mai-ui",
+        "utils",
+        "coordinates"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "function:mai_ui_tech/coords.py:norm999_to_norm1000",
+      "type": "function",
+      "name": "norm999_to_norm1000",
+      "summary": "将0-999范围的归一化坐标转换为0-1000范围",
+      "file": "mai_ui_tech/coords.py"
+    },
+    {
+      "id": "function:mai_ui_tech/coords.py:norm_to_pixel",
+      "type": "function",
+      "name": "norm_to_pixel",
+      "summary": "将归一化坐标转换为实际像素坐标",
+      "file": "mai_ui_tech/coords.py"
+    },
+    {
+      "id": "function:mai_ui_tech/coords.py:pixel_to_norm",
+      "type": "function",
+      "name": "pixel_to_norm",
+      "summary": "将像素坐标转换为归一化坐标",
+      "file": "mai_ui_tech/coords.py"
+    },
+    {
+      "id": "file:mai_ui_tech/grounding_server.py",
+      "type": "file",
+      "name": "grounding_server.py",
+      "summary": "UI元素定位服务，提供HTTP接口进行屏幕元素的视觉定位",
+      "tags": [
+        "mai-ui",
+        "grounding",
+        "server",
+        "api"
+      ],
+      "complexity": "high"
+    },
+    {
+      "id": "class:mai_ui_tech/grounding_server.py:GroundingServer",
+      "type": "class",
+      "name": "GroundingServer",
+      "summary": "定位服务主类，管理FastAPI应用和请求处理",
+      "file": "mai_ui_tech/grounding_server.py"
+    },
+    {
+      "id": "function:mai_ui_tech/grounding_server.py:create_app",
+      "type": "function",
+      "name": "create_app",
+      "summary": "创建FastAPI应用实例并配置路由",
+      "file": "mai_ui_tech/grounding_server.py"
+    },
+    {
+      "id": "file:mai_ui_tech/grounding.py",
+      "type": "file",
+      "name": "grounding.py",
+      "summary": "UI元素定位核心逻辑，使用视觉模型识别和定位屏幕上的UI元素",
+      "tags": [
+        "mai-ui",
+        "grounding",
+        "vision-model",
+        "core-logic"
+      ],
+      "complexity": "high"
+    },
+    {
+      "id": "class:mai_ui_tech/grounding.py:GroundingResult",
+      "type": "class",
+      "name": "GroundingResult",
+      "summary": "定位结果数据结构，包含识别到的元素位置和置信度",
+      "file": "mai_ui_tech/grounding.py"
+    },
+    {
+      "id": "class:mai_ui_tech/grounding.py:GroundingAgent",
+      "type": "class",
+      "name": "GroundingAgent",
+      "summary": "UI定位代理类，封装视觉模型的调用和结果解析",
+      "file": "mai_ui_tech/grounding.py"
+    },
+    {
+      "id": "function:mai_ui_tech/grounding.py:parse_grounding_response",
+      "type": "function",
+      "name": "parse_grounding_response",
+      "summary": "解析视觉模型返回的定位响应，提取坐标和元素信息",
+      "file": "mai_ui_tech/grounding.py"
+    },
+    {
+      "id": "function:mai_ui_tech/grounding.py:_extract_box_from_text",
+      "type": "function",
+      "name": "_extract_box_from_text",
+      "summary": "从模型输出文本中提取边界框坐标",
+      "file": "mai_ui_tech/grounding.py"
+    },
+    {
+      "id": "function:mai_ui_tech/grounding.py:_extract_point_from_text",
+      "type": "function",
+      "name": "_extract_point_from_text",
+      "summary": "从模型输出文本中提取点坐标",
+      "file": "mai_ui_tech/grounding.py"
+    },
+    {
+      "id": "function:mai_ui_tech/grounding.py:_normalize_bbox",
+      "type": "function",
+      "name": "_normalize_bbox",
+      "summary": "归一化边界框坐标到标准格式",
+      "file": "mai_ui_tech/grounding.py"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:autoglm_phone_tech/__init__.py",
+      "target": "file:autoglm_phone_tech/actions/handler.py",
+      "type": "imports",
+      "label": "导入动作处理器"
+    },
+    {
+      "source": "file:autoglm_phone_tech/__init__.py",
+      "target": "file:autoglm_phone_tech/device/device_factory.py",
+      "type": "imports",
+      "label": "导入设备工厂"
+    },
+    {
+      "source": "file:autoglm_phone_tech/__init__.py",
+      "target": "file:autoglm_phone_tech/model/client.py",
+      "type": "imports",
+      "label": "导入模型客户端"
+    },
+    {
+      "source": "file:autoglm_phone_tech/actions/handler.py",
+      "target": "class:autoglm_phone_tech/actions/handler.py:ActionResult",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:autoglm_phone_tech/actions/handler.py",
+      "target": "class:autoglm_phone_tech/actions/handler.py:ActionHandler",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:autoglm_phone_tech/actions/handler.py",
+      "target": "function:autoglm_phone_tech/actions/handler.py:parse_action",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "class:autoglm_phone_tech/actions/handler.py:ActionHandler",
+      "target": "class:autoglm_phone_tech/actions/handler.py:ActionResult",
+      "type": "depends_on",
+      "label": "使用"
+    },
+    {
+      "source": "file:autoglm_phone_tech/config/__init__.py",
+      "target": "function:autoglm_phone_tech/config/__init__.py:get_system_prompt",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:autoglm_phone_tech/config/__init__.py",
+      "target": "file:autoglm_phone_tech/config/prompts_zh.py",
+      "type": "imports",
+      "label": "导入提示词"
+    },
+    {
+      "source": "file:autoglm_phone_tech/config/apps.py",
+      "target": "function:autoglm_phone_tech/config/apps.py:get_package_name",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:autoglm_phone_tech/config/apps.py",
+      "target": "function:autoglm_phone_tech/config/apps.py:get_app_name",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:autoglm_phone_tech/config/apps.py",
+      "target": "function:autoglm_phone_tech/config/apps.py:list_supported_apps",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:autoglm_phone_tech/device/__init__.py",
+      "target": "file:autoglm_phone_tech/device/adb_bridge.py",
+      "type": "imports",
+      "label": "导入ADB桥接"
+    },
+    {
+      "source": "file:autoglm_phone_tech/device/__init__.py",
+      "target": "file:autoglm_phone_tech/device/hdc_bridge.py",
+      "type": "imports",
+      "label": "导入HDC桥接"
+    },
+    {
+      "source": "file:autoglm_phone_tech/device/__init__.py",
+      "target": "file:autoglm_phone_tech/device/device_factory.py",
+      "type": "imports",
+      "label": "导入设备工厂"
+    },
+    {
+      "source": "file:autoglm_phone_tech/device/__init__.py",
+      "target": "file:autoglm_phone_tech/device/platform.py",
+      "type": "imports",
+      "label": "导入平台枚举"
+    },
+    {
+      "source": "file:autoglm_phone_tech/device/adb_bridge.py",
+      "target": "class:autoglm_phone_tech/device/adb_bridge.py:Screenshot",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:autoglm_phone_tech/device/adb_bridge.py",
+      "target": "class:autoglm_phone_tech/device/adb_bridge.py:AdbBridge",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:autoglm_phone_tech/device/adb_bridge.py",
+      "target": "function:autoglm_phone_tech/device/adb_bridge.py:_adb_bin",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:autoglm_phone_tech/device/adb_bridge.py",
+      "target": "function:autoglm_phone_tech/device/adb_bridge.py:_adb_prefix",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:autoglm_phone_tech/device/adb_bridge.py",
+      "target": "function:autoglm_phone_tech/device/adb_bridge.py:_fallback",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:autoglm_phone_tech/device/adb_bridge.py",
+      "target": "file:autoglm_phone_tech/device/adb_resolve.py",
+      "type": "imports",
+      "label": "导入ADB解析"
+    },
+    {
+      "source": "file:autoglm_phone_tech/device/adb_bridge.py",
+      "target": "file:autoglm_phone_tech/config/apps.py",
+      "type": "imports",
+      "label": "导入应用配置"
+    },
+    {
+      "source": "file:autoglm_phone_tech/device/adb_resolve.py",
+      "target": "function:autoglm_phone_tech/device/adb_resolve.py:resolve_adb_executable",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:autoglm_phone_tech/device/device_factory.py",
+      "target": "function:autoglm_phone_tech/device/device_factory.py:create_device",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:autoglm_phone_tech/device/device_factory.py",
+      "target": "function:autoglm_phone_tech/device/device_factory.py:get_device_factory",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:autoglm_phone_tech/device/device_factory.py",
+      "target": "file:autoglm_phone_tech/device/adb_bridge.py",
+      "type": "imports",
+      "label": "导入ADB桥接"
+    },
+    {
+      "source": "file:autoglm_phone_tech/device/device_factory.py",
+      "target": "file:autoglm_phone_tech/device/hdc_bridge.py",
+      "type": "imports",
+      "label": "导入HDC桥接"
+    },
+    {
+      "source": "file:autoglm_phone_tech/device/device_factory.py",
+      "target": "file:autoglm_phone_tech/device/platform.py",
+      "type": "imports",
+      "label": "导入平台枚举"
+    },
+    {
+      "source": "function:autoglm_phone_tech/device/device_factory.py:create_device",
+      "target": "class:autoglm_phone_tech/device/adb_bridge.py:AdbBridge",
+      "type": "calls",
+      "label": "创建"
+    },
+    {
+      "source": "function:autoglm_phone_tech/device/device_factory.py:create_device",
+      "target": "class:autoglm_phone_tech/device/hdc_bridge.py:HdcBridge",
+      "type": "calls",
+      "label": "创建"
+    },
+    {
+      "source": "file:autoglm_phone_tech/device/hdc_bridge.py",
+      "target": "class:autoglm_phone_tech/device/hdc_bridge.py:HdcBridge",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:autoglm_phone_tech/device/hdc_bridge.py",
+      "target": "file:autoglm_phone_tech/device/hdc_resolve.py",
+      "type": "imports",
+      "label": "导入HDC解析"
+    },
+    {
+      "source": "file:autoglm_phone_tech/device/hdc_resolve.py",
+      "target": "function:autoglm_phone_tech/device/hdc_resolve.py:resolve_hdc_executable",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:autoglm_phone_tech/device/platform.py",
+      "target": "class:autoglm_phone_tech/device/platform.py:DevicePlatform",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:autoglm_phone_tech/model/client.py",
+      "target": "class:autoglm_phone_tech/model/client.py:AutoGLMClient",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:autoglm_phone_tech/model/client.py",
+      "target": "class:autoglm_phone_tech/model/client.py:ModelConfig",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:autoglm_phone_tech/model/client.py",
+      "target": "class:autoglm_phone_tech/model/client.py:ModelResponse",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "class:autoglm_phone_tech/model/client.py:AutoGLMClient",
+      "target": "class:autoglm_phone_tech/model/client.py:ModelConfig",
+      "type": "depends_on",
+      "label": "使用"
+    },
+    {
+      "source": "class:autoglm_phone_tech/model/client.py:AutoGLMClient",
+      "target": "class:autoglm_phone_tech/model/client.py:ModelResponse",
+      "type": "depends_on",
+      "label": "使用"
+    },
+    {
+      "source": "file:mai_ui_tech/__init__.py",
+      "target": "file:mai_ui_tech/config.py",
+      "type": "imports",
+      "label": "导入配置"
+    },
+    {
+      "source": "file:mai_ui_tech/__init__.py",
+      "target": "file:mai_ui_tech/grounding.py",
+      "type": "imports",
+      "label": "导入定位"
+    },
+    {
+      "source": "file:mai_ui_tech/__main__.py",
+      "target": "file:mai_ui_tech/cli.py",
+      "type": "imports",
+      "label": "导入CLI"
+    },
+    {
+      "source": "file:mai_ui_tech/cli.py",
+      "target": "function:mai_ui_tech/cli.py:main",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/cli.py",
+      "target": "file:mai_ui_tech/config.py",
+      "type": "imports",
+      "label": "导入配置"
+    },
+    {
+      "source": "file:mai_ui_tech/cli.py",
+      "target": "file:mai_ui_tech/grounding.py",
+      "type": "imports",
+      "label": "导入定位"
+    },
+    {
+      "source": "file:mai_ui_tech/config.py",
+      "target": "class:mai_ui_tech/config.py:MaiUiConfig",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/config.py",
+      "target": "function:mai_ui_tech/config.py:load_config",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/config.py",
+      "target": "function:mai_ui_tech/config.py:_deep_merge",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/config.py",
+      "target": "function:mai_ui_tech/config.py:_from_env",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/coords.py",
+      "target": "function:mai_ui_tech/coords.py:norm999_to_norm1000",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/coords.py",
+      "target": "function:mai_ui_tech/coords.py:norm_to_pixel",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/coords.py",
+      "target": "function:mai_ui_tech/coords.py:pixel_to_norm",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/grounding_server.py",
+      "target": "class:mai_ui_tech/grounding_server.py:GroundingServer",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/grounding_server.py",
+      "target": "function:mai_ui_tech/grounding_server.py:create_app",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/grounding_server.py",
+      "target": "file:mai_ui_tech/grounding.py",
+      "type": "imports",
+      "label": "导入定位"
+    },
+    {
+      "source": "file:mai_ui_tech/grounding_server.py",
+      "target": "file:mai_ui_tech/config.py",
+      "type": "imports",
+      "label": "导入配置"
+    },
+    {
+      "source": "file:mai_ui_tech/grounding.py",
+      "target": "class:mai_ui_tech/grounding.py:GroundingResult",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/grounding.py",
+      "target": "class:mai_ui_tech/grounding.py:GroundingAgent",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/grounding.py",
+      "target": "function:mai_ui_tech/grounding.py:parse_grounding_response",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/grounding.py",
+      "target": "function:mai_ui_tech/grounding.py:_extract_box_from_text",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/grounding.py",
+      "target": "function:mai_ui_tech/grounding.py:_extract_point_from_text",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/grounding.py",
+      "target": "function:mai_ui_tech/grounding.py:_normalize_bbox",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/grounding.py",
+      "target": "file:mai_ui_tech/mlx_inference.py",
+      "type": "imports",
+      "label": "导入MLX推理"
+    },
+    {
+      "source": "file:mai_ui_tech/grounding.py",
+      "target": "file:mai_ui_tech/coords.py",
+      "type": "imports",
+      "label": "导入坐标工具"
+    },
+    {
+      "source": "file:mai_ui_tech/grounding.py",
+      "target": "file:mai_ui_tech/config.py",
+      "type": "imports",
+      "label": "导入配置"
+    },
+    {
+      "source": "class:mai_ui_tech/grounding.py:GroundingAgent",
+      "target": "class:mai_ui_tech/grounding.py:GroundingResult",
+      "type": "depends_on",
+      "label": "使用"
+    },
+    {
+      "source": "function:mai_ui_tech/grounding.py:parse_grounding_response",
+      "target": "function:mai_ui_tech/grounding.py:_extract_box_from_text",
+      "type": "calls",
+      "label": "调用"
+    },
+    {
+      "source": "function:mai_ui_tech/grounding.py:parse_grounding_response",
+      "target": "function:mai_ui_tech/grounding.py:_extract_point_from_text",
+      "type": "calls",
+      "label": "调用"
+    },
+    {
+      "source": "function:mai_ui_tech/grounding.py:parse_grounding_response",
+      "target": "function:mai_ui_tech/grounding.py:_normalize_bbox",
+      "type": "calls",
+      "label": "调用"
+    },
+    {
+      "source": "file:autoglm_phone_tech/actions/handler.py",
+      "target": "function:autoglm_phone_tech/actions/handler.py:parse_action",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:autoglm_phone_tech/actions/handler.py",
+      "target": "class:autoglm_phone_tech/actions/handler.py:ActionHandler",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:autoglm_phone_tech/device/adb_bridge.py",
+      "target": "function:autoglm_phone_tech/device/adb_bridge.py:_fallback",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:autoglm_phone_tech/device/adb_bridge.py",
+      "target": "class:autoglm_phone_tech/device/adb_bridge.py:AdbBridge",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:autoglm_phone_tech/device/adb_resolve.py",
+      "target": "function:autoglm_phone_tech/device/adb_resolve.py:resolve_adb_executable",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:autoglm_phone_tech/device/device_factory.py",
+      "target": "function:autoglm_phone_tech/device/device_factory.py:create_device",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:autoglm_phone_tech/device/hdc_bridge.py",
+      "target": "class:autoglm_phone_tech/device/hdc_bridge.py:HdcBridge",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:autoglm_phone_tech/device/platform.py",
+      "target": "class:autoglm_phone_tech/device/platform.py:DevicePlatform",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:autoglm_phone_tech/model/client.py",
+      "target": "class:autoglm_phone_tech/model/client.py:ModelClient",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:autoglm_phone_tech/model/client.py",
+      "target": "class:autoglm_phone_tech/model/client.py:MessageBuilder",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:mai_ui_tech/cli.py",
+      "target": "function:mai_ui_tech/cli.py:main",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:mai_ui_tech/config.py",
+      "target": "function:mai_ui_tech/config.py:load_config",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:mai_ui_tech/config.py",
+      "target": "class:mai_ui_tech/config.py:MaiUiConfig",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:mai_ui_tech/grounding_server.py",
+      "target": "function:mai_ui_tech/grounding_server.py:main",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:mai_ui_tech/grounding_server.py",
+      "target": "class:mai_ui_tech/grounding_server.py:GroundingHandler",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:mai_ui_tech/grounding.py",
+      "target": "function:mai_ui_tech/grounding.py:parse_grounding_response",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:mai_ui_tech/grounding.py",
+      "target": "function:mai_ui_tech/grounding.py:_should_use_mlx",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:mai_ui_tech/grounding.py",
+      "target": "class:mai_ui_tech/grounding.py:GroundingResult",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:mai_ui_tech/grounding.py",
+      "target": "class:mai_ui_tech/grounding.py:MaiUiGroundingAgent",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    }
+  ]
+}

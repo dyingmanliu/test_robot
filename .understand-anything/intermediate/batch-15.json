@@ -1,0 +1,730 @@
+{
+  "nodes": [
+    {
+      "id": "file:web/frontend/src/App.vue",
+      "type": "file",
+      "name": "App.vue",
+      "summary": "Vue应用根组件，包含全局布局、导航栏、路由视图出口和全局状态管理，是整个前端应用的入口壳层",
+      "tags": [
+        "vue",
+        "root-component",
+        "layout",
+        "navigation"
+      ],
+      "complexity": "high"
+    },
+    {
+      "id": "file:web/frontend/src/components/AppSearchSelect.vue",
+      "type": "file",
+      "name": "AppSearchSelect.vue",
+      "summary": "可搜索的下拉选择组件，用于在列表中模糊搜索并选择应用，支持键盘导航和远程搜索",
+      "tags": [
+        "vue",
+        "component",
+        "search",
+        "select",
+        "ui"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "file:web/frontend/src/components/DeviceScreenMirror.vue",
+      "type": "file",
+      "name": "DeviceScreenMirror.vue",
+      "summary": "设备屏幕镜像组件，通过WebSocket实时接收设备截图并渲染，支持屏幕标注和交互操作",
+      "tags": [
+        "vue",
+        "component",
+        "device",
+        "websocket",
+        "screen-mirror"
+      ],
+      "complexity": "high"
+    },
+    {
+      "id": "file:web/frontend/src/components/FeatureAnalysisWorkbench.vue",
+      "type": "file",
+      "name": "FeatureAnalysisWorkbench.vue",
+      "summary": "功能分析工作台组件，提供功能树编辑、表格编辑、功能点增删改查的工作台界面，是特征分析的核心交互组件",
+      "tags": [
+        "vue",
+        "component",
+        "feature-analysis",
+        "tree-editor",
+        "workbench"
+      ],
+      "complexity": "very_high"
+    },
+    {
+      "id": "file:web/frontend/src/components/FeatureTreeBranch.vue",
+      "type": "file",
+      "name": "FeatureTreeBranch.vue",
+      "summary": "功能树分支节点组件，递归渲染功能树的层级结构，支持展开/折叠、选中高亮和拖拽操作",
+      "tags": [
+        "vue",
+        "component",
+        "tree",
+        "recursive",
+        "feature-tree"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "file:web/frontend/src/components/RobotMascotAvatar.vue",
+      "type": "file",
+      "name": "RobotMascotAvatar.vue",
+      "summary": "机器人吉祥物头像组件，根据机器人类型显示不同的动画头像图标",
+      "tags": [
+        "vue",
+        "component",
+        "avatar",
+        "mascot",
+        "ui"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "file:web/frontend/src/components/RunLivePanel.vue",
+      "type": "file",
+      "name": "RunLivePanel.vue",
+      "summary": "测试执行实时面板组件，通过SSE接收执行进度，展示步骤日志、设备屏幕镜像和执行状态",
+      "tags": [
+        "vue",
+        "component",
+        "live-panel",
+        "sse",
+        "test-execution"
+      ],
+      "complexity": "high"
+    },
+    {
+      "id": "file:web/frontend/src/constants/robotCatalog.js",
+      "type": "file",
+      "name": "robotCatalog.js",
+      "summary": "机器人目录常量定义，包含机器人类型标签、实例状态判断、路由生成等工具函数，是机器人市场业务逻辑的核心常量模块",
+      "tags": [
+        "constants",
+        "robot",
+        "catalog",
+        "utility"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "func:web/frontend/src/constants/robotCatalog.js:robotTypeLabel",
+      "type": "function",
+      "name": "robotTypeLabel",
+      "summary": "根据catalog_robot_id获取机器人类型的中文标签"
+    },
+    {
+      "id": "func:web/frontend/src/constants/robotCatalog.js:isAnalysisInstance",
+      "type": "function",
+      "name": "isAnalysisInstance",
+      "summary": "判断机器人实例是否为测试分析类型"
+    },
+    {
+      "id": "func:web/frontend/src/constants/robotCatalog.js:isExecutionInstance",
+      "type": "function",
+      "name": "isExecutionInstance",
+      "summary": "判断机器人实例是否为测试执行类型"
+    },
+    {
+      "id": "func:web/frontend/src/constants/robotCatalog.js:isRobotRunnableForCase",
+      "type": "function",
+      "name": "isRobotRunnableForCase",
+      "summary": "判断机器人实例是否可用于执行测试用例"
+    },
+    {
+      "id": "func:web/frontend/src/constants/robotCatalog.js:featureAnalysisLiveRoute",
+      "type": "function",
+      "name": "featureAnalysisLiveRoute",
+      "summary": "生成功能分析实时页面的路由路径"
+    },
+    {
+      "id": "func:web/frontend/src/constants/robotCatalog.js:testRunLiveRoute",
+      "type": "function",
+      "name": "testRunLiveRoute",
+      "summary": "生成测试执行实时页面的路由路径"
+    },
+    {
+      "id": "file:web/frontend/src/main.js",
+      "type": "file",
+      "name": "main.js",
+      "summary": "前端应用入口文件，创建Vue应用实例并挂载Pinia状态管理和路由",
+      "tags": [
+        "entry",
+        "vue",
+        "bootstrap"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "file:web/frontend/src/router/index.js",
+      "type": "file",
+      "name": "index.js",
+      "summary": "Vue Router路由配置，定义所有页面路由、导航守卫、角色权限控制和懒加载策略",
+      "tags": [
+        "router",
+        "navigation",
+        "auth-guard",
+        "lazy-load"
+      ],
+      "complexity": "high"
+    },
+    {
+      "id": "file:web/frontend/src/stores/activeTestRun.js",
+      "type": "file",
+      "name": "activeTestRun.js",
+      "summary": "活跃测试运行Pinia Store，管理测试执行的生命周期状态，包含轮询机制、SessionStorage持久化、运行状态同步和取消操作",
+      "tags": [
+        "pinia",
+        "store",
+        "test-run",
+        "polling",
+        "state-management"
+      ],
+      "complexity": "very_high"
+    },
+    {
+      "id": "func:web/frontend/src/stores/activeTestRun.js:useActiveTestRunStore",
+      "type": "function",
+      "name": "useActiveTestRunStore",
+      "summary": "创建并导出活跃测试运行Store，包含运行状态管理、轮询、持久化等完整功能"
+    },
+    {
+      "id": "func:web/frontend/src/stores/activeTestRun.js:executeCase",
+      "type": "function",
+      "name": "executeCase",
+      "summary": "提交测试用例执行请求，创建运行记录并启动轮询"
+    },
+    {
+      "id": "func:web/frontend/src/stores/activeTestRun.js:cancelRunById",
+      "type": "function",
+      "name": "cancelRunById",
+      "summary": "按运行ID取消正在执行的测试运行"
+    },
+    {
+      "id": "func:web/frontend/src/stores/activeTestRun.js:syncRunsFromRobots",
+      "type": "function",
+      "name": "syncRunsFromRobots",
+      "summary": "从机器人列表同步活跃运行状态，恢复丢失的运行记录"
+    },
+    {
+      "id": "file:web/frontend/src/stores/auth.js",
+      "type": "file",
+      "name": "auth.js",
+      "summary": "认证Pinia Store，管理用户登录/注册/登出、JWT令牌、角色权限和本地存储持久化",
+      "tags": [
+        "pinia",
+        "store",
+        "auth",
+        "jwt",
+        "rbac"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "func:web/frontend/src/stores/auth.js:useAuthStore",
+      "type": "function",
+      "name": "useAuthStore",
+      "summary": "认证Store，包含login/register/logout/fetchMe/updateProfile等用户会话管理方法"
+    },
+    {
+      "id": "file:web/frontend/src/style.css",
+      "type": "file",
+      "name": "style.css",
+      "summary": "全局CSS样式文件，定义应用的基础样式、CSS变量和通用样式类",
+      "tags": [
+        "css",
+        "global-styles",
+        "theme"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "file:web/frontend/src/utils/caseGenLive.js",
+      "type": "file",
+      "name": "caseGenLive.js",
+      "summary": "测试用例生成实时日志解析工具，将SSE原始日志解析为结构化的步骤事件，用于UI展示生成进度",
+      "tags": [
+        "utility",
+        "case-generation",
+        "sse",
+        "log-parser"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "func:web/frontend/src/utils/caseGenLive.js:parseCaseGenStepLog",
+      "type": "function",
+      "name": "parseCaseGenStepLog",
+      "summary": "解析用例生成的原始SSE日志为结构化步骤事件数组"
+    },
+    {
+      "id": "file:web/frontend/src/utils/featureAnalysisLive.js",
+      "type": "file",
+      "name": "featureAnalysisLive.js",
+      "summary": "功能分析实时日志解析工具，解析探索事件的SSE日志，提供位置摘要和进度估算功能",
+      "tags": [
+        "utility",
+        "feature-analysis",
+        "sse",
+        "log-parser",
+        "progress"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "func:web/frontend/src/utils/featureAnalysisLive.js:parseFeatureStepLog",
+      "type": "function",
+      "name": "parseFeatureStepLog",
+      "summary": "解析功能分析的原始SSE日志为结构化事件数组"
+    },
+    {
+      "id": "func:web/frontend/src/utils/featureAnalysisLive.js:summarizeFeatureAnalysisLocation",
+      "type": "function",
+      "name": "summarizeFeatureAnalysisLocation",
+      "summary": "从步骤日志中提取当前分析位置的摘要信息"
+    },
+    {
+      "id": "func:web/frontend/src/utils/featureAnalysisLive.js:estimateFeatureProgress",
+      "type": "function",
+      "name": "estimateFeatureProgress",
+      "summary": "基于已发现功能数和运行时间估算功能分析的完成进度百分比"
+    },
+    {
+      "id": "file:web/frontend/src/utils/featureTree.js",
+      "type": "file",
+      "name": "featureTree.js",
+      "summary": "功能树核心工具库，提供功能树的构建、遍历、编辑、同步、表格行与树节点互转等完整操作，是功能分析模块的核心数据处理层",
+      "tags": [
+        "utility",
+        "feature-tree",
+        "tree",
+        "data-structure",
+        "core"
+      ],
+      "complexity": "very_high"
+    },
+    {
+      "id": "func:web/frontend/src/utils/featureTree.js:buildTreeFromFeatures",
+      "type": "function",
+      "name": "buildTreeFromFeatures",
+      "summary": "从功能点列表构建层级功能树结构"
+    },
+    {
+      "id": "func:web/frontend/src/utils/featureTree.js:syncTreeFromTableRows",
+      "type": "function",
+      "name": "syncTreeFromTableRows",
+      "summary": "从表格行数据同步重建功能树"
+    },
+    {
+      "id": "func:web/frontend/src/utils/featureTree.js:filterRowsByTreeNode",
+      "type": "function",
+      "name": "filterRowsByTreeNode",
+      "summary": "根据树节点过滤表格行，返回该节点子树下的所有相关行"
+    },
+    {
+      "id": "func:web/frontend/src/utils/featureTree.js:resolveWorkbenchData",
+      "type": "function",
+      "name": "resolveWorkbenchData",
+      "summary": "从功能JSON字符串解析出工作台所需的树、行数据和功能点列表"
+    },
+    {
+      "id": "func:web/frontend/src/utils/featureTree.js:tableRowsInTreeOrder",
+      "type": "function",
+      "name": "tableRowsInTreeOrder",
+      "summary": "按树的深度优先顺序排列表格行"
+    },
+    {
+      "id": "file:web/frontend/src/utils/fuzzyMatch.js",
+      "type": "file",
+      "name": "fuzzyMatch.js",
+      "summary": "模糊匹配工具函数，判断查询字符串是否按顺序出现在目标文本中",
+      "tags": [
+        "utility",
+        "fuzzy-match",
+        "search"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "func:web/frontend/src/utils/fuzzyMatch.js:fuzzyMatch",
+      "type": "function",
+      "name": "fuzzyMatch",
+      "summary": "模糊匹配函数，按字符顺序匹配查询词是否出现在文本中"
+    },
+    {
+      "id": "file:web/frontend/src/utils/runEventFormat.js",
+      "type": "file",
+      "name": "runEventFormat.js",
+      "summary": "测试运行事件格式化工具，将SSE原始日志解析为UI可展示的格式化事件，支持多种事件类型（步骤、行、用量、完成等）",
+      "tags": [
+        "utility",
+        "sse",
+        "log-parser",
+        "test-execution",
+        "formatter"
+      ],
+      "complexity": "high"
+    },
+    {
+      "id": "file:web/frontend/src/utils/runEventFormat.js:parseRunStepLog",
+      "type": "function",
+      "name": "parseRunStepLog",
+      "summary": "解析测试运行的原始SSE日志为格式化的UI事件数组"
+    },
+    {
+      "id": "file:web/frontend/src/utils/sseClient.js",
+      "type": "file",
+      "name": "sseClient.js",
+      "summary": "SSE客户端封装工具，提供带JWT认证和自动重连的Server-Sent Events连接管理",
+      "tags": [
+        "utility",
+        "sse",
+        "client",
+        "streaming"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "file:web/frontend/src/api/client.js",
+      "type": "file",
+      "name": "client.js",
+      "summary": "Axios HTTP客户端实例配置，设置JWT拦截器、基础URL和错误处理，是所有API调用的统一出口",
+      "tags": [
+        "api",
+        "axios",
+        "http-client",
+        "interceptor"
+      ],
+      "complexity": "medium"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:web/frontend/src/App.vue",
+      "target": "file:web/frontend/src/router/index.js",
+      "type": "imports",
+      "label": "使用路由"
+    },
+    {
+      "source": "file:web/frontend/src/App.vue",
+      "target": "file:web/frontend/src/stores/auth.js",
+      "type": "imports",
+      "label": "使用认证状态"
+    },
+    {
+      "source": "file:web/frontend/src/App.vue",
+      "target": "file:web/frontend/src/stores/activeTestRun.js",
+      "type": "imports",
+      "label": "使用运行状态"
+    },
+    {
+      "source": "file:web/frontend/src/main.js",
+      "target": "file:web/frontend/src/App.vue",
+      "type": "imports",
+      "label": "挂载根组件"
+    },
+    {
+      "source": "file:web/frontend/src/main.js",
+      "target": "file:web/frontend/src/router/index.js",
+      "type": "imports",
+      "label": "挂载路由"
+    },
+    {
+      "source": "file:web/frontend/src/components/RunLivePanel.vue",
+      "target": "file:web/frontend/src/utils/runEventFormat.js",
+      "type": "imports",
+      "label": "格式化日志事件"
+    },
+    {
+      "source": "file:web/frontend/src/components/RunLivePanel.vue",
+      "target": "file:web/frontend/src/components/DeviceScreenMirror.vue",
+      "type": "imports",
+      "label": "嵌入设备屏幕"
+    },
+    {
+      "source": "file:web/frontend/src/components/RunLivePanel.vue",
+      "target": "file:web/frontend/src/stores/activeTestRun.js",
+      "type": "imports",
+      "label": "读取运行状态"
+    },
+    {
+      "source": "file:web/frontend/src/components/FeatureAnalysisWorkbench.vue",
+      "target": "file:web/frontend/src/utils/featureTree.js",
+      "type": "imports",
+      "label": "操作功能树数据"
+    },
+    {
+      "source": "file:web/frontend/src/components/FeatureAnalysisWorkbench.vue",
+      "target": "file:web/frontend/src/components/FeatureTreeBranch.vue",
+      "type": "imports",
+      "label": "渲染功能树分支"
+    },
+    {
+      "source": "file:web/frontend/src/components/FeatureTreeBranch.vue",
+      "target": "file:web/frontend/src/utils/featureTree.js",
+      "type": "imports",
+      "label": "使用树工具函数"
+    },
+    {
+      "source": "file:web/frontend/src/components/AppSearchSelect.vue",
+      "target": "file:web/frontend/src/utils/fuzzyMatch.js",
+      "type": "imports",
+      "label": "模糊搜索匹配"
+    },
+    {
+      "source": "file:web/frontend/src/stores/activeTestRun.js",
+      "target": "file:web/frontend/src/api/client.js",
+      "type": "imports",
+      "label": "HTTP请求"
+    },
+    {
+      "source": "file:web/frontend/src/stores/auth.js",
+      "target": "file:web/frontend/src/api/client.js",
+      "type": "imports",
+      "label": "HTTP请求"
+    },
+    {
+      "source": "file:web/frontend/src/stores/activeTestRun.js",
+      "target": "file:web/frontend/src/stores/auth.js",
+      "type": "depends_on",
+      "label": "依赖认证状态"
+    },
+    {
+      "source": "file:web/frontend/src/router/index.js",
+      "target": "file:web/frontend/src/stores/auth.js",
+      "type": "imports",
+      "label": "路由守卫检查认证"
+    },
+    {
+      "source": "file:web/frontend/src/constants/robotCatalog.js",
+      "target": "file:web/frontend/src/router/index.js",
+      "type": "depends_on",
+      "label": "生成路由路径"
+    },
+    {
+      "source": "file:web/frontend/src/utils/featureAnalysisLive.js",
+      "target": "file:web/frontend/src/utils/featureTree.js",
+      "type": "depends_on",
+      "label": "共享功能数据结构"
+    },
+    {
+      "source": "file:web/frontend/src/utils/runEventFormat.js",
+      "target": "file:web/frontend/src/utils/sseClient.js",
+      "type": "depends_on",
+      "label": "配合SSE客户端使用"
+    },
+    {
+      "source": "file:web/frontend/src/utils/caseGenLive.js",
+      "target": "function:web/frontend/src/utils/caseGenLive.js:parseCaseGenStepLog",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/frontend/src/utils/caseGenLive.js",
+      "target": "function:web/frontend/src/utils/caseGenLive.js:formatCaseGenEvent",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/frontend/src/utils/featureAnalysisLive.js",
+      "target": "function:web/frontend/src/utils/featureAnalysisLive.js:parseFeatureStepLog",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/frontend/src/utils/featureAnalysisLive.js",
+      "target": "function:web/frontend/src/utils/featureAnalysisLive.js:formatExploreEvent",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/frontend/src/utils/featureAnalysisLive.js",
+      "target": "function:web/frontend/src/utils/featureAnalysisLive.js:summarizeFeatureAnalysisLocation",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/frontend/src/utils/featureAnalysisLive.js",
+      "target": "function:web/frontend/src/utils/featureAnalysisLive.js:estimateFeatureProgress",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/frontend/src/utils/featureTree.js",
+      "target": "function:web/frontend/src/utils/featureTree.js:parseFeatureJson",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/frontend/src/utils/featureTree.js",
+      "target": "function:web/frontend/src/utils/featureTree.js:appDisplayNameFromTreeRecord",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/frontend/src/utils/featureTree.js",
+      "target": "function:web/frontend/src/utils/featureTree.js:flattenFunctionTree",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/frontend/src/utils/featureTree.js",
+      "target": "function:web/frontend/src/utils/featureTree.js:treeNodesForUi",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/frontend/src/utils/featureTree.js",
+      "target": "function:web/frontend/src/utils/featureTree.js:upsertFunctionNode",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/frontend/src/utils/featureTree.js",
+      "target": "function:web/frontend/src/utils/featureTree.js:buildTreeFromFeatures",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/frontend/src/utils/featureTree.js",
+      "target": "function:web/frontend/src/utils/featureTree.js:normalizeTableRow",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/frontend/src/utils/featureTree.js",
+      "target": "function:web/frontend/src/utils/featureTree.js:syncRowLocations",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/frontend/src/utils/featureTree.js",
+      "target": "function:web/frontend/src/utils/featureTree.js:dedupeTableRows",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/frontend/src/utils/featureTree.js",
+      "target": "function:web/frontend/src/utils/featureTree.js:treeNodeToTableRow",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/frontend/src/utils/featureTree.js",
+      "target": "function:web/frontend/src/utils/featureTree.js:rowsToFeatures",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/frontend/src/utils/featureTree.js",
+      "target": "function:web/frontend/src/utils/featureTree.js:nextDefaultChildName",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/frontend/src/utils/featureTree.js",
+      "target": "function:web/frontend/src/utils/featureTree.js:findTreeNodeByPathKey",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/frontend/src/utils/featureTree.js",
+      "target": "function:web/frontend/src/utils/featureTree.js:enrichTableRowsWithTreeFunctions",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/frontend/src/utils/featureTree.js",
+      "target": "function:web/frontend/src/utils/featureTree.js:resolveWorkbenchData",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/frontend/src/utils/featureTree.js",
+      "target": "function:web/frontend/src/utils/featureTree.js:resolveRowForTreeNode",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/frontend/src/utils/featureTree.js",
+      "target": "function:web/frontend/src/utils/featureTree.js:ensureAppTableRow",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/frontend/src/utils/featureTree.js",
+      "target": "function:web/frontend/src/utils/featureTree.js:tableRowsInTreeOrder",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/frontend/src/utils/featureTree.js",
+      "target": "function:web/frontend/src/utils/featureTree.js:visitTreeRowsDepthFirst",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/frontend/src/utils/featureTree.js",
+      "target": "function:web/frontend/src/utils/featureTree.js:filterRowsByTreeNode",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/frontend/src/utils/fuzzyMatch.js",
+      "target": "function:web/frontend/src/utils/fuzzyMatch.js:fuzzyMatch",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/frontend/src/utils/packagePlatform.js",
+      "target": "function:web/frontend/src/utils/packagePlatform.js:parsePlatformAppText",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/frontend/src/utils/runLive.js",
+      "target": "function:web/frontend/src/utils/runLive.js:parseStepLog",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/frontend/src/utils/runLive.js",
+      "target": "function:web/frontend/src/utils/runLive.js:estimateRunProgress",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    }
+  ]
+}

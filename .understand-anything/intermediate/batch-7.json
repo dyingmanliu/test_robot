@@ -1,0 +1,613 @@
+{
+  "nodes": [
+    {
+      "id": "file:agent_service/func_agent/backends/autoglm_runner.py",
+      "type": "file",
+      "name": "autoglm_runner.py",
+      "summary": "AutoGLM 执行后端入口，封装设备自动化调用逻辑。",
+      "tags": [
+        "执行后端",
+        "AutoGLM",
+        "封装"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:agent_service/func_agent/backends/autoglm/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "summary": "AutoGLM 后端包初始化，导出公共接口。",
+      "tags": [
+        "barrel",
+        "初始化"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:agent_service/func_agent/backends/autoglm/agent.py",
+      "type": "file",
+      "name": "agent.py",
+      "summary": "AutoGLM Agent 核心实现，处理 LLM 驱动的设备自动化循环。",
+      "tags": [
+        "核心Agent",
+        "设备自动化",
+        "LLM驱动"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:agent_service/func_agent/backends/midscene/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "summary": "Midscene 后端包初始化，导出公共接口。",
+      "tags": [
+        "barrel",
+        "初始化"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:agent_service/func_agent/backends/midscene/runtime.py",
+      "type": "file",
+      "name": "runtime.py",
+      "summary": "Midscene 运行时管理，处理子进程启动、SSE 流转发与设备连接。",
+      "tags": [
+        "运行时",
+        "子进程",
+        "SSE"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:agent_service/func_agent/cli.py",
+      "type": "file",
+      "name": "cli.py",
+      "summary": "功能测试 CLI 入口，支持命令行直接执行测试任务。",
+      "tags": [
+        "CLI",
+        "入口点",
+        "命令行"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:agent_service/func_agent/core.py",
+      "type": "file",
+      "name": "core.py",
+      "summary": "功能测试核心类型定义。",
+      "tags": [
+        "类型定义",
+        "核心"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:agent_service/func_agent/orchestrator.py",
+      "type": "file",
+      "name": "orchestrator.py",
+      "summary": "测试执行编排器，协调 AutoGLM 和 Midscene 两条技术路线。",
+      "tags": [
+        "编排器",
+        "调度",
+        "入口点"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:agent_service/func_agent/README.md",
+      "type": "document",
+      "name": "README.md",
+      "summary": "功能测试机器人文档，说明两条执行路线与调度方式。",
+      "tags": [
+        "文档",
+        "说明"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:agent_service/langchain_platform/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "summary": "LangChain 平台包初始化，导出核心组件。",
+      "tags": [
+        "barrel",
+        "初始化"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:agent_service/langchain_platform/callbacks/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "summary": "回调模块包初始化。",
+      "tags": [
+        "barrel"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:agent_service/langchain_platform/callbacks/sse.py",
+      "type": "file",
+      "name": "sse.py",
+      "summary": "SSE 回调处理器，将 LangChain 事件流式推送给客户端。",
+      "tags": [
+        "SSE",
+        "回调",
+        "流推送"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:agent_service/langchain_platform/chains/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "summary": "链模块包初始化。",
+      "tags": [
+        "barrel"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:agent_service/langchain_platform/chains/case_generation.py",
+      "type": "file",
+      "name": "case_generation.py",
+      "summary": "用例生成链，使用 LLM 从需求描述生成结构化测试用例。",
+      "tags": [
+        "用例生成",
+        "LangChain",
+        "LLM"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:agent_service/langchain_platform/config.py",
+      "type": "file",
+      "name": "config.py",
+      "summary": "LangChain 平台配置，管理 LLM 模型、API 密钥与超时参数。",
+      "tags": [
+        "配置",
+        "LLM参数",
+        "超时"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:agent_service/langchain_platform/explore_core.py",
+      "type": "file",
+      "name": "explore_core.py",
+      "summary": "功能探索核心逻辑，协调设备遍历与功能树构建。",
+      "tags": [
+        "功能探索",
+        "核心逻辑"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:agent_service/langchain_platform/facades/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "summary": "门面模块包初始化。",
+      "tags": [
+        "barrel"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:agent_service/langchain_platform/facades/analysis.py",
+      "type": "file",
+      "name": "analysis.py",
+      "summary": "测试分析门面，封装用例生成的调用接口。",
+      "tags": [
+        "门面",
+        "用例生成",
+        "接口"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:agent_service/langchain_platform/facades/func_dispatch.py",
+      "type": "file",
+      "name": "func_dispatch.py",
+      "summary": "功能执行调度门面，封装测试执行的分发逻辑。",
+      "tags": [
+        "门面",
+        "调度",
+        "接口"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:agent_service/langchain_platform/graphs/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "summary": "图模块包初始化。",
+      "tags": [
+        "barrel"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:agent_service/langchain_platform/graphs/autoglm_exec.py",
+      "type": "file",
+      "name": "autoglm_exec.py",
+      "summary": "AutoGLM 执行图，定义 LLM 驱动设备自动化的 LangGraph 工作流。",
+      "tags": [
+        "执行图",
+        "AutoGLM",
+        "LangGraph"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:agent_service/langchain_platform/graphs/case_gen_agentic.py",
+      "type": "file",
+      "name": "case_gen_agentic.py",
+      "summary": "智能用例生成图，使用 Agentic RAG 增强用例草稿质量。",
+      "tags": [
+        "用例生成",
+        "Agentic",
+        "RAG"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:agent_service/langchain_platform/graphs/explore_run.py",
+      "type": "file",
+      "name": "explore_run.py",
+      "summary": "功能探索执行图，定义设备遍历与功能发现的 LangGraph 工作流。",
+      "tags": [
+        "执行图",
+        "功能探索",
+        "LangGraph"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:agent_service/langchain_platform/graphs/func_dispatch.py",
+      "type": "file",
+      "name": "func_dispatch.py",
+      "summary": "功能分发图，根据设备平台和后端类型路由到对应执行图。",
+      "tags": [
+        "分发图",
+        "路由",
+        "调度"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:agent_service/langchain_platform/graphs/midscene_exec.py",
+      "type": "file",
+      "name": "midscene_exec.py",
+      "summary": "Midscene 执行图，定义视觉自动化测试的 LangGraph 工作流。",
+      "tags": [
+        "执行图",
+        "Midscene",
+        "LangGraph"
+      ],
+      "complexity": "moderate"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:agent_service/func_agent/orchestrator.py",
+      "target": "file:agent_service/func_agent/backends/autoglm_runner.py",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:agent_service/func_agent/backends/autoglm_runner.py",
+      "target": "file:agent_service/func_agent/backends/autoglm/agent.py",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:agent_service/func_agent/backends/midscene/runtime.py",
+      "target": "file:agent_service/func_agent/backends/midscene/__init__.py",
+      "type": "exports",
+      "weight": 0.8
+    },
+    {
+      "source": "document:agent_service/func_agent/README.md",
+      "target": "file:agent_service/func_agent/orchestrator.py",
+      "type": "documents",
+      "weight": 0.5
+    },
+    {
+      "source": "file:agent_service/langchain_platform/facades/analysis.py",
+      "target": "file:agent_service/langchain_platform/chains/case_generation.py",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:agent_service/langchain_platform/facades/func_dispatch.py",
+      "target": "file:agent_service/langchain_platform/graphs/func_dispatch.py",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:agent_service/langchain_platform/graphs/func_dispatch.py",
+      "target": "file:agent_service/langchain_platform/graphs/autoglm_exec.py",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:agent_service/langchain_platform/graphs/func_dispatch.py",
+      "target": "file:agent_service/langchain_platform/graphs/midscene_exec.py",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:agent_service/func_agent/backends/autoglm_runner.py",
+      "target": "function:agent_service/func_agent/backends/autoglm_runner.py:run_autoglm_task",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/func_agent/backends/autoglm/agent.py",
+      "target": "class:agent_service/func_agent/backends/autoglm/agent.py:AgentConfig",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/func_agent/backends/autoglm/agent.py",
+      "target": "class:agent_service/func_agent/backends/autoglm/agent.py:PhoneTestAgent",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/func_agent/backends/midscene/runtime.py",
+      "target": "function:agent_service/func_agent/backends/midscene/runtime.py:_find_latest_midscene_report",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/func_agent/backends/midscene/runtime.py",
+      "target": "function:agent_service/func_agent/backends/midscene/runtime.py:_resolve_report_file",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/func_agent/backends/midscene/runtime.py",
+      "target": "function:agent_service/func_agent/backends/midscene/runtime.py:_build_midscene_cli_cmd",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/func_agent/backends/midscene/runtime.py",
+      "target": "function:agent_service/func_agent/backends/midscene/runtime.py:_model_gateway_hosts",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/func_agent/backends/midscene/runtime.py",
+      "target": "function:agent_service/func_agent/backends/midscene/runtime.py:_append_no_proxy_for_midscene_model",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/func_agent/backends/midscene/runtime.py",
+      "target": "function:agent_service/func_agent/backends/midscene/runtime.py:run_midscene_task",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/func_agent/cli.py",
+      "target": "function:agent_service/func_agent/cli.py:_check_adb",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/func_agent/cli.py",
+      "target": "function:agent_service/func_agent/cli.py:_check_hdc",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/func_agent/cli.py",
+      "target": "function:agent_service/func_agent/cli.py:main",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/func_agent/orchestrator.py",
+      "target": "function:agent_service/func_agent/orchestrator.py:run_func_agent_dispatch",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/langchain_platform/callbacks/sse.py",
+      "target": "class:agent_service/langchain_platform/callbacks/sse.py:SSEProgressCallback",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/langchain_platform/chains/case_generation.py",
+      "target": "function:agent_service/langchain_platform/chains/case_generation.py:_build_user_message",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/langchain_platform/chains/case_generation.py",
+      "target": "function:agent_service/langchain_platform/chains/case_generation.py:_resolve_kb_snippets",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/langchain_platform/chains/case_generation.py",
+      "target": "class:agent_service/langchain_platform/chains/case_generation.py:CaseGenChain",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/langchain_platform/config.py",
+      "target": "function:agent_service/langchain_platform/config.py:configure_langsmith",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/langchain_platform/explore_core.py",
+      "target": "function:agent_service/langchain_platform/explore_core.py:execute_explore_run",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/langchain_platform/facades/analysis.py",
+      "target": "function:agent_service/langchain_platform/facades/analysis.py:generate_case_draft_langchain",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/langchain_platform/facades/func_dispatch.py",
+      "target": "function:agent_service/langchain_platform/facades/func_dispatch.py:run_func_agent_dispatch_langchain",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/langchain_platform/graphs/autoglm_exec.py",
+      "target": "function:agent_service/langchain_platform/graphs/autoglm_exec.py:_maybe_recovery_rag",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/langchain_platform/graphs/autoglm_exec.py",
+      "target": "function:agent_service/langchain_platform/graphs/autoglm_exec.py:_step_node",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/langchain_platform/graphs/autoglm_exec.py",
+      "target": "function:agent_service/langchain_platform/graphs/autoglm_exec.py:_route_after_step",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/langchain_platform/graphs/autoglm_exec.py",
+      "target": "function:agent_service/langchain_platform/graphs/autoglm_exec.py:build_autoglm_exec_graph",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/langchain_platform/graphs/autoglm_exec.py",
+      "target": "function:agent_service/langchain_platform/graphs/autoglm_exec.py:run_autoglm_graph",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/langchain_platform/graphs/case_gen_agentic.py",
+      "target": "function:agent_service/langchain_platform/graphs/case_gen_agentic.py:_load_context",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/langchain_platform/graphs/case_gen_agentic.py",
+      "target": "function:agent_service/langchain_platform/graphs/case_gen_agentic.py:_agentic_retrieve",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/langchain_platform/graphs/case_gen_agentic.py",
+      "target": "function:agent_service/langchain_platform/graphs/case_gen_agentic.py:_generate_draft",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/langchain_platform/graphs/case_gen_agentic.py",
+      "target": "function:agent_service/langchain_platform/graphs/case_gen_agentic.py:build_case_gen_agentic_graph",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/langchain_platform/graphs/case_gen_agentic.py",
+      "target": "function:agent_service/langchain_platform/graphs/case_gen_agentic.py:run_case_gen_agentic",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/langchain_platform/graphs/explore_run.py",
+      "target": "function:agent_service/langchain_platform/graphs/explore_run.py:_prefetch_kb_context",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/langchain_platform/graphs/explore_run.py",
+      "target": "function:agent_service/langchain_platform/graphs/explore_run.py:build_explore_orchestrator_graph",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/langchain_platform/graphs/explore_run.py",
+      "target": "function:agent_service/langchain_platform/graphs/explore_run.py:run_explore_graph",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/langchain_platform/graphs/func_dispatch.py",
+      "target": "function:agent_service/langchain_platform/graphs/func_dispatch.py:_prefetch_kb_context",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/langchain_platform/graphs/func_dispatch.py",
+      "target": "function:agent_service/langchain_platform/graphs/func_dispatch.py:_run_autoglm",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/langchain_platform/graphs/func_dispatch.py",
+      "target": "function:agent_service/langchain_platform/graphs/func_dispatch.py:build_func_dispatch_graph",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/langchain_platform/graphs/func_dispatch.py",
+      "target": "function:agent_service/langchain_platform/graphs/func_dispatch.py:run_func_dispatch_graph",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/langchain_platform/graphs/midscene_exec.py",
+      "target": "function:agent_service/langchain_platform/graphs/midscene_exec.py:run_midscene_graph",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    }
+  ]
+}

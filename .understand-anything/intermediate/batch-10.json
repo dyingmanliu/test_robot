@@ -1,0 +1,2318 @@
+{
+  "nodes": [
+    {
+      "id": "file:mai_ui_tech/health.py",
+      "type": "file",
+      "name": "health.py",
+      "summary": "Mai UI服务健康检查模块，验证MLX模型服务状态和可用模型列表",
+      "tags": [
+        "mai-ui",
+        "health-check",
+        "monitoring"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "function:mai_ui_tech/health.py:_models_url",
+      "type": "function",
+      "name": "_models_url",
+      "summary": "构建模型列表API的URL",
+      "file": "mai_ui_tech/health.py"
+    },
+    {
+      "id": "function:mai_ui_tech/health.py:list_model_ids",
+      "type": "function",
+      "name": "list_model_ids",
+      "summary": "从MLX服务获取可用模型ID列表",
+      "file": "mai_ui_tech/health.py"
+    },
+    {
+      "id": "function:mai_ui_tech/health.py:check_server",
+      "type": "function",
+      "name": "check_server",
+      "summary": "检查MLX模型服务器状态并返回健康报告",
+      "file": "mai_ui_tech/health.py"
+    },
+    {
+      "id": "file:mai_ui_tech/image_utils.py",
+      "type": "file",
+      "name": "image_utils.py",
+      "summary": "图像处理工具集，提供图片缩放和预处理功能",
+      "tags": [
+        "mai-ui",
+        "utils",
+        "image-processing"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "function:mai_ui_tech/image_utils.py:resize_for_grounding",
+      "type": "function",
+      "name": "resize_for_grounding",
+      "summary": "将图片缩放到适合定位模型处理的尺寸",
+      "file": "mai_ui_tech/image_utils.py"
+    },
+    {
+      "id": "file:mai_ui_tech/menu_detect.py",
+      "type": "file",
+      "name": "menu_detect.py",
+      "summary": "UI菜单检测模块，使用视觉模型识别和定位屏幕上的菜单元素",
+      "tags": [
+        "mai-ui",
+        "menu-detection",
+        "vision-model",
+        "core-logic"
+      ],
+      "complexity": "high"
+    },
+    {
+      "id": "class:mai_ui_tech/menu_detect.py:MenuItemResult",
+      "type": "class",
+      "name": "MenuItemResult",
+      "summary": "菜单项检测结果数据结构，包含名称、位置、置信度等信息",
+      "file": "mai_ui_tech/menu_detect.py"
+    },
+    {
+      "id": "class:mai_ui_tech/menu_detect.py:MenuDetectResult",
+      "type": "class",
+      "name": "MenuDetectResult",
+      "summary": "菜单检测整体结果，包含所有检测到的菜单项列表",
+      "file": "mai_ui_tech/menu_detect.py"
+    },
+    {
+      "id": "class:mai_ui_tech/menu_detect.py:MaiUiMenuDetectAgent",
+      "type": "class",
+      "name": "MaiUiMenuDetectAgent",
+      "summary": "菜单检测代理类，封装视觉模型的调用和结果解析",
+      "file": "mai_ui_tech/menu_detect.py"
+    },
+    {
+      "id": "function:mai_ui_tech/menu_detect.py:_strip_code_fence",
+      "type": "function",
+      "name": "_strip_code_fence",
+      "summary": "移除模型输出中的代码围栏标记",
+      "file": "mai_ui_tech/menu_detect.py"
+    },
+    {
+      "id": "function:mai_ui_tech/menu_detect.py:_repair_json",
+      "type": "function",
+      "name": "_repair_json",
+      "summary": "修复模型输出中格式不正确的JSON字符串",
+      "file": "mai_ui_tech/menu_detect.py"
+    },
+    {
+      "id": "function:mai_ui_tech/menu_detect.py:_try_parse_json_object",
+      "type": "function",
+      "name": "_try_parse_json_object",
+      "summary": "尝试解析JSON对象，支持错误修复",
+      "file": "mai_ui_tech/menu_detect.py"
+    },
+    {
+      "id": "function:mai_ui_tech/menu_detect.py:_extract_menus_array_from_text",
+      "type": "function",
+      "name": "_extract_menus_array_from_text",
+      "summary": "从文本中提取菜单数组",
+      "file": "mai_ui_tech/menu_detect.py"
+    },
+    {
+      "id": "function:mai_ui_tech/menu_detect.py:_extract_menu_objects_loose",
+      "type": "function",
+      "name": "_extract_menu_objects_loose",
+      "summary": "宽松模式提取菜单对象，处理格式不规范的情况",
+      "file": "mai_ui_tech/menu_detect.py"
+    },
+    {
+      "id": "function:mai_ui_tech/menu_detect.py:_extract_answer_json",
+      "type": "function",
+      "name": "_extract_answer_json",
+      "summary": "从模型响应中提取答案JSON部分",
+      "file": "mai_ui_tech/menu_detect.py"
+    },
+    {
+      "id": "function:mai_ui_tech/menu_detect.py:parse_menu_detect_response",
+      "type": "function",
+      "name": "parse_menu_detect_response",
+      "summary": "解析菜单检测模型的完整响应",
+      "file": "mai_ui_tech/menu_detect.py"
+    },
+    {
+      "id": "function:mai_ui_tech/menu_detect.py:_normalize_region",
+      "type": "function",
+      "name": "_normalize_region",
+      "summary": "标准化菜单项的区域位置描述",
+      "file": "mai_ui_tech/menu_detect.py"
+    },
+    {
+      "id": "function:mai_ui_tech/menu_detect.py:_menu_item_from_raw",
+      "type": "function",
+      "name": "_menu_item_from_raw",
+      "summary": "从原始检测数据构建菜单项结果对象",
+      "file": "mai_ui_tech/menu_detect.py"
+    },
+    {
+      "id": "file:mai_ui_tech/mlx_inference.py",
+      "type": "file",
+      "name": "mlx_inference.py",
+      "summary": "MLX模型推理引擎，管理本地视觉模型的加载和推理过程",
+      "tags": [
+        "mai-ui",
+        "mlx",
+        "inference",
+        "vision-model",
+        "core-logic"
+      ],
+      "complexity": "high"
+    },
+    {
+      "id": "function:mai_ui_tech/mlx_inference.py:_estimate_tokens",
+      "type": "function",
+      "name": "_estimate_tokens",
+      "summary": "估算文本的token数量",
+      "file": "mai_ui_tech/mlx_inference.py"
+    },
+    {
+      "id": "function:mai_ui_tech/mlx_inference.py:resolve_mlx_model_path",
+      "type": "function",
+      "name": "resolve_mlx_model_path",
+      "summary": "解析MLX模型文件路径，支持多种查找策略",
+      "file": "mai_ui_tech/mlx_inference.py"
+    },
+    {
+      "id": "function:mai_ui_tech/mlx_inference.py:_chat_processor",
+      "type": "function",
+      "name": "_chat_processor",
+      "summary": "获取模型的聊天处理器",
+      "file": "mai_ui_tech/mlx_inference.py"
+    },
+    {
+      "id": "function:mai_ui_tech/mlx_inference.py:build_vision_prompt",
+      "type": "function",
+      "name": "build_vision_prompt",
+      "summary": "构建视觉模型的提示词，包含系统提示、用户文本和图片",
+      "file": "mai_ui_tech/mlx_inference.py"
+    },
+    {
+      "id": "function:mai_ui_tech/mlx_inference.py:build_grounding_prompt",
+      "type": "function",
+      "name": "build_grounding_prompt",
+      "summary": "构建UI定位任务的专用提示词",
+      "file": "mai_ui_tech/mlx_inference.py"
+    },
+    {
+      "id": "function:mai_ui_tech/mlx_inference.py:get_model_and_processor",
+      "type": "function",
+      "name": "get_model_and_processor",
+      "summary": "加载MLX模型和对应的处理器",
+      "file": "mai_ui_tech/mlx_inference.py"
+    },
+    {
+      "id": "function:mai_ui_tech/mlx_inference.py:_run_generate",
+      "type": "function",
+      "name": "_run_generate",
+      "summary": "执行模型生成推理的核心函数",
+      "file": "mai_ui_tech/mlx_inference.py"
+    },
+    {
+      "id": "function:mai_ui_tech/mlx_inference.py:_predict_mlx_locked",
+      "type": "function",
+      "name": "_predict_mlx_locked",
+      "summary": "带锁保护的MLX模型预测函数",
+      "file": "mai_ui_tech/mlx_inference.py"
+    },
+    {
+      "id": "function:mai_ui_tech/mlx_inference.py:predict_mlx",
+      "type": "function",
+      "name": "predict_mlx",
+      "summary": "MLX模型预测的公共接口（grounding模式）",
+      "file": "mai_ui_tech/mlx_inference.py"
+    },
+    {
+      "id": "function:mai_ui_tech/mlx_inference.py:predict_mlx_vision",
+      "type": "function",
+      "name": "predict_mlx_vision",
+      "summary": "MLX模型预测的公共接口（vision模式）",
+      "file": "mai_ui_tech/mlx_inference.py"
+    },
+    {
+      "id": "file:mai_ui_tech/prompt.py",
+      "type": "file",
+      "name": "prompt.py",
+      "summary": "Mai UI视觉模型的提示词模板定义",
+      "tags": [
+        "mai-ui",
+        "prompts",
+        "vision-model"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "file:mai_ui_tech/scripts/download_model_hf.py",
+      "type": "file",
+      "name": "download_model_hf.py",
+      "summary": "从Hugging Face下载MLX视觉模型的工具脚本",
+      "tags": [
+        "mai-ui",
+        "scripts",
+        "model-download",
+        "huggingface"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "function:mai_ui_tech/scripts/download_model_hf.py:_hub_endpoint",
+      "type": "function",
+      "name": "_hub_endpoint",
+      "summary": "获取Hugging Face Hub的API端点",
+      "file": "mai_ui_tech/scripts/download_model_hf.py"
+    },
+    {
+      "id": "function:mai_ui_tech/scripts/download_model_hf.py:download_model",
+      "type": "function",
+      "name": "download_model",
+      "summary": "从Hugging Face下载指定模型",
+      "file": "mai_ui_tech/scripts/download_model_hf.py"
+    },
+    {
+      "id": "function:mai_ui_tech/scripts/download_model_hf.py:main",
+      "type": "function",
+      "name": "main",
+      "summary": "模型下载脚本的命令行入口",
+      "file": "mai_ui_tech/scripts/download_model_hf.py"
+    },
+    {
+      "id": "file:midscene_tech/scripts/demo-settings.ts",
+      "type": "file",
+      "name": "demo-settings.ts",
+      "summary": "Midscene演示配置脚本，设置演示环境的参数",
+      "tags": [
+        "midscene",
+        "scripts",
+        "demo",
+        "config"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "function:midscene_tech/scripts/demo-settings.ts:getDemoConfig",
+      "type": "function",
+      "name": "getDemoConfig",
+      "summary": "获取演示环境的配置参数",
+      "file": "midscene_tech/scripts/demo-settings.ts"
+    },
+    {
+      "id": "file:midscene_tech/src/agent.ts",
+      "type": "file",
+      "name": "agent.ts",
+      "summary": "Midscene测试代理主类，协调测试用例的执行和设备交互",
+      "tags": [
+        "midscene",
+        "agent",
+        "test-execution",
+        "core-logic"
+      ],
+      "complexity": "high"
+    },
+    {
+      "id": "class:midscene_tech/src/agent.ts:MidsceneTestAgent",
+      "type": "class",
+      "name": "MidsceneTestAgent",
+      "summary": "Midscene测试代理类，管理测试执行的生命周期",
+      "file": "midscene_tech/src/agent.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/agent.ts:runTest",
+      "type": "function",
+      "name": "runTest",
+      "summary": "执行单个测试用例",
+      "file": "midscene_tech/src/agent.ts"
+    },
+    {
+      "id": "file:midscene_tech/src/app_scope.ts",
+      "type": "file",
+      "name": "app_scope.ts",
+      "summary": "应用作用域管理，处理应用启动、状态跟踪和生命周期管理",
+      "tags": [
+        "midscene",
+        "app-scope",
+        "state-management"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "function:midscene_tech/src/app_scope.ts:createAppScope",
+      "type": "function",
+      "name": "createAppScope",
+      "summary": "创建新的应用作用域实例",
+      "file": "midscene_tech/src/app_scope.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/app_scope.ts:getAppScope",
+      "type": "function",
+      "name": "getAppScope",
+      "summary": "获取当前的应用作用域",
+      "file": "midscene_tech/src/app_scope.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/app_scope.ts:resetAppScope",
+      "type": "function",
+      "name": "resetAppScope",
+      "summary": "重置应用作用域状态",
+      "file": "midscene_tech/src/app_scope.ts"
+    },
+    {
+      "id": "file:midscene_tech/src/cli.ts",
+      "type": "file",
+      "name": "cli.ts",
+      "summary": "Midscene命令行接口，提供测试执行和探索功能的CLI工具",
+      "tags": [
+        "midscene",
+        "cli",
+        "entry-point"
+      ],
+      "complexity": "high"
+    },
+    {
+      "id": "function:midscene_tech/src/cli.ts:main",
+      "type": "function",
+      "name": "main",
+      "summary": "CLI主函数，解析命令行参数并执行相应操作",
+      "file": "midscene_tech/src/cli.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/cli.ts:parseArgs",
+      "type": "function",
+      "name": "parseArgs",
+      "summary": "解析命令行参数",
+      "file": "midscene_tech/src/cli.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/cli.ts:runTestMode",
+      "type": "function",
+      "name": "runTestMode",
+      "summary": "运行测试执行模式",
+      "file": "midscene_tech/src/cli.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/cli.ts:runExploreMode",
+      "type": "function",
+      "name": "runExploreMode",
+      "summary": "运行功能探索模式",
+      "file": "midscene_tech/src/cli.ts"
+    },
+    {
+      "id": "file:midscene_tech/src/config.ts",
+      "type": "file",
+      "name": "config.ts",
+      "summary": "Midscene配置管理，支持从文件和环境变量加载配置",
+      "tags": [
+        "midscene",
+        "config",
+        "settings"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "function:midscene_tech/src/config.ts:loadConfig",
+      "type": "function",
+      "name": "loadConfig",
+      "summary": "加载Midscene配置",
+      "file": "midscene_tech/src/config.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/config.ts:validateConfig",
+      "type": "function",
+      "name": "validateConfig",
+      "summary": "验证配置参数的有效性",
+      "file": "midscene_tech/src/config.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/config.ts:getDefaultConfig",
+      "type": "function",
+      "name": "getDefaultConfig",
+      "summary": "获取默认配置",
+      "file": "midscene_tech/src/config.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/config.ts:mergeConfigs",
+      "type": "function",
+      "name": "mergeConfigs",
+      "summary": "合并多个配置对象",
+      "file": "midscene_tech/src/config.ts"
+    },
+    {
+      "id": "file:midscene_tech/src/device_runtime.ts",
+      "type": "file",
+      "name": "device_runtime.ts",
+      "summary": "设备运行时管理，封装与移动设备的交互接口",
+      "tags": [
+        "midscene",
+        "device",
+        "runtime",
+        "abstraction"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "function:midscene_tech/src/device_runtime.ts:createDeviceRuntime",
+      "type": "function",
+      "name": "createDeviceRuntime",
+      "summary": "创建设备运行时实例",
+      "file": "midscene_tech/src/device_runtime.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/device_runtime.ts:getDeviceRuntime",
+      "type": "function",
+      "name": "getDeviceRuntime",
+      "summary": "获取当前的设备运行时",
+      "file": "midscene_tech/src/device_runtime.ts"
+    },
+    {
+      "id": "file:midscene_tech/src/explore_agent.ts",
+      "type": "file",
+      "name": "explore_agent.ts",
+      "summary": "功能探索代理，自动化探索应用的功能特性和UI结构",
+      "tags": [
+        "midscene",
+        "explore",
+        "agent",
+        "automation"
+      ],
+      "complexity": "high"
+    },
+    {
+      "id": "function:midscene_tech/src/explore_agent.ts:runExploration",
+      "type": "function",
+      "name": "runExploration",
+      "summary": "执行功能探索任务",
+      "file": "midscene_tech/src/explore_agent.ts"
+    },
+    {
+      "id": "file:midscene_tech/src/explore_common.test.ts",
+      "type": "file",
+      "name": "explore_common.test.ts",
+      "summary": "探索通用工具的单元测试",
+      "tags": [
+        "midscene",
+        "explore",
+        "tests"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "file:midscene_tech/src/explore_common.ts",
+      "type": "file",
+      "name": "explore_common.ts",
+      "summary": "功能探索的通用工具函数集合，提供UI元素识别和状态比较",
+      "tags": [
+        "midscene",
+        "explore",
+        "utils",
+        "core-logic"
+      ],
+      "complexity": "high"
+    },
+    {
+      "id": "function:midscene_tech/src/explore_common.ts:extractUIElements",
+      "type": "function",
+      "name": "extractUIElements",
+      "summary": "从截图中提取UI元素列表",
+      "file": "midscene_tech/src/explore_common.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/explore_common.ts:compareScreens",
+      "type": "function",
+      "name": "compareScreens",
+      "summary": "比较两个屏幕截图的差异",
+      "file": "midscene_tech/src/explore_common.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/explore_common.ts:findClickableElements",
+      "type": "function",
+      "name": "findClickableElements",
+      "summary": "识别屏幕上的可点击元素",
+      "file": "midscene_tech/src/explore_common.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/explore_common.ts:generateElementDescription",
+      "type": "function",
+      "name": "generateElementDescription",
+      "summary": "生成UI元素的自然语言描述",
+      "file": "midscene_tech/src/explore_common.ts"
+    },
+    {
+      "id": "file:midscene_tech/src/explore_fair_share.ts",
+      "type": "file",
+      "name": "explore_fair_share.ts",
+      "summary": "功能探索的公平分享调度器，平衡不同功能分支的探索时间",
+      "tags": [
+        "midscene",
+        "explore",
+        "scheduler",
+        "fair-share"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "class:midscene_tech/src/explore_fair_share.ts:FairShareScheduler",
+      "type": "class",
+      "name": "FairShareScheduler",
+      "summary": "公平分享调度器类，管理探索任务的优先级分配",
+      "file": "midscene_tech/src/explore_fair_share.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/explore_fair_share.ts:addTask",
+      "type": "function",
+      "name": "addTask",
+      "summary": "添加探索任务到调度器",
+      "file": "midscene_tech/src/explore_fair_share.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/explore_fair_share.ts:getNextTask",
+      "type": "function",
+      "name": "getNextTask",
+      "summary": "获取下一个要执行的探索任务",
+      "file": "midscene_tech/src/explore_fair_share.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/explore_fair_share.ts:updateProgress",
+      "type": "function",
+      "name": "updateProgress",
+      "summary": "更新任务的执行进度",
+      "file": "midscene_tech/src/explore_fair_share.ts"
+    },
+    {
+      "id": "file:midscene_tech/src/explore_metrics.ts",
+      "type": "file",
+      "name": "explore_metrics.ts",
+      "summary": "功能探索的指标收集和统计模块",
+      "tags": [
+        "midscene",
+        "explore",
+        "metrics",
+        "monitoring"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "class:midscene_tech/src/explore_metrics.ts:ExploreMetrics",
+      "type": "class",
+      "name": "ExploreMetrics",
+      "summary": "探索指标收集器类，跟踪覆盖率、成功率等指标",
+      "file": "midscene_tech/src/explore_metrics.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/explore_metrics.ts:recordAction",
+      "type": "function",
+      "name": "recordAction",
+      "summary": "记录一次探索操作的结果",
+      "file": "midscene_tech/src/explore_metrics.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/explore_metrics.ts:getCoverageReport",
+      "type": "function",
+      "name": "getCoverageReport",
+      "summary": "生成功能覆盖率报告",
+      "file": "midscene_tech/src/explore_metrics.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/explore_metrics.ts:exportMetrics",
+      "type": "function",
+      "name": "exportMetrics",
+      "summary": "导出指标数据到文件",
+      "file": "midscene_tech/src/explore_metrics.ts"
+    },
+    {
+      "id": "file:midscene_tech/src/explore_nav.ts",
+      "type": "file",
+      "name": "explore_nav.ts",
+      "summary": "功能探索的导航管理器，处理应用页面间的导航和返回",
+      "tags": [
+        "midscene",
+        "explore",
+        "navigation",
+        "state-machine"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "class:midscene_tech/src/explore_nav.ts:NavigationManager",
+      "type": "class",
+      "name": "NavigationManager",
+      "summary": "导航管理器类，跟踪应用页面栈和导航历史",
+      "file": "midscene_tech/src/explore_nav.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/explore_nav.ts:navigateTo",
+      "type": "function",
+      "name": "navigateTo",
+      "summary": "导航到指定的页面",
+      "file": "midscene_tech/src/explore_nav.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/explore_nav.ts:goBack",
+      "type": "function",
+      "name": "goBack",
+      "summary": "返回到上一个页面",
+      "file": "midscene_tech/src/explore_nav.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/explore_nav.ts:getCurrentPage",
+      "type": "function",
+      "name": "getCurrentPage",
+      "summary": "获取当前页面的信息",
+      "file": "midscene_tech/src/explore_nav.ts"
+    },
+    {
+      "id": "file:midscene_tech/src/explore_snapshot.ts",
+      "type": "file",
+      "name": "explore_snapshot.ts",
+      "summary": "功能探索的快照管理，保存和比较应用状态快照",
+      "tags": [
+        "midscene",
+        "explore",
+        "snapshot",
+        "state-tracking"
+      ],
+      "complexity": "high"
+    },
+    {
+      "id": "function:midscene_tech/src/explore_snapshot.ts:takeSnapshot",
+      "type": "function",
+      "name": "takeSnapshot",
+      "summary": "拍摄当前应用状态的快照",
+      "file": "midscene_tech/src/explore_snapshot.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/explore_snapshot.ts:compareSnapshots",
+      "type": "function",
+      "name": "compareSnapshots",
+      "summary": "比较两个快照的差异",
+      "file": "midscene_tech/src/explore_snapshot.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/explore_snapshot.ts:saveSnapshot",
+      "type": "function",
+      "name": "saveSnapshot",
+      "summary": "保存快照到存储",
+      "file": "midscene_tech/src/explore_snapshot.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/explore_snapshot.ts:loadSnapshot",
+      "type": "function",
+      "name": "loadSnapshot",
+      "summary": "从存储加载快照",
+      "file": "midscene_tech/src/explore_snapshot.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/explore_snapshot.ts:getSnapshotHistory",
+      "type": "function",
+      "name": "getSnapshotHistory",
+      "summary": "获取快照历史记录",
+      "file": "midscene_tech/src/explore_snapshot.ts"
+    },
+    {
+      "id": "file:midscene_tech/src/explore_traverse.ts",
+      "type": "file",
+      "name": "explore_traverse.ts",
+      "summary": "功能探索的遍历算法，实现深度优先和广度优先的UI遍历",
+      "tags": [
+        "midscene",
+        "explore",
+        "traverse",
+        "algorithm",
+        "core-logic"
+      ],
+      "complexity": "high"
+    },
+    {
+      "id": "function:midscene_tech/src/explore_traverse.ts:depthFirstTraverse",
+      "type": "function",
+      "name": "depthFirstTraverse",
+      "summary": "深度优先遍历应用UI树",
+      "file": "midscene_tech/src/explore_traverse.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/explore_traverse.ts:breadthFirstTraverse",
+      "type": "function",
+      "name": "breadthFirstTraverse",
+      "summary": "广度优先遍历应用UI树",
+      "file": "midscene_tech/src/explore_traverse.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/explore_traverse.ts:exploreBranch",
+      "type": "function",
+      "name": "exploreBranch",
+      "summary": "探索单个UI分支",
+      "file": "midscene_tech/src/explore_traverse.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/explore_traverse.ts:shouldExploreFurther",
+      "type": "function",
+      "name": "shouldExploreFurther",
+      "summary": "判断是否应该继续深入探索",
+      "file": "midscene_tech/src/explore_traverse.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/explore_traverse.ts:backtrack",
+      "type": "function",
+      "name": "backtrack",
+      "summary": "回溯到父节点",
+      "file": "midscene_tech/src/explore_traverse.ts"
+    },
+    {
+      "id": "file:midscene_tech/src/explore_types.ts",
+      "type": "file",
+      "name": "explore_types.ts",
+      "summary": "功能探索相关的TypeScript类型定义",
+      "tags": [
+        "midscene",
+        "explore",
+        "types",
+        "interfaces"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "file:midscene_tech/src/explore.ts",
+      "type": "file",
+      "name": "explore.ts",
+      "summary": "功能探索主模块，整合所有探索组件和算法",
+      "tags": [
+        "midscene",
+        "explore",
+        "orchestrator",
+        "core-logic"
+      ],
+      "complexity": "high"
+    },
+    {
+      "id": "function:midscene_tech/src/explore.ts:runExploration",
+      "type": "function",
+      "name": "runExploration",
+      "summary": "执行完整的功能探索流程",
+      "file": "midscene_tech/src/explore.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/explore.ts:initializeExplorer",
+      "type": "function",
+      "name": "initializeExplorer",
+      "summary": "初始化探索器组件",
+      "file": "midscene_tech/src/explore.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/explore.ts:collectExplorationResults",
+      "type": "function",
+      "name": "collectExplorationResults",
+      "summary": "收集探索结果数据",
+      "file": "midscene_tech/src/explore.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/explore.ts:generateExplorationReport",
+      "type": "function",
+      "name": "generateExplorationReport",
+      "summary": "生成探索报告",
+      "file": "midscene_tech/src/explore.ts"
+    },
+    {
+      "id": "file:midscene_tech/src/feature_tree_build.ts",
+      "type": "file",
+      "name": "feature_tree_build.ts",
+      "summary": "功能树构建器，从探索结果生成功能特性的层次结构",
+      "tags": [
+        "midscene",
+        "feature-tree",
+        "builder",
+        "core-logic"
+      ],
+      "complexity": "high"
+    },
+    {
+      "id": "function:midscene_tech/src/feature_tree_build.ts:buildFeatureTree",
+      "type": "function",
+      "name": "buildFeatureTree",
+      "summary": "从探索数据构建功能树",
+      "file": "midscene_tech/src/feature_tree_build.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/feature_tree_build.ts:mergeFeatures",
+      "type": "function",
+      "name": "mergeFeatures",
+      "summary": "合并相似的功能特性",
+      "file": "midscene_tech/src/feature_tree_build.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/feature_tree_build.ts:pruneTree",
+      "type": "function",
+      "name": "pruneTree",
+      "summary": "剪枝功能树，移除冗余节点",
+      "file": "midscene_tech/src/feature_tree_build.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/feature_tree_build.ts:exportTree",
+      "type": "function",
+      "name": "exportTree",
+      "summary": "导出功能树到JSON格式",
+      "file": "midscene_tech/src/feature_tree_build.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/feature_tree_build.ts:visualizeTree",
+      "type": "function",
+      "name": "visualizeTree",
+      "summary": "生成功能树的可视化表示",
+      "file": "midscene_tech/src/feature_tree_build.ts"
+    },
+    {
+      "id": "file:midscene_tech/src/hdc.ts",
+      "type": "file",
+      "name": "hdc.ts",
+      "summary": "HDC设备控制封装，提供HarmonyOS设备的交互接口",
+      "tags": [
+        "midscene",
+        "device",
+        "hdc",
+        "harmonyos"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "function:midscene_tech/src/hdc.ts:connectDevice",
+      "type": "function",
+      "name": "connectDevice",
+      "summary": "连接到HDC设备",
+      "file": "midscene_tech/src/hdc.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/hdc.ts:disconnectDevice",
+      "type": "function",
+      "name": "disconnectDevice",
+      "summary": "断开HDC设备连接",
+      "file": "midscene_tech/src/hdc.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/hdc.ts:executeCommand",
+      "type": "function",
+      "name": "executeCommand",
+      "summary": "执行HDC命令",
+      "file": "midscene_tech/src/hdc.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/hdc.ts:takeScreenshot",
+      "type": "function",
+      "name": "takeScreenshot",
+      "summary": "通过HDC截取设备屏幕",
+      "file": "midscene_tech/src/hdc.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/hdc.ts:tap",
+      "type": "function",
+      "name": "tap",
+      "summary": "通过HDC执行点击操作",
+      "file": "midscene_tech/src/hdc.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/hdc.ts:swipe",
+      "type": "function",
+      "name": "swipe",
+      "summary": "通过HDC执行滑动操作",
+      "file": "midscene_tech/src/hdc.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/hdc.ts:typeText",
+      "type": "function",
+      "name": "typeText",
+      "summary": "通过HDC输入文本",
+      "file": "midscene_tech/src/hdc.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/hdc.ts:pressKey",
+      "type": "function",
+      "name": "pressKey",
+      "summary": "通过HDC按键",
+      "file": "midscene_tech/src/hdc.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/hdc.ts:getDeviceInfo",
+      "type": "function",
+      "name": "getDeviceInfo",
+      "summary": "获取HDC设备信息",
+      "file": "midscene_tech/src/hdc.ts"
+    },
+    {
+      "id": "function:midscene_tech/src/hdc.ts:installApp",
+      "type": "function",
+      "name": "installApp",
+      "summary": "通过HDC安装应用",
+      "file": "midscene_tech/src/hdc.ts"
+    },
+    {
+      "id": "file:midscene_tech/src/index.ts",
+      "type": "file",
+      "name": "index.ts",
+      "summary": "Midscene模块的主入口文件，导出所有公共API",
+      "tags": [
+        "midscene",
+        "entry-point",
+        "exports"
+      ],
+      "complexity": "low"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:mai_ui_tech/health.py",
+      "target": "function:mai_ui_tech/health.py:_models_url",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/health.py",
+      "target": "function:mai_ui_tech/health.py:list_model_ids",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/health.py",
+      "target": "function:mai_ui_tech/health.py:check_server",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/health.py",
+      "target": "file:mai_ui_tech/config.py",
+      "type": "imports",
+      "label": "导入配置"
+    },
+    {
+      "source": "function:mai_ui_tech/health.py:check_server",
+      "target": "function:mai_ui_tech/health.py:list_model_ids",
+      "type": "calls",
+      "label": "调用"
+    },
+    {
+      "source": "file:mai_ui_tech/image_utils.py",
+      "target": "function:mai_ui_tech/image_utils.py:resize_for_grounding",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/menu_detect.py",
+      "target": "class:mai_ui_tech/menu_detect.py:MenuItemResult",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/menu_detect.py",
+      "target": "class:mai_ui_tech/menu_detect.py:MenuDetectResult",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/menu_detect.py",
+      "target": "class:mai_ui_tech/menu_detect.py:MaiUiMenuDetectAgent",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/menu_detect.py",
+      "target": "function:mai_ui_tech/menu_detect.py:_strip_code_fence",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/menu_detect.py",
+      "target": "function:mai_ui_tech/menu_detect.py:_repair_json",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/menu_detect.py",
+      "target": "function:mai_ui_tech/menu_detect.py:_try_parse_json_object",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/menu_detect.py",
+      "target": "function:mai_ui_tech/menu_detect.py:_extract_menus_array_from_text",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/menu_detect.py",
+      "target": "function:mai_ui_tech/menu_detect.py:_extract_menu_objects_loose",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/menu_detect.py",
+      "target": "function:mai_ui_tech/menu_detect.py:_extract_answer_json",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/menu_detect.py",
+      "target": "function:mai_ui_tech/menu_detect.py:parse_menu_detect_response",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/menu_detect.py",
+      "target": "function:mai_ui_tech/menu_detect.py:_normalize_region",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/menu_detect.py",
+      "target": "function:mai_ui_tech/menu_detect.py:_menu_item_from_raw",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/menu_detect.py",
+      "target": "file:mai_ui_tech/mlx_inference.py",
+      "type": "imports",
+      "label": "导入MLX推理"
+    },
+    {
+      "source": "file:mai_ui_tech/menu_detect.py",
+      "target": "file:mai_ui_tech/coords.py",
+      "type": "imports",
+      "label": "导入坐标工具"
+    },
+    {
+      "source": "file:mai_ui_tech/menu_detect.py",
+      "target": "file:mai_ui_tech/config.py",
+      "type": "imports",
+      "label": "导入配置"
+    },
+    {
+      "source": "class:mai_ui_tech/menu_detect.py:MaiUiMenuDetectAgent",
+      "target": "class:mai_ui_tech/menu_detect.py:MenuDetectResult",
+      "type": "depends_on",
+      "label": "使用"
+    },
+    {
+      "source": "class:mai_ui_tech/menu_detect.py:MaiUiMenuDetectAgent",
+      "target": "class:mai_ui_tech/menu_detect.py:MenuItemResult",
+      "type": "depends_on",
+      "label": "使用"
+    },
+    {
+      "source": "function:mai_ui_tech/menu_detect.py:parse_menu_detect_response",
+      "target": "function:mai_ui_tech/menu_detect.py:_extract_answer_json",
+      "type": "calls",
+      "label": "调用"
+    },
+    {
+      "source": "function:mai_ui_tech/menu_detect.py:_extract_answer_json",
+      "target": "function:mai_ui_tech/menu_detect.py:_try_parse_json_object",
+      "type": "calls",
+      "label": "调用"
+    },
+    {
+      "source": "function:mai_ui_tech/menu_detect.py:_extract_answer_json",
+      "target": "function:mai_ui_tech/menu_detect.py:_extract_menus_array_from_text",
+      "type": "calls",
+      "label": "调用"
+    },
+    {
+      "source": "function:mai_ui_tech/menu_detect.py:_extract_answer_json",
+      "target": "function:mai_ui_tech/menu_detect.py:_extract_menu_objects_loose",
+      "type": "calls",
+      "label": "调用"
+    },
+    {
+      "source": "function:mai_ui_tech/menu_detect.py:_menu_item_from_raw",
+      "target": "function:mai_ui_tech/menu_detect.py:_normalize_region",
+      "type": "calls",
+      "label": "调用"
+    },
+    {
+      "source": "file:mai_ui_tech/mlx_inference.py",
+      "target": "function:mai_ui_tech/mlx_inference.py:_estimate_tokens",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/mlx_inference.py",
+      "target": "function:mai_ui_tech/mlx_inference.py:resolve_mlx_model_path",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/mlx_inference.py",
+      "target": "function:mai_ui_tech/mlx_inference.py:_chat_processor",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/mlx_inference.py",
+      "target": "function:mai_ui_tech/mlx_inference.py:build_vision_prompt",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/mlx_inference.py",
+      "target": "function:mai_ui_tech/mlx_inference.py:build_grounding_prompt",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/mlx_inference.py",
+      "target": "function:mai_ui_tech/mlx_inference.py:get_model_and_processor",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/mlx_inference.py",
+      "target": "function:mai_ui_tech/mlx_inference.py:_run_generate",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/mlx_inference.py",
+      "target": "function:mai_ui_tech/mlx_inference.py:_predict_mlx_locked",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/mlx_inference.py",
+      "target": "function:mai_ui_tech/mlx_inference.py:predict_mlx",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/mlx_inference.py",
+      "target": "function:mai_ui_tech/mlx_inference.py:predict_mlx_vision",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/mlx_inference.py",
+      "target": "file:mai_ui_tech/image_utils.py",
+      "type": "imports",
+      "label": "导入图像工具"
+    },
+    {
+      "source": "file:mai_ui_tech/mlx_inference.py",
+      "target": "file:mai_ui_tech/config.py",
+      "type": "imports",
+      "label": "导入配置"
+    },
+    {
+      "source": "function:mai_ui_tech/mlx_inference.py:predict_mlx",
+      "target": "function:mai_ui_tech/mlx_inference.py:_predict_mlx_locked",
+      "type": "calls",
+      "label": "调用"
+    },
+    {
+      "source": "function:mai_ui_tech/mlx_inference.py:predict_mlx_vision",
+      "target": "function:mai_ui_tech/mlx_inference.py:_predict_mlx_locked",
+      "type": "calls",
+      "label": "调用"
+    },
+    {
+      "source": "function:mai_ui_tech/mlx_inference.py:_predict_mlx_locked",
+      "target": "function:mai_ui_tech/mlx_inference.py:_run_generate",
+      "type": "calls",
+      "label": "调用"
+    },
+    {
+      "source": "function:mai_ui_tech/mlx_inference.py:_predict_mlx_locked",
+      "target": "function:mai_ui_tech/mlx_inference.py:resolve_mlx_model_path",
+      "type": "calls",
+      "label": "调用"
+    },
+    {
+      "source": "function:mai_ui_tech/mlx_inference.py:_predict_mlx_locked",
+      "target": "function:mai_ui_tech/mlx_inference.py:get_model_and_processor",
+      "type": "calls",
+      "label": "调用"
+    },
+    {
+      "source": "function:mai_ui_tech/mlx_inference.py:_run_generate",
+      "target": "function:mai_ui_tech/mlx_inference.py:build_vision_prompt",
+      "type": "calls",
+      "label": "调用"
+    },
+    {
+      "source": "function:mai_ui_tech/mlx_inference.py:_run_generate",
+      "target": "function:mai_ui_tech/mlx_inference.py:_estimate_tokens",
+      "type": "calls",
+      "label": "调用"
+    },
+    {
+      "source": "function:mai_ui_tech/mlx_inference.py:build_grounding_prompt",
+      "target": "function:mai_ui_tech/mlx_inference.py:build_vision_prompt",
+      "type": "calls",
+      "label": "调用"
+    },
+    {
+      "source": "file:mai_ui_tech/prompt.py",
+      "target": "file:mai_ui_tech/config.py",
+      "type": "imports",
+      "label": "导入配置"
+    },
+    {
+      "source": "file:mai_ui_tech/scripts/download_model_hf.py",
+      "target": "function:mai_ui_tech/scripts/download_model_hf.py:_hub_endpoint",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/scripts/download_model_hf.py",
+      "target": "function:mai_ui_tech/scripts/download_model_hf.py:download_model",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:mai_ui_tech/scripts/download_model_hf.py",
+      "target": "function:mai_ui_tech/scripts/download_model_hf.py:main",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "function:mai_ui_tech/scripts/download_model_hf.py:main",
+      "target": "function:mai_ui_tech/scripts/download_model_hf.py:download_model",
+      "type": "calls",
+      "label": "调用"
+    },
+    {
+      "source": "file:midscene_tech/scripts/demo-settings.ts",
+      "target": "function:midscene_tech/scripts/demo-settings.ts:getDemoConfig",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/agent.ts",
+      "target": "class:midscene_tech/src/agent.ts:MidsceneTestAgent",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/agent.ts",
+      "target": "function:midscene_tech/src/agent.ts:runTest",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/agent.ts",
+      "target": "file:midscene_tech/src/config.ts",
+      "type": "imports",
+      "label": "导入配置"
+    },
+    {
+      "source": "file:midscene_tech/src/agent.ts",
+      "target": "file:midscene_tech/src/device_runtime.ts",
+      "type": "imports",
+      "label": "导入设备运行时"
+    },
+    {
+      "source": "file:midscene_tech/src/agent.ts",
+      "target": "file:midscene_tech/src/app_scope.ts",
+      "type": "imports",
+      "label": "导入应用作用域"
+    },
+    {
+      "source": "file:midscene_tech/src/app_scope.ts",
+      "target": "function:midscene_tech/src/app_scope.ts:createAppScope",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/app_scope.ts",
+      "target": "function:midscene_tech/src/app_scope.ts:getAppScope",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/app_scope.ts",
+      "target": "function:midscene_tech/src/app_scope.ts:resetAppScope",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/cli.ts",
+      "target": "function:midscene_tech/src/cli.ts:main",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/cli.ts",
+      "target": "function:midscene_tech/src/cli.ts:parseArgs",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/cli.ts",
+      "target": "function:midscene_tech/src/cli.ts:runTestMode",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/cli.ts",
+      "target": "function:midscene_tech/src/cli.ts:runExploreMode",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/cli.ts",
+      "target": "file:midscene_tech/src/config.ts",
+      "type": "imports",
+      "label": "导入配置"
+    },
+    {
+      "source": "file:midscene_tech/src/cli.ts",
+      "target": "file:midscene_tech/src/agent.ts",
+      "type": "imports",
+      "label": "导入代理"
+    },
+    {
+      "source": "file:midscene_tech/src/cli.ts",
+      "target": "file:midscene_tech/src/explore.ts",
+      "type": "imports",
+      "label": "导入探索"
+    },
+    {
+      "source": "function:midscene_tech/src/cli.ts:main",
+      "target": "function:midscene_tech/src/cli.ts:parseArgs",
+      "type": "calls",
+      "label": "调用"
+    },
+    {
+      "source": "function:midscene_tech/src/cli.ts:main",
+      "target": "function:midscene_tech/src/cli.ts:runTestMode",
+      "type": "calls",
+      "label": "调用"
+    },
+    {
+      "source": "function:midscene_tech/src/cli.ts:main",
+      "target": "function:midscene_tech/src/cli.ts:runExploreMode",
+      "type": "calls",
+      "label": "调用"
+    },
+    {
+      "source": "file:midscene_tech/src/config.ts",
+      "target": "function:midscene_tech/src/config.ts:loadConfig",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/config.ts",
+      "target": "function:midscene_tech/src/config.ts:validateConfig",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/config.ts",
+      "target": "function:midscene_tech/src/config.ts:getDefaultConfig",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/config.ts",
+      "target": "function:midscene_tech/src/config.ts:mergeConfigs",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/device_runtime.ts",
+      "target": "function:midscene_tech/src/device_runtime.ts:createDeviceRuntime",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/device_runtime.ts",
+      "target": "function:midscene_tech/src/device_runtime.ts:getDeviceRuntime",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/explore_agent.ts",
+      "target": "function:midscene_tech/src/explore_agent.ts:runExploration",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/explore_agent.ts",
+      "target": "file:midscene_tech/src/explore.ts",
+      "type": "imports",
+      "label": "导入探索"
+    },
+    {
+      "source": "file:midscene_tech/src/explore_agent.ts",
+      "target": "file:midscene_tech/src/explore_common.ts",
+      "type": "imports",
+      "label": "导入通用工具"
+    },
+    {
+      "source": "file:midscene_tech/src/explore_common.ts",
+      "target": "function:midscene_tech/src/explore_common.ts:extractUIElements",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/explore_common.ts",
+      "target": "function:midscene_tech/src/explore_common.ts:compareScreens",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/explore_common.ts",
+      "target": "function:midscene_tech/src/explore_common.ts:findClickableElements",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/explore_common.ts",
+      "target": "function:midscene_tech/src/explore_common.ts:generateElementDescription",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/explore_common.ts",
+      "target": "file:midscene_tech/src/explore_types.ts",
+      "type": "imports",
+      "label": "导入类型"
+    },
+    {
+      "source": "file:midscene_tech/src/explore_fair_share.ts",
+      "target": "class:midscene_tech/src/explore_fair_share.ts:FairShareScheduler",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/explore_fair_share.ts",
+      "target": "function:midscene_tech/src/explore_fair_share.ts:addTask",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/explore_fair_share.ts",
+      "target": "function:midscene_tech/src/explore_fair_share.ts:getNextTask",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/explore_fair_share.ts",
+      "target": "function:midscene_tech/src/explore_fair_share.ts:updateProgress",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/explore_metrics.ts",
+      "target": "class:midscene_tech/src/explore_metrics.ts:ExploreMetrics",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/explore_metrics.ts",
+      "target": "function:midscene_tech/src/explore_metrics.ts:recordAction",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/explore_metrics.ts",
+      "target": "function:midscene_tech/src/explore_metrics.ts:getCoverageReport",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/explore_metrics.ts",
+      "target": "function:midscene_tech/src/explore_metrics.ts:exportMetrics",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/explore_nav.ts",
+      "target": "class:midscene_tech/src/explore_nav.ts:NavigationManager",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/explore_nav.ts",
+      "target": "function:midscene_tech/src/explore_nav.ts:navigateTo",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/explore_nav.ts",
+      "target": "function:midscene_tech/src/explore_nav.ts:goBack",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/explore_nav.ts",
+      "target": "function:midscene_tech/src/explore_nav.ts:getCurrentPage",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/explore_snapshot.ts",
+      "target": "function:midscene_tech/src/explore_snapshot.ts:takeSnapshot",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/explore_snapshot.ts",
+      "target": "function:midscene_tech/src/explore_snapshot.ts:compareSnapshots",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/explore_snapshot.ts",
+      "target": "function:midscene_tech/src/explore_snapshot.ts:saveSnapshot",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/explore_snapshot.ts",
+      "target": "function:midscene_tech/src/explore_snapshot.ts:loadSnapshot",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/explore_snapshot.ts",
+      "target": "function:midscene_tech/src/explore_snapshot.ts:getSnapshotHistory",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/explore_traverse.ts",
+      "target": "function:midscene_tech/src/explore_traverse.ts:depthFirstTraverse",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/explore_traverse.ts",
+      "target": "function:midscene_tech/src/explore_traverse.ts:breadthFirstTraverse",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/explore_traverse.ts",
+      "target": "function:midscene_tech/src/explore_traverse.ts:exploreBranch",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/explore_traverse.ts",
+      "target": "function:midscene_tech/src/explore_traverse.ts:shouldExploreFurther",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/explore_traverse.ts",
+      "target": "function:midscene_tech/src/explore_traverse.ts:backtrack",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/explore_traverse.ts",
+      "target": "file:midscene_tech/src/explore_common.ts",
+      "type": "imports",
+      "label": "导入通用工具"
+    },
+    {
+      "source": "file:midscene_tech/src/explore_traverse.ts",
+      "target": "file:midscene_tech/src/explore_snapshot.ts",
+      "type": "imports",
+      "label": "导入快照管理"
+    },
+    {
+      "source": "file:midscene_tech/src/explore_traverse.ts",
+      "target": "file:midscene_tech/src/explore_nav.ts",
+      "type": "imports",
+      "label": "导入导航管理"
+    },
+    {
+      "source": "file:midscene_tech/src/explore.ts",
+      "target": "function:midscene_tech/src/explore.ts:runExploration",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/explore.ts",
+      "target": "function:midscene_tech/src/explore.ts:initializeExplorer",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/explore.ts",
+      "target": "function:midscene_tech/src/explore.ts:collectExplorationResults",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/explore.ts",
+      "target": "function:midscene_tech/src/explore.ts:generateExplorationReport",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/explore.ts",
+      "target": "file:midscene_tech/src/explore_traverse.ts",
+      "type": "imports",
+      "label": "导入遍历算法"
+    },
+    {
+      "source": "file:midscene_tech/src/explore.ts",
+      "target": "file:midscene_tech/src/explore_fair_share.ts",
+      "type": "imports",
+      "label": "导入公平调度"
+    },
+    {
+      "source": "file:midscene_tech/src/explore.ts",
+      "target": "file:midscene_tech/src/explore_metrics.ts",
+      "type": "imports",
+      "label": "导入指标收集"
+    },
+    {
+      "source": "file:midscene_tech/src/explore.ts",
+      "target": "file:midscene_tech/src/explore_common.ts",
+      "type": "imports",
+      "label": "导入通用工具"
+    },
+    {
+      "source": "function:midscene_tech/src/explore.ts:runExploration",
+      "target": "function:midscene_tech/src/explore.ts:initializeExplorer",
+      "type": "calls",
+      "label": "调用"
+    },
+    {
+      "source": "function:midscene_tech/src/explore.ts:runExploration",
+      "target": "function:midscene_tech/src/explore_traverse.ts:depthFirstTraverse",
+      "type": "calls",
+      "label": "调用"
+    },
+    {
+      "source": "function:midscene_tech/src/explore.ts:runExploration",
+      "target": "function:midscene_tech/src/explore.ts:collectExplorationResults",
+      "type": "calls",
+      "label": "调用"
+    },
+    {
+      "source": "function:midscene_tech/src/explore.ts:runExploration",
+      "target": "function:midscene_tech/src/explore.ts:generateExplorationReport",
+      "type": "calls",
+      "label": "调用"
+    },
+    {
+      "source": "file:midscene_tech/src/feature_tree_build.ts",
+      "target": "function:midscene_tech/src/feature_tree_build.ts:buildFeatureTree",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/feature_tree_build.ts",
+      "target": "function:midscene_tech/src/feature_tree_build.ts:mergeFeatures",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/feature_tree_build.ts",
+      "target": "function:midscene_tech/src/feature_tree_build.ts:pruneTree",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/feature_tree_build.ts",
+      "target": "function:midscene_tech/src/feature_tree_build.ts:exportTree",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/feature_tree_build.ts",
+      "target": "function:midscene_tech/src/feature_tree_build.ts:visualizeTree",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/hdc.ts",
+      "target": "function:midscene_tech/src/hdc.ts:connectDevice",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/hdc.ts",
+      "target": "function:midscene_tech/src/hdc.ts:disconnectDevice",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/hdc.ts",
+      "target": "function:midscene_tech/src/hdc.ts:executeCommand",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/hdc.ts",
+      "target": "function:midscene_tech/src/hdc.ts:takeScreenshot",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/hdc.ts",
+      "target": "function:midscene_tech/src/hdc.ts:tap",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/hdc.ts",
+      "target": "function:midscene_tech/src/hdc.ts:swipe",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/hdc.ts",
+      "target": "function:midscene_tech/src/hdc.ts:typeText",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/hdc.ts",
+      "target": "function:midscene_tech/src/hdc.ts:pressKey",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/hdc.ts",
+      "target": "function:midscene_tech/src/hdc.ts:getDeviceInfo",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/hdc.ts",
+      "target": "function:midscene_tech/src/hdc.ts:installApp",
+      "type": "contains",
+      "label": "定义"
+    },
+    {
+      "source": "file:midscene_tech/src/index.ts",
+      "target": "file:midscene_tech/src/agent.ts",
+      "type": "imports",
+      "label": "导入代理"
+    },
+    {
+      "source": "file:midscene_tech/src/index.ts",
+      "target": "file:midscene_tech/src/explore.ts",
+      "type": "imports",
+      "label": "导入探索"
+    },
+    {
+      "source": "file:midscene_tech/src/index.ts",
+      "target": "file:midscene_tech/src/config.ts",
+      "type": "imports",
+      "label": "导入配置"
+    },
+    {
+      "source": "file:midscene_tech/src/index.ts",
+      "target": "file:midscene_tech/src/feature_tree_build.ts",
+      "type": "imports",
+      "label": "导入功能树构建"
+    },
+    {
+      "source": "file:mai_ui_tech/health.py",
+      "target": "function:mai_ui_tech/health.py:list_model_ids",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:mai_ui_tech/health.py",
+      "target": "function:mai_ui_tech/health.py:check_server",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:mai_ui_tech/image_utils.py",
+      "target": "function:mai_ui_tech/image_utils.py:resize_for_grounding",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:mai_ui_tech/menu_detect.py",
+      "target": "function:mai_ui_tech/menu_detect.py:_try_parse_json_object",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:mai_ui_tech/menu_detect.py",
+      "target": "function:mai_ui_tech/menu_detect.py:_extract_menus_array_from_text",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:mai_ui_tech/menu_detect.py",
+      "target": "function:mai_ui_tech/menu_detect.py:_extract_menu_objects_loose",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:mai_ui_tech/menu_detect.py",
+      "target": "function:mai_ui_tech/menu_detect.py:_extract_answer_json",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:mai_ui_tech/menu_detect.py",
+      "target": "function:mai_ui_tech/menu_detect.py:_normalize_region",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:mai_ui_tech/menu_detect.py",
+      "target": "function:mai_ui_tech/menu_detect.py:_menu_item_from_raw",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:mai_ui_tech/menu_detect.py",
+      "target": "class:mai_ui_tech/menu_detect.py:MenuItemResult",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:mai_ui_tech/menu_detect.py",
+      "target": "class:mai_ui_tech/menu_detect.py:MaiUiMenuDetectAgent",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:mai_ui_tech/mlx_inference.py",
+      "target": "function:mai_ui_tech/mlx_inference.py:resolve_mlx_model_path",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:mai_ui_tech/mlx_inference.py",
+      "target": "function:mai_ui_tech/mlx_inference.py:build_vision_prompt",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:mai_ui_tech/mlx_inference.py",
+      "target": "function:mai_ui_tech/mlx_inference.py:_run_generate",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:mai_ui_tech/mlx_inference.py",
+      "target": "function:mai_ui_tech/mlx_inference.py:_predict_mlx_locked",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:mai_ui_tech/mlx_inference.py",
+      "target": "function:mai_ui_tech/mlx_inference.py:predict_mlx_vision",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:mai_ui_tech/scripts/download_model_hf.py",
+      "target": "function:mai_ui_tech/scripts/download_model_hf.py:_download_one",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:mai_ui_tech/scripts/download_model_hf.py",
+      "target": "function:mai_ui_tech/scripts/download_model_hf.py:main",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/scripts/demo-settings.ts",
+      "target": "function:midscene_tech/scripts/demo-settings.ts:main",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/agent.ts",
+      "target": "class:midscene_tech/src/agent.ts:MidsceneTestAgent",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/app_scope.ts",
+      "target": "function:midscene_tech/src/app_scope.ts:getHarmonyForegroundBundle",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/app_scope.ts",
+      "target": "function:midscene_tech/src/app_scope.ts:buildExploreActionContext",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/cli.ts",
+      "target": "function:midscene_tech/src/cli.ts:main",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/config.ts",
+      "target": "function:midscene_tech/src/config.ts:loadAgentConfig",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/config.ts",
+      "target": "function:midscene_tech/src/config.ts:applyAgentBackendModelEnv",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/config.ts",
+      "target": "function:midscene_tech/src/config.ts:applySharedModelEnvFallbacks",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/config.ts",
+      "target": "function:midscene_tech/src/config.ts:assertMidsceneModelEnv",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/device_runtime.ts",
+      "target": "function:midscene_tech/src/device_runtime.ts:createMidsceneRuntime",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/device_runtime.ts",
+      "target": "function:midscene_tech/src/device_runtime.ts:resolveHdcDeviceIdForConfig",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/explore_agent.ts",
+      "target": "function:midscene_tech/src/explore_agent.ts:createExploreAgent",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/explore_common.ts",
+      "target": "function:midscene_tech/src/explore_common.ts:applyIconGridRegionHeuristic",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/explore_common.ts",
+      "target": "function:midscene_tech/src/explore_common.ts:normalizeNavItems",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/explore_common.ts",
+      "target": "function:midscene_tech/src/explore_common.ts:inferActiveBottomTab",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/explore_common.ts",
+      "target": "function:midscene_tech/src/explore_common.ts:listingPathForItem",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/explore_common.ts",
+      "target": "function:midscene_tech/src/explore_common.ts:filterNavItemsForScreen",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/explore_common.ts",
+      "target": "function:midscene_tech/src/explore_common.ts:shouldEnqueueTap",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/explore_common.ts",
+      "target": "function:midscene_tech/src/explore_common.ts:inferHasSubPages",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/explore_fair_share.ts",
+      "target": "function:midscene_tech/src/explore_fair_share.ts:resolveQuotaPerRoot",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/explore_fair_share.ts",
+      "target": "function:midscene_tech/src/explore_fair_share.ts:createFairShareBudget",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/explore_fair_share.ts",
+      "target": "class:midscene_tech/src/explore_fair_share.ts:FairShareBudget",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/explore_metrics.ts",
+      "target": "class:midscene_tech/src/explore_metrics.ts:ExploreMetrics",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/explore_nav.ts",
+      "target": "class:midscene_tech/src/explore_nav.ts:ExploreNavigation",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/explore_snapshot.ts",
+      "target": "function:midscene_tech/src/explore_snapshot.ts:buildSnapshotPrompt",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/explore_snapshot.ts",
+      "target": "function:midscene_tech/src/explore_snapshot.ts:parseSnapshotRaw",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/explore_snapshot.ts",
+      "target": "function:midscene_tech/src/explore_snapshot.ts:inferHorizontalScrollAreasStrong",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/explore_snapshot.ts",
+      "target": "function:midscene_tech/src/explore_snapshot.ts:mergeSnapshots",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/explore_snapshot.ts",
+      "target": "function:midscene_tech/src/explore_snapshot.ts:buildScrollRevealTasks",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/explore_snapshot.ts",
+      "target": "function:midscene_tech/src/explore_snapshot.ts:queryScreenSnapshotOnce",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/explore_snapshot.ts",
+      "target": "function:midscene_tech/src/explore_snapshot.ts:revealHiddenMenuItems",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/explore_snapshot.ts",
+      "target": "function:midscene_tech/src/explore_snapshot.ts:queryScreenSnapshot",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/explore_snapshot.ts",
+      "target": "function:midscene_tech/src/explore_snapshot.ts:queryScreenSnapshotFallback",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/explore_snapshot.ts",
+      "target": "function:midscene_tech/src/explore_snapshot.ts:waitAfterTap",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/explore_traverse.ts",
+      "target": "function:midscene_tech/src/explore_traverse.ts:emitQueueEvent",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/explore_traverse.ts",
+      "target": "function:midscene_tech/src/explore_traverse.ts:enqueueTap",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/explore_traverse.ts",
+      "target": "function:midscene_tech/src/explore_traverse.ts:tapNavItem",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/explore_traverse.ts",
+      "target": "function:midscene_tech/src/explore_traverse.ts:scheduleChildrenOnFrontier",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/explore_traverse.ts",
+      "target": "function:midscene_tech/src/explore_traverse.ts:runFrontierTraverse",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/explore.ts",
+      "target": "function:midscene_tech/src/explore.ts:runAppFeatureExplore",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/explore.ts",
+      "target": "function:midscene_tech/src/explore.ts:failOutcome",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/feature_tree_build.ts",
+      "target": "function:midscene_tech/src/feature_tree_build.ts:enrichFeatureGiicFields",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/feature_tree_build.ts",
+      "target": "function:midscene_tech/src/feature_tree_build.ts:ensureChild",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/feature_tree_build.ts",
+      "target": "function:midscene_tech/src/feature_tree_build.ts:buildFunctionTree",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/feature_tree_build.ts",
+      "target": "function:midscene_tech/src/feature_tree_build.ts:buildScreenGroupedTree",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/feature_tree_build.ts",
+      "target": "function:midscene_tech/src/feature_tree_build.ts:reparentRootTabContent",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/feature_tree_build.ts",
+      "target": "function:midscene_tech/src/feature_tree_build.ts:reclassifyIconGridRegions",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/feature_tree_build.ts",
+      "target": "function:midscene_tech/src/feature_tree_build.ts:attachTreesToResult",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/hdc.ts",
+      "target": "function:midscene_tech/src/hdc.ts:resolveHdcExecutablePath",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/hdc.ts",
+      "target": "function:midscene_tech/src/hdc.ts:runHdc",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/hdc.ts",
+      "target": "function:midscene_tech/src/hdc.ts:hdcShell",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/hdc.ts",
+      "target": "function:midscene_tech/src/hdc.ts:queryMainAbility",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/hdc.ts",
+      "target": "function:midscene_tech/src/hdc.ts:listInstalledBundleIds",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/hdc.ts",
+      "target": "function:midscene_tech/src/hdc.ts:resolveDeviceId",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    }
+  ]
+}

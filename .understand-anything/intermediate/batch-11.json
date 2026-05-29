@@ -1,0 +1,1970 @@
+{
+  "nodes": [
+    {
+      "id": "file:midscene_tech/src/model_log.ts",
+      "type": "file",
+      "name": "model_log.ts",
+      "summary": "模型调用日志模块，提供 token 估算和 LLM 调用记录功能，包括耗时统计、输入输出 token 计算和 stderr 错误输出",
+      "tags": [
+        "midscene",
+        "logging",
+        "model",
+        "observability"
+      ],
+      "complexity": 1,
+      "lines": 90
+    },
+    {
+      "id": "func:midscene_tech/src/model_log.ts::estimateTokens",
+      "type": "function",
+      "name": "estimateTokens",
+      "summary": "根据文本字符编码估算 token 数量，中英文混合计算",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 9,
+      "file": "file:midscene_tech/src/model_log.ts"
+    },
+    {
+      "id": "func:midscene_tech/src/model_log.ts::logStderr",
+      "type": "function",
+      "name": "logStderr",
+      "summary": "向 stderr 写入 JSON 格式的错误日志",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 10,
+      "file": "file:midscene_tech/src/model_log.ts"
+    },
+    {
+      "id": "func:midscene_tech/src/model_log.ts::logModelCall",
+      "type": "function",
+      "name": "logModelCall",
+      "summary": "包装 LLM 调用，记录耗时、token 用量、输入输出到 stderr 和 stdout，支持回调通知",
+      "tags": [
+        "function"
+      ],
+      "complexity": 2,
+      "lines": 50,
+      "file": "file:midscene_tech/src/model_log.ts"
+    },
+    {
+      "id": "file:midscene_tech/src/platform.ts",
+      "type": "file",
+      "name": "platform.ts",
+      "summary": "设备平台解析工具，支持 android/harmonyos 平台和 midscene 后端的字符串标准化与标签生成",
+      "tags": [
+        "midscene",
+        "platform",
+        "device",
+        "utility"
+      ],
+      "complexity": 1,
+      "lines": 20
+    },
+    {
+      "id": "func:midscene_tech/src/platform.ts::parseDevicePlatform",
+      "type": "function",
+      "name": "parseDevicePlatform",
+      "summary": "将原始平台字符串标准化为 android 或 harmonyos 枚举值",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 5,
+      "file": "file:midscene_tech/src/platform.ts"
+    },
+    {
+      "id": "func:midscene_tech/src/platform.ts::parseAgentBackend",
+      "type": "function",
+      "name": "parseAgentBackend",
+      "summary": "将原始后端字符串标准化为 midscene 或 autoglm 枚举值",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 4,
+      "file": "file:midscene_tech/src/platform.ts"
+    },
+    {
+      "id": "func:midscene_tech/src/platform.ts::platformLabel",
+      "type": "function",
+      "name": "platformLabel",
+      "summary": "根据平台类型返回中文标签文本",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 3,
+      "file": "file:midscene_tech/src/platform.ts"
+    },
+    {
+      "id": "file:midscene_tech/src/resolve_app_launch.ts",
+      "type": "file",
+      "name": "resolve_app_launch.ts",
+      "summary": "应用启动解析模块，支持通过应用名称或包名(bundleId)在 HarmonyOS 设备上启动应用，包含 HDC 命令交互和 MainAbility 自动发现",
+      "tags": [
+        "midscene",
+        "device",
+        "harmonyos",
+        "app-launch",
+        "hdc"
+      ],
+      "complexity": 3,
+      "lines": 166
+    },
+    {
+      "id": "func:midscene_tech/src/resolve_app_launch.ts::loadAppNameMapping",
+      "type": "function",
+      "name": "loadAppNameMapping",
+      "summary": "从环境变量加载应用名称到包名的映射表，支持模糊匹配",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 19,
+      "file": "file:midscene_tech/src/resolve_app_launch.ts"
+    },
+    {
+      "id": "func:midscene_tech/src/resolve_app_launch.ts::startBundleWithMainAbility",
+      "type": "function",
+      "name": "startBundleWithMainAbility",
+      "summary": "使用 HDC 命令启动指定包名的 MainAbility，支持自动查询能力名称",
+      "tags": [
+        "function"
+      ],
+      "complexity": 2,
+      "lines": 34,
+      "file": "file:midscene_tech/src/resolve_app_launch.ts"
+    },
+    {
+      "id": "func:midscene_tech/src/resolve_app_launch.ts::launchAppByName",
+      "type": "function",
+      "name": "launchAppByName",
+      "summary": "通过应用名称查找包名并启动 HarmonyOS 应用，包含安装检测和重试逻辑",
+      "tags": [
+        "function"
+      ],
+      "complexity": 2,
+      "lines": 44,
+      "file": "file:midscene_tech/src/resolve_app_launch.ts"
+    },
+    {
+      "id": "func:midscene_tech/src/resolve_app_launch.ts::launchAppByBundleId",
+      "type": "function",
+      "name": "launchAppByBundleId",
+      "summary": "通过 bundleId 直接在设备上启动应用",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 12,
+      "file": "file:midscene_tech/src/resolve_app_launch.ts"
+    },
+    {
+      "id": "func:midscene_tech/src/resolve_app_launch.ts::applyAppNameMappingToDevice",
+      "type": "function",
+      "name": "applyAppNameMappingToDevice",
+      "summary": "将应用名称映射绑定到设备配置上",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 6,
+      "file": "file:midscene_tech/src/resolve_app_launch.ts"
+    },
+    {
+      "id": "file:midscene_tech/src/step_timeout.ts",
+      "type": "file",
+      "name": "step_timeout.ts",
+      "summary": "步骤超时管理模块，从环境变量读取超时配置，提供 Promise.race 超时包装机制",
+      "tags": [
+        "midscene",
+        "timeout",
+        "utility"
+      ],
+      "complexity": 1,
+      "lines": 41
+    },
+    {
+      "id": "func:midscene_tech/src/step_timeout.ts::stepTimeoutMs",
+      "type": "function",
+      "name": "stepTimeoutMs",
+      "summary": "从 MIDSCENE_STEP_TIMEOUT_SEC 环境变量读取步骤超时毫秒数，默认 180 秒",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 6,
+      "file": "file:midscene_tech/src/step_timeout.ts"
+    },
+    {
+      "id": "func:midscene_tech/src/step_timeout.ts::exploreStepTimeoutMs",
+      "type": "function",
+      "name": "exploreStepTimeoutMs",
+      "summary": "从环境变量读取探索步骤的超时时间，默认 60 秒",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 10,
+      "file": "file:midscene_tech/src/step_timeout.ts"
+    },
+    {
+      "id": "func:midscene_tech/src/step_timeout.ts::withStepTimeout",
+      "type": "function",
+      "name": "withStepTimeout",
+      "summary": "使用 Promise.race 包装异步操作，超时自动抛出错误",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 20,
+      "file": "file:midscene_tech/src/step_timeout.ts"
+    },
+    {
+      "id": "file:midscene_tech/src/web_dispatch.ts",
+      "type": "file",
+      "name": "web_dispatch.ts",
+      "summary": "Web 调度协议解析模块，将 JSON 负载解析为类型安全的执行任务描述，包含设备、任务文本、超时、重试等配置的校验",
+      "tags": [
+        "midscene",
+        "web-dispatch",
+        "protocol",
+        "validation"
+      ],
+      "complexity": 2,
+      "lines": 169
+    },
+    {
+      "id": "func:midscene_tech/src/web_dispatch.ts::optUInt",
+      "type": "function",
+      "name": "optUInt",
+      "summary": "安全地从对象中提取无符号整数字段",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 5,
+      "file": "file:midscene_tech/src/web_dispatch.ts"
+    },
+    {
+      "id": "func:midscene_tech/src/web_dispatch.ts::optPositiveInt",
+      "type": "function",
+      "name": "optPositiveInt",
+      "summary": "安全地从对象中提取正整数字段，无效时返回 undefined",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 6,
+      "file": "file:midscene_tech/src/web_dispatch.ts"
+    },
+    {
+      "id": "func:midscene_tech/src/web_dispatch.ts::parseExecutionMode",
+      "type": "function",
+      "name": "parseExecutionMode",
+      "summary": "解析执行模式字符串为 natural 或 structured 枚举值",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 6,
+      "file": "file:midscene_tech/src/web_dispatch.ts"
+    },
+    {
+      "id": "func:midscene_tech/src/web_dispatch.ts::parseWebDispatchJson",
+      "type": "function",
+      "name": "parseWebDispatchJson",
+      "summary": "解析 agent_service 发送的 JSON 调度请求，提取设备ID、任务文本、执行模式、超时等参数并进行校验",
+      "tags": [
+        "function"
+      ],
+      "complexity": 3,
+      "lines": 104,
+      "file": "file:midscene_tech/src/web_dispatch.ts"
+    },
+    {
+      "id": "file:midscene_tech/src/yaml_runner.ts",
+      "type": "file",
+      "name": "yaml_runner.ts",
+      "summary": "YAML 脚本执行器，将 Midscene YAML 测试脚本编译为可执行的测试步骤序列，支持 HarmonyOS 平台的特殊处理",
+      "tags": [
+        "midscene",
+        "yaml",
+        "test-runner",
+        "harmonyos"
+      ],
+      "complexity": 1,
+      "lines": 66
+    },
+    {
+      "id": "file:web/backend/app/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "summary": "Web 后端应用包初始化文件",
+      "tags": [
+        "web-backend",
+        "init"
+      ],
+      "complexity": 1,
+      "lines": 1
+    },
+    {
+      "id": "file:web/backend/app/auth_utils.py",
+      "type": "file",
+      "name": "auth_utils.py",
+      "summary": "认证工具模块，提供密码哈希/验证、JWT 令牌生成/解码功能，使用 SHA256 预处理后 bcrypt 加密",
+      "tags": [
+        "web-backend",
+        "auth",
+        "jwt",
+        "bcrypt",
+        "security"
+      ],
+      "complexity": 1,
+      "lines": 63
+    },
+    {
+      "id": "func:web/backend/app/auth_utils.py::hash_password",
+      "type": "function",
+      "name": "hash_password",
+      "summary": "对密码进行 SHA256 预处理后使用 bcrypt 加密",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 3,
+      "file": "file:web/backend/app/auth_utils.py"
+    },
+    {
+      "id": "func:web/backend/app/auth_utils.py::verify_password",
+      "type": "function",
+      "name": "verify_password",
+      "summary": "验证密码是否匹配 bcrypt 哈希值",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 13,
+      "file": "file:web/backend/app/auth_utils.py"
+    },
+    {
+      "id": "func:web/backend/app/auth_utils.py::create_access_token",
+      "type": "function",
+      "name": "create_access_token",
+      "summary": "创建 JWT 访问令牌，包含用户ID和角色信息",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 4,
+      "file": "file:web/backend/app/auth_utils.py"
+    },
+    {
+      "id": "func:web/backend/app/auth_utils.py::decode_access_token_payload",
+      "type": "function",
+      "name": "decode_access_token_payload",
+      "summary": "解码 JWT 令牌的 payload 部分",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 5,
+      "file": "file:web/backend/app/auth_utils.py"
+    },
+    {
+      "id": "func:web/backend/app/auth_utils.py::decode_token",
+      "type": "function",
+      "name": "decode_token",
+      "summary": "完整解码并验证 JWT 令牌，过期时抛出异常",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 11,
+      "file": "file:web/backend/app/auth_utils.py"
+    },
+    {
+      "id": "file:web/backend/app/database.py",
+      "type": "file",
+      "name": "database.py",
+      "summary": "数据库核心模块，负责 MySQL 连接池管理、DDL 迁移(ensure_schema)、RBAC 初始化、公司/项目/个人空间引导，无 Alembic 依赖",
+      "tags": [
+        "web-backend",
+        "database",
+        "mysql",
+        "migration",
+        "rbac",
+        "bootstrap"
+      ],
+      "complexity": 4,
+      "lines": 483
+    },
+    {
+      "id": "func:web/backend/app/database.py::_build_engine",
+      "type": "function",
+      "name": "_build_engine",
+      "summary": "根据数据库 URL 构建 SQLAlchemy 引擎，配置连接池参数",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 22,
+      "file": "file:web/backend/app/database.py"
+    },
+    {
+      "id": "func:web/backend/app/database.py::ensure_schema",
+      "type": "function",
+      "name": "ensure_schema",
+      "summary": "DDL 迁移核心函数，增量添加列、表和索引，覆盖所有业务表结构变更",
+      "tags": [
+        "function"
+      ],
+      "complexity": 3,
+      "lines": 195,
+      "file": "file:web/backend/app/database.py"
+    },
+    {
+      "id": "func:web/backend/app/database.py::ensure_company_bootstrap",
+      "type": "function",
+      "name": "ensure_company_bootstrap",
+      "summary": "确保默认公司记录存在，初始化多租户基础数据",
+      "tags": [
+        "function"
+      ],
+      "complexity": 2,
+      "lines": 50,
+      "file": "file:web/backend/app/database.py"
+    },
+    {
+      "id": "func:web/backend/app/database.py::ensure_builtin_platform_admin",
+      "type": "function",
+      "name": "ensure_builtin_platform_admin",
+      "summary": "确保内置平台管理员账户存在，自动创建或更新",
+      "tags": [
+        "function"
+      ],
+      "complexity": 3,
+      "lines": 78,
+      "file": "file:web/backend/app/database.py"
+    },
+    {
+      "id": "func:web/backend/app/database.py::bootstrap_rbac",
+      "type": "function",
+      "name": "bootstrap_rbac",
+      "summary": "引导 RBAC 角色定义到数据库，确保三个角色(platform_admin/tse/enterprise)存在",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 26,
+      "file": "file:web/backend/app/database.py"
+    },
+    {
+      "id": "func:web/backend/app/database.py::ensure_projects_bootstrap",
+      "type": "function",
+      "name": "ensure_projects_bootstrap",
+      "summary": "确保默认项目记录存在",
+      "tags": [
+        "function"
+      ],
+      "complexity": 2,
+      "lines": 30,
+      "file": "file:web/backend/app/database.py"
+    },
+    {
+      "id": "func:web/backend/app/database.py::ensure_personal_spaces",
+      "type": "function",
+      "name": "ensure_personal_spaces",
+      "summary": "确保所有用户都有个人空间记录",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 19,
+      "file": "file:web/backend/app/database.py"
+    },
+    {
+      "id": "func:web/backend/app/database.py::get_db",
+      "type": "function",
+      "name": "get_db",
+      "summary": "FastAPI 依赖注入，提供数据库会话的上下文管理器",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 6,
+      "file": "file:web/backend/app/database.py"
+    },
+    {
+      "id": "file:web/backend/app/deps.py",
+      "type": "file",
+      "name": "deps.py",
+      "summary": "FastAPI 认证依赖模块，提供 JWT 解析、用户身份验证和角色权限检查的依赖注入函数",
+      "tags": [
+        "web-backend",
+        "auth",
+        "fastapi",
+        "dependency-injection"
+      ],
+      "complexity": 1,
+      "lines": 66
+    },
+    {
+      "id": "func:web/backend/app/deps.py::get_current_user",
+      "type": "function",
+      "name": "get_current_user",
+      "summary": "从 Authorization header 解析 JWT 并验证用户身份，返回当前用户对象",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 24,
+      "file": "file:web/backend/app/deps.py"
+    },
+    {
+      "id": "func:web/backend/app/deps.py::get_current_user_allow_stale_role",
+      "type": "function",
+      "name": "get_current_user_allow_stale_role",
+      "summary": "允许角色过期但仍返回用户对象，用于宽松场景",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 14,
+      "file": "file:web/backend/app/deps.py"
+    },
+    {
+      "id": "func:web/backend/app/deps.py::require_roles",
+      "type": "function",
+      "name": "require_roles",
+      "summary": "创建角色校验依赖，要求用户具有指定角色之一",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 9,
+      "file": "file:web/backend/app/deps.py"
+    },
+    {
+      "id": "file:web/backend/app/executor.py",
+      "type": "file",
+      "name": "executor.py",
+      "summary": "测试执行编排器，通过 HTTP 调用 agent_service 提交测试任务，处理 SSE 流事件(步骤/日志/token 用量)，支持取消操作",
+      "tags": [
+        "web-backend",
+        "executor",
+        "agent-service",
+        "sse",
+        "test-execution",
+        "orchestration"
+      ],
+      "complexity": 3,
+      "lines": 499
+    },
+    {
+      "id": "func:web/backend/app/executor.py::prepare_cancel_slot",
+      "type": "function",
+      "name": "prepare_cancel_slot",
+      "summary": "准备取消标志位，用于标记需要取消的任务",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 3,
+      "file": "file:web/backend/app/executor.py"
+    },
+    {
+      "id": "func:web/backend/app/executor.py::signal_cancel",
+      "type": "function",
+      "name": "signal_cancel",
+      "summary": "向 agent_service 发送取消请求，终止正在运行的测试任务和子进程",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 17,
+      "file": "file:web/backend/app/executor.py"
+    },
+    {
+      "id": "func:web/backend/app/executor.py::execute_test_run",
+      "type": "function",
+      "name": "execute_test_run",
+      "summary": "测试执行主函数：构建请求、提交到 agent_service、消费 SSE 流、更新 TestRun 状态和步骤日志",
+      "tags": [
+        "function"
+      ],
+      "complexity": 3,
+      "lines": 439,
+      "file": "file:web/backend/app/executor.py"
+    },
+    {
+      "id": "file:web/backend/app/knowledge/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "summary": "知识库子包初始化文件",
+      "tags": [
+        "web-backend",
+        "knowledge",
+        "init"
+      ],
+      "complexity": 1,
+      "lines": 1
+    },
+    {
+      "id": "file:web/backend/app/knowledge/chunk_policy.py",
+      "type": "file",
+      "name": "chunk_policy.py",
+      "summary": "知识库分块策略配置模块，管理文档分块的大小、重叠、标题分块等策略，支持环境变量、项目级和文档级三层配置合并",
+      "tags": [
+        "web-backend",
+        "knowledge",
+        "chunking",
+        "configuration"
+      ],
+      "complexity": 3,
+      "lines": 171
+    },
+    {
+      "id": "func:web/backend/app/knowledge/chunk_policy.py::default_chunk_policy_from_env",
+      "type": "function",
+      "name": "default_chunk_policy_from_env",
+      "summary": "从环境变量构建默认分块策略配置",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 27,
+      "file": "file:web/backend/app/knowledge/chunk_policy.py"
+    },
+    {
+      "id": "func:web/backend/app/knowledge/chunk_policy.py::normalize_chunk_policy",
+      "type": "function",
+      "name": "normalize_chunk_policy",
+      "summary": "标准化分块策略参数，确保值在合理范围内",
+      "tags": [
+        "function"
+      ],
+      "complexity": 2,
+      "lines": 30,
+      "file": "file:web/backend/app/knowledge/chunk_policy.py"
+    },
+    {
+      "id": "func:web/backend/app/knowledge/chunk_policy.py::resolve_chunk_policy",
+      "type": "function",
+      "name": "resolve_chunk_policy",
+      "summary": "三层合并：文档级 > 项目级 > 全局默认，返回最终生效的分块策略",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 26,
+      "file": "file:web/backend/app/knowledge/chunk_policy.py"
+    },
+    {
+      "id": "func:web/backend/app/knowledge/chunk_policy.py::effective_search_min_score",
+      "type": "function",
+      "name": "effective_search_min_score",
+      "summary": "计算最终生效的搜索最低相似度阈值",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 8,
+      "file": "file:web/backend/app/knowledge/chunk_policy.py"
+    },
+    {
+      "id": "file:web/backend/app/knowledge/config.py",
+      "type": "file",
+      "name": "config.py",
+      "summary": "知识库全局配置模块，集中管理 Qdrant、嵌入模型 API、文件存储和 RAG 模式等环境变量配置",
+      "tags": [
+        "web-backend",
+        "knowledge",
+        "configuration",
+        "qdrant",
+        "embedding"
+      ],
+      "complexity": 2,
+      "lines": 90
+    },
+    {
+      "id": "func:web/backend/app/knowledge/config.py::qdrant_url",
+      "type": "function",
+      "name": "qdrant_url",
+      "summary": "返回 Qdrant 向量数据库的 URL 配置",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 2,
+      "file": "file:web/backend/app/knowledge/config.py"
+    },
+    {
+      "id": "func:web/backend/app/knowledge/config.py::kb_embedding_api_key",
+      "type": "function",
+      "name": "kb_embedding_api_key",
+      "summary": "返回 DashScope 嵌入模型的 API Key",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 6,
+      "file": "file:web/backend/app/knowledge/config.py"
+    },
+    {
+      "id": "func:web/backend/app/knowledge/config.py::kb_embedding_model",
+      "type": "function",
+      "name": "kb_embedding_model",
+      "summary": "返回嵌入模型名称，默认 text-embedding-v3",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 2,
+      "file": "file:web/backend/app/knowledge/config.py"
+    },
+    {
+      "id": "func:web/backend/app/knowledge/config.py::kb_search_min_score",
+      "type": "function",
+      "name": "kb_search_min_score",
+      "summary": "返回知识库搜索的最低相似度阈值",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 10,
+      "file": "file:web/backend/app/knowledge/config.py"
+    },
+    {
+      "id": "file:web/backend/app/knowledge/index/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "summary": "知识库索引子包初始化文件",
+      "tags": [
+        "web-backend",
+        "knowledge",
+        "index",
+        "init"
+      ],
+      "complexity": 1,
+      "lines": 1
+    },
+    {
+      "id": "file:web/backend/app/knowledge/index/embeddings.py",
+      "type": "file",
+      "name": "embeddings.py",
+      "summary": "DashScope 嵌入模型客户端，封装 text-embedding-v3 API 调用，支持单例模式和错误格式化",
+      "tags": [
+        "web-backend",
+        "knowledge",
+        "embedding",
+        "dashscope",
+        "vector"
+      ],
+      "complexity": 1,
+      "lines": 69
+    },
+    {
+      "id": "func:web/backend/app/knowledge/index/embeddings.py::get_embed_model",
+      "type": "function",
+      "name": "get_embed_model",
+      "summary": "获取或创建 DashScope 嵌入模型单例",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 9,
+      "file": "file:web/backend/app/knowledge/index/embeddings.py"
+    },
+    {
+      "id": "func:web/backend/app/knowledge/index/embeddings.py::format_embedding_error",
+      "type": "function",
+      "name": "format_embedding_error",
+      "summary": "将嵌入 API 错误格式化为结构化错误信息",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 23,
+      "file": "file:web/backend/app/knowledge/index/embeddings.py"
+    },
+    {
+      "id": "file:web/backend/app/knowledge/index/pipeline.py",
+      "type": "file",
+      "name": "pipeline.py",
+      "summary": "知识库摄取管线，协调文档解析、分块、嵌入和 Qdrant 向量写入的完整流程，支持审核机制和状态管理",
+      "tags": [
+        "web-backend",
+        "knowledge",
+        "ingestion",
+        "pipeline",
+        "qdrant"
+      ],
+      "complexity": 3,
+      "lines": 276
+    },
+    {
+      "id": "func:web/backend/app/knowledge/index/pipeline.py::run_ingest_document",
+      "type": "function",
+      "name": "run_ingest_document",
+      "summary": "文档摄取主流程：解析内容、分块、嵌入、写入 Qdrant，根据文档类型决定是否需要审核",
+      "tags": [
+        "function"
+      ],
+      "complexity": 3,
+      "lines": 123,
+      "file": "file:web/backend/app/knowledge/index/pipeline.py"
+    },
+    {
+      "id": "func:web/backend/app/knowledge/index/pipeline.py::schedule_ingest",
+      "type": "function",
+      "name": "schedule_ingest",
+      "summary": "异步调度文档摄取任务到后台线程",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 11,
+      "file": "file:web/backend/app/knowledge/index/pipeline.py"
+    },
+    {
+      "id": "func:web/backend/app/knowledge/index/pipeline.py::sync_case_document",
+      "type": "function",
+      "name": "sync_case_document",
+      "summary": "同步测试用例到知识库文档，保持用例与知识库的一致性",
+      "tags": [
+        "function"
+      ],
+      "complexity": 2,
+      "lines": 30,
+      "file": "file:web/backend/app/knowledge/index/pipeline.py"
+    },
+    {
+      "id": "func:web/backend/app/knowledge/index/pipeline.py::get_or_create_default_collection",
+      "type": "function",
+      "name": "get_or_create_default_collection",
+      "summary": "获取或创建项目的默认知识库集合",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 21,
+      "file": "file:web/backend/app/knowledge/index/pipeline.py"
+    },
+    {
+      "id": "file:web/backend/app/knowledge/index/qdrant_store.py",
+      "type": "file",
+      "name": "qdrant_store.py",
+      "summary": "Qdrant 向量存储层，封装 Qdrant 客户端操作：集合创建、向量写入/删除/搜索，支持余弦相似度过滤",
+      "tags": [
+        "web-backend",
+        "knowledge",
+        "qdrant",
+        "vector-store"
+      ],
+      "complexity": 2,
+      "lines": 102
+    },
+    {
+      "id": "func:web/backend/app/knowledge/index/qdrant_store.py::get_qdrant_client",
+      "type": "function",
+      "name": "get_qdrant_client",
+      "summary": "创建 Qdrant 客户端实例",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 2,
+      "file": "file:web/backend/app/knowledge/index/qdrant_store.py"
+    },
+    {
+      "id": "func:web/backend/app/knowledge/index/qdrant_store.py::ensure_collection",
+      "type": "function",
+      "name": "ensure_collection",
+      "summary": "确保向量集合存在，不存在则创建并配置向量维度",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 9,
+      "file": "file:web/backend/app/knowledge/index/qdrant_store.py"
+    },
+    {
+      "id": "func:web/backend/app/knowledge/index/qdrant_store.py::upsert_point",
+      "type": "function",
+      "name": "upsert_point",
+      "summary": "向 Qdrant 写入或更新一个向量点",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 7,
+      "file": "file:web/backend/app/knowledge/index/qdrant_store.py"
+    },
+    {
+      "id": "func:web/backend/app/knowledge/index/qdrant_store.py::delete_points",
+      "type": "function",
+      "name": "delete_points",
+      "summary": "按 ID 列表批量删除向量点",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 10,
+      "file": "file:web/backend/app/knowledge/index/qdrant_store.py"
+    },
+    {
+      "id": "func:web/backend/app/knowledge/index/qdrant_store.py::search_vectors",
+      "type": "function",
+      "name": "search_vectors",
+      "summary": "执行向量相似度搜索，支持最低分数阈值过滤和 collection 过滤",
+      "tags": [
+        "function"
+      ],
+      "complexity": 2,
+      "lines": 53,
+      "file": "file:web/backend/app/knowledge/index/qdrant_store.py"
+    },
+    {
+      "id": "file:web/backend/app/knowledge/ingestion/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "summary": "知识库摄取子包初始化文件",
+      "tags": [
+        "web-backend",
+        "knowledge",
+        "ingestion",
+        "init"
+      ],
+      "complexity": 1,
+      "lines": 1
+    },
+    {
+      "id": "file:web/backend/app/knowledge/ingestion/chunkers.py",
+      "type": "file",
+      "name": "chunkers.py",
+      "summary": "文档分块器模块，支持按大小滑动窗口分块和按 Markdown 标题层级分块两种策略",
+      "tags": [
+        "web-backend",
+        "knowledge",
+        "chunking",
+        "ingestion"
+      ],
+      "complexity": 2,
+      "lines": 124
+    },
+    {
+      "id": "func:web/backend/app/knowledge/ingestion/chunkers.py::_split_by_size",
+      "type": "function",
+      "name": "_split_by_size",
+      "summary": "按指定大小和重叠窗口对文本进行滑动分块",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 23,
+      "file": "file:web/backend/app/knowledge/ingestion/chunkers.py"
+    },
+    {
+      "id": "func:web/backend/app/knowledge/ingestion/chunkers.py::_chunk_by_headings",
+      "type": "function",
+      "name": "_chunk_by_headings",
+      "summary": "按 Markdown 标题层级结构对文档进行语义分块",
+      "tags": [
+        "function"
+      ],
+      "complexity": 2,
+      "lines": 34,
+      "file": "file:web/backend/app/knowledge/ingestion/chunkers.py"
+    },
+    {
+      "id": "func:web/backend/app/knowledge/ingestion/chunkers.py::chunk_text",
+      "type": "function",
+      "name": "chunk_text",
+      "summary": "根据分块策略配置对文本进行分块，支持大小分块和标题分块两种模式",
+      "tags": [
+        "function"
+      ],
+      "complexity": 2,
+      "lines": 35,
+      "file": "file:web/backend/app/knowledge/ingestion/chunkers.py"
+    },
+    {
+      "id": "func:web/backend/app/knowledge/ingestion/chunkers.py::build_embed_text",
+      "type": "function",
+      "name": "build_embed_text",
+      "summary": "将文档元数据和正文组合为最终的嵌入文本",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 15,
+      "file": "file:web/backend/app/knowledge/ingestion/chunkers.py"
+    },
+    {
+      "id": "file:web/backend/app/knowledge/ingestion/parsers.py",
+      "type": "file",
+      "name": "parsers.py",
+      "summary": "文档解析器集合，支持多种格式(Markdown/TXT/JSON/DOCX/PDF/HTML/XLSX/XLS)的内容提取，以及测试用例和特性树的结构化解析",
+      "tags": [
+        "web-backend",
+        "knowledge",
+        "parsing",
+        "ingestion",
+        "multi-format"
+      ],
+      "complexity": 3,
+      "lines": 195
+    },
+    {
+      "id": "func:web/backend/app/knowledge/ingestion/parsers.py::parse_docx",
+      "type": "function",
+      "name": "parse_docx",
+      "summary": "解析 Word 文档提取纯文本",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 15,
+      "file": "file:web/backend/app/knowledge/ingestion/parsers.py"
+    },
+    {
+      "id": "func:web/backend/app/knowledge/ingestion/parsers.py::parse_pdf",
+      "type": "function",
+      "name": "parse_pdf",
+      "summary": "解析 PDF 文件提取纯文本",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 11,
+      "file": "file:web/backend/app/knowledge/ingestion/parsers.py"
+    },
+    {
+      "id": "func:web/backend/app/knowledge/ingestion/parsers.py::parse_html",
+      "type": "function",
+      "name": "parse_html",
+      "summary": "解析 HTML 提取纯文本，使用自定义 HTML 文本提取器",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 8,
+      "file": "file:web/backend/app/knowledge/ingestion/parsers.py"
+    },
+    {
+      "id": "func:web/backend/app/knowledge/ingestion/parsers.py::parse_xlsx",
+      "type": "function",
+      "name": "parse_xlsx",
+      "summary": "解析 Excel xlsx 文件，按行拼接为文本",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 15,
+      "file": "file:web/backend/app/knowledge/ingestion/parsers.py"
+    },
+    {
+      "id": "func:web/backend/app/knowledge/ingestion/parsers.py::parse_structured_json",
+      "type": "function",
+      "name": "parse_structured_json",
+      "summary": "解析结构化 JSON 格式的测试用例数据",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 19,
+      "file": "file:web/backend/app/knowledge/ingestion/parsers.py"
+    },
+    {
+      "id": "func:web/backend/app/knowledge/ingestion/parsers.py::parse_feature_tree_json",
+      "type": "function",
+      "name": "parse_feature_tree_json",
+      "summary": "解析特性树 JSON 数据",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 15,
+      "file": "file:web/backend/app/knowledge/ingestion/parsers.py"
+    },
+    {
+      "id": "func:web/backend/app/knowledge/ingestion/parsers.py::parse_document_content",
+      "type": "function",
+      "name": "parse_document_content",
+      "summary": "根据文档类型路由到对应的解析器，统一入口",
+      "tags": [
+        "function"
+      ],
+      "complexity": 2,
+      "lines": 39,
+      "file": "file:web/backend/app/knowledge/ingestion/parsers.py"
+    },
+    {
+      "id": "file:web/backend/app/knowledge/ingestion/router.py",
+      "type": "file",
+      "name": "router.py",
+      "summary": "文档摄取路由器，根据文档类型和格式选择对应的解析器并返回解析结果",
+      "tags": [
+        "web-backend",
+        "knowledge",
+        "routing",
+        "ingestion"
+      ],
+      "complexity": 1,
+      "lines": 23
+    },
+    {
+      "id": "func:web/backend/app/knowledge/ingestion/router.py::route_and_parse",
+      "type": "function",
+      "name": "route_and_parse",
+      "summary": "根据文档类型路由到正确的解析器，返回解析后的文本内容",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 16,
+      "file": "file:web/backend/app/knowledge/ingestion/router.py"
+    },
+    {
+      "id": "file:web/backend/app/knowledge/ingestion/upload_types.py",
+      "type": "file",
+      "name": "upload_types.py",
+      "summary": "文件上传验证模块，校验上传文件路径的合法性和安全性",
+      "tags": [
+        "web-backend",
+        "knowledge",
+        "upload",
+        "validation"
+      ],
+      "complexity": 1,
+      "lines": 44
+    },
+    {
+      "id": "func:web/backend/app/knowledge/ingestion/upload_types.py::validate_upload_path",
+      "type": "function",
+      "name": "validate_upload_path",
+      "summary": "验证上传文件路径是否合法，防止路径遍历攻击",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 13,
+      "file": "file:web/backend/app/knowledge/ingestion/upload_types.py"
+    },
+    {
+      "id": "file:web/backend/app/knowledge/query/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "summary": "知识库查询子包初始化文件",
+      "tags": [
+        "web-backend",
+        "knowledge",
+        "query",
+        "init"
+      ],
+      "complexity": 1,
+      "lines": 1
+    },
+    {
+      "id": "file:web/backend/app/knowledge/query/engine.py",
+      "type": "file",
+      "name": "engine.py",
+      "summary": "知识库查询引擎，封装基于 Qdrant 向量搜索的语义检索接口",
+      "tags": [
+        "web-backend",
+        "knowledge",
+        "query",
+        "search"
+      ],
+      "complexity": 1,
+      "lines": 25
+    },
+    {
+      "id": "func:web/backend/app/knowledge/query/engine.py::query_engine_search",
+      "type": "function",
+      "name": "query_engine_search",
+      "summary": "执行知识库语义搜索，返回最相关的文档片段",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 17,
+      "file": "file:web/backend/app/knowledge/query/engine.py"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:midscene_tech/src/model_log.ts",
+      "target": "func:midscene_tech/src/model_log.ts::estimateTokens",
+      "type": "contains"
+    },
+    {
+      "source": "file:midscene_tech/src/model_log.ts",
+      "target": "func:midscene_tech/src/model_log.ts::logStderr",
+      "type": "contains"
+    },
+    {
+      "source": "file:midscene_tech/src/model_log.ts",
+      "target": "func:midscene_tech/src/model_log.ts::logModelCall",
+      "type": "contains"
+    },
+    {
+      "source": "file:midscene_tech/src/model_log.ts",
+      "target": "func:midscene_tech/src/model_log.ts::estimateTokens",
+      "type": "contains"
+    },
+    {
+      "source": "file:midscene_tech/src/model_log.ts",
+      "target": "func:midscene_tech/src/model_log.ts::logModelCall",
+      "type": "contains"
+    },
+    {
+      "source": "file:midscene_tech/src/platform.ts",
+      "target": "func:midscene_tech/src/platform.ts::parseDevicePlatform",
+      "type": "contains"
+    },
+    {
+      "source": "file:midscene_tech/src/platform.ts",
+      "target": "func:midscene_tech/src/platform.ts::parseAgentBackend",
+      "type": "contains"
+    },
+    {
+      "source": "file:midscene_tech/src/platform.ts",
+      "target": "func:midscene_tech/src/platform.ts::platformLabel",
+      "type": "contains"
+    },
+    {
+      "source": "file:midscene_tech/src/resolve_app_launch.ts",
+      "target": "func:midscene_tech/src/resolve_app_launch.ts::loadAppNameMapping",
+      "type": "contains"
+    },
+    {
+      "source": "file:midscene_tech/src/resolve_app_launch.ts",
+      "target": "func:midscene_tech/src/resolve_app_launch.ts::startBundleWithMainAbility",
+      "type": "contains"
+    },
+    {
+      "source": "file:midscene_tech/src/resolve_app_launch.ts",
+      "target": "func:midscene_tech/src/resolve_app_launch.ts::launchAppByName",
+      "type": "contains"
+    },
+    {
+      "source": "file:midscene_tech/src/resolve_app_launch.ts",
+      "target": "func:midscene_tech/src/resolve_app_launch.ts::launchAppByBundleId",
+      "type": "contains"
+    },
+    {
+      "source": "file:midscene_tech/src/resolve_app_launch.ts",
+      "target": "func:midscene_tech/src/resolve_app_launch.ts::applyAppNameMappingToDevice",
+      "type": "contains"
+    },
+    {
+      "source": "func:midscene_tech/src/resolve_app_launch.ts::launchAppByName",
+      "target": "func:midscene_tech/src/resolve_app_launch.ts::startBundleWithMainAbility",
+      "type": "calls"
+    },
+    {
+      "source": "func:midscene_tech/src/resolve_app_launch.ts::launchAppByBundleId",
+      "target": "func:midscene_tech/src/resolve_app_launch.ts::startBundleWithMainAbility",
+      "type": "calls"
+    },
+    {
+      "source": "func:midscene_tech/src/resolve_app_launch.ts::loadAppNameMapping",
+      "target": "func:midscene_tech/src/resolve_app_launch.ts::startBundleWithMainAbility",
+      "type": "calls"
+    },
+    {
+      "source": "file:midscene_tech/src/step_timeout.ts",
+      "target": "func:midscene_tech/src/step_timeout.ts::stepTimeoutMs",
+      "type": "contains"
+    },
+    {
+      "source": "file:midscene_tech/src/step_timeout.ts",
+      "target": "func:midscene_tech/src/step_timeout.ts::exploreStepTimeoutMs",
+      "type": "contains"
+    },
+    {
+      "source": "file:midscene_tech/src/step_timeout.ts",
+      "target": "func:midscene_tech/src/step_timeout.ts::withStepTimeout",
+      "type": "contains"
+    },
+    {
+      "source": "file:midscene_tech/src/web_dispatch.ts",
+      "target": "func:midscene_tech/src/web_dispatch.ts::optUInt",
+      "type": "contains"
+    },
+    {
+      "source": "file:midscene_tech/src/web_dispatch.ts",
+      "target": "func:midscene_tech/src/web_dispatch.ts::optPositiveInt",
+      "type": "contains"
+    },
+    {
+      "source": "file:midscene_tech/src/web_dispatch.ts",
+      "target": "func:midscene_tech/src/web_dispatch.ts::parseExecutionMode",
+      "type": "contains"
+    },
+    {
+      "source": "file:midscene_tech/src/web_dispatch.ts",
+      "target": "func:midscene_tech/src/web_dispatch.ts::parseWebDispatchJson",
+      "type": "contains"
+    },
+    {
+      "source": "file:midscene_tech/src/yaml_runner.ts",
+      "target": "file:midscene_tech/src/resolve_app_launch.ts",
+      "type": "imports"
+    },
+    {
+      "source": "file:web/backend/app/auth_utils.py",
+      "target": "func:web/backend/app/auth_utils.py::hash_password",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/auth_utils.py",
+      "target": "func:web/backend/app/auth_utils.py::verify_password",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/auth_utils.py",
+      "target": "func:web/backend/app/auth_utils.py::create_access_token",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/auth_utils.py",
+      "target": "func:web/backend/app/auth_utils.py::decode_access_token_payload",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/auth_utils.py",
+      "target": "func:web/backend/app/auth_utils.py::decode_token",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/database.py",
+      "target": "func:web/backend/app/database.py::_build_engine",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/database.py",
+      "target": "func:web/backend/app/database.py::ensure_schema",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/database.py",
+      "target": "func:web/backend/app/database.py::ensure_company_bootstrap",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/database.py",
+      "target": "func:web/backend/app/database.py::ensure_builtin_platform_admin",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/database.py",
+      "target": "func:web/backend/app/database.py::bootstrap_rbac",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/database.py",
+      "target": "func:web/backend/app/database.py::ensure_projects_bootstrap",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/database.py",
+      "target": "func:web/backend/app/database.py::ensure_personal_spaces",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/database.py",
+      "target": "func:web/backend/app/database.py::get_db",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/deps.py",
+      "target": "func:web/backend/app/deps.py::get_current_user",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/deps.py",
+      "target": "func:web/backend/app/deps.py::get_current_user_allow_stale_role",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/deps.py",
+      "target": "func:web/backend/app/deps.py::require_roles",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/executor.py",
+      "target": "func:web/backend/app/executor.py::prepare_cancel_slot",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/executor.py",
+      "target": "func:web/backend/app/executor.py::signal_cancel",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/executor.py",
+      "target": "func:web/backend/app/executor.py::execute_test_run",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/executor.py",
+      "target": "file:web/backend/app/agent_service_client.py",
+      "type": "depends_on"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/chunk_policy.py",
+      "target": "func:web/backend/app/knowledge/chunk_policy.py::default_chunk_policy_from_env",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/chunk_policy.py",
+      "target": "func:web/backend/app/knowledge/chunk_policy.py::normalize_chunk_policy",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/chunk_policy.py",
+      "target": "func:web/backend/app/knowledge/chunk_policy.py::resolve_chunk_policy",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/chunk_policy.py",
+      "target": "func:web/backend/app/knowledge/chunk_policy.py::effective_search_min_score",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/config.py",
+      "target": "func:web/backend/app/knowledge/config.py::qdrant_url",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/config.py",
+      "target": "func:web/backend/app/knowledge/config.py::kb_embedding_api_key",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/config.py",
+      "target": "func:web/backend/app/knowledge/config.py::kb_embedding_model",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/config.py",
+      "target": "func:web/backend/app/knowledge/config.py::kb_search_min_score",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/index/embeddings.py",
+      "target": "func:web/backend/app/knowledge/index/embeddings.py::get_embed_model",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/index/embeddings.py",
+      "target": "func:web/backend/app/knowledge/index/embeddings.py::format_embedding_error",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/index/embeddings.py",
+      "target": "file:web/backend/app/knowledge/config.py",
+      "type": "depends_on"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/index/pipeline.py",
+      "target": "func:web/backend/app/knowledge/index/pipeline.py::run_ingest_document",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/index/pipeline.py",
+      "target": "func:web/backend/app/knowledge/index/pipeline.py::schedule_ingest",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/index/pipeline.py",
+      "target": "func:web/backend/app/knowledge/index/pipeline.py::sync_case_document",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/index/pipeline.py",
+      "target": "func:web/backend/app/knowledge/index/pipeline.py::get_or_create_default_collection",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/index/pipeline.py",
+      "target": "file:web/backend/app/knowledge/index/embeddings.py",
+      "type": "depends_on"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/index/pipeline.py",
+      "target": "file:web/backend/app/knowledge/index/qdrant_store.py",
+      "type": "depends_on"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/index/pipeline.py",
+      "target": "file:web/backend/app/knowledge/ingestion/parsers.py",
+      "type": "depends_on"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/index/pipeline.py",
+      "target": "file:web/backend/app/knowledge/chunk_policy.py",
+      "type": "depends_on"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/index/qdrant_store.py",
+      "target": "func:web/backend/app/knowledge/index/qdrant_store.py::get_qdrant_client",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/index/qdrant_store.py",
+      "target": "func:web/backend/app/knowledge/index/qdrant_store.py::ensure_collection",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/index/qdrant_store.py",
+      "target": "func:web/backend/app/knowledge/index/qdrant_store.py::upsert_point",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/index/qdrant_store.py",
+      "target": "func:web/backend/app/knowledge/index/qdrant_store.py::delete_points",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/index/qdrant_store.py",
+      "target": "func:web/backend/app/knowledge/index/qdrant_store.py::search_vectors",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/index/qdrant_store.py",
+      "target": "file:web/backend/app/knowledge/config.py",
+      "type": "depends_on"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/ingestion/chunkers.py",
+      "target": "func:web/backend/app/knowledge/ingestion/chunkers.py::_split_by_size",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/ingestion/chunkers.py",
+      "target": "func:web/backend/app/knowledge/ingestion/chunkers.py::_chunk_by_headings",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/ingestion/chunkers.py",
+      "target": "func:web/backend/app/knowledge/ingestion/chunkers.py::chunk_text",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/ingestion/chunkers.py",
+      "target": "func:web/backend/app/knowledge/ingestion/chunkers.py::build_embed_text",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/ingestion/parsers.py",
+      "target": "func:web/backend/app/knowledge/ingestion/parsers.py::parse_docx",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/ingestion/parsers.py",
+      "target": "func:web/backend/app/knowledge/ingestion/parsers.py::parse_pdf",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/ingestion/parsers.py",
+      "target": "func:web/backend/app/knowledge/ingestion/parsers.py::parse_html",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/ingestion/parsers.py",
+      "target": "func:web/backend/app/knowledge/ingestion/parsers.py::parse_xlsx",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/ingestion/parsers.py",
+      "target": "func:web/backend/app/knowledge/ingestion/parsers.py::parse_structured_json",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/ingestion/parsers.py",
+      "target": "func:web/backend/app/knowledge/ingestion/parsers.py::parse_feature_tree_json",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/ingestion/parsers.py",
+      "target": "func:web/backend/app/knowledge/ingestion/parsers.py::parse_document_content",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/ingestion/router.py",
+      "target": "func:web/backend/app/knowledge/ingestion/router.py::route_and_parse",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/ingestion/router.py",
+      "target": "file:web/backend/app/knowledge/ingestion/parsers.py",
+      "type": "depends_on"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/ingestion/upload_types.py",
+      "target": "func:web/backend/app/knowledge/ingestion/upload_types.py::validate_upload_path",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/query/engine.py",
+      "target": "func:web/backend/app/knowledge/query/engine.py::query_engine_search",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/query/engine.py",
+      "target": "file:web/backend/app/knowledge/index/qdrant_store.py",
+      "type": "depends_on"
+    },
+    {
+      "source": "file:midscene_tech/src/model_log.ts",
+      "target": "function:midscene_tech/src/model_log.ts:logModelCall",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/resolve_app_launch.ts",
+      "target": "function:midscene_tech/src/resolve_app_launch.ts:loadAppNameMapping",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/resolve_app_launch.ts",
+      "target": "function:midscene_tech/src/resolve_app_launch.ts:mappingLookup",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/resolve_app_launch.ts",
+      "target": "function:midscene_tech/src/resolve_app_launch.ts:startBundleWithMainAbility",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/resolve_app_launch.ts",
+      "target": "function:midscene_tech/src/resolve_app_launch.ts:launchAppByName",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/resolve_app_launch.ts",
+      "target": "function:midscene_tech/src/resolve_app_launch.ts:launchAppByBundleId",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/step_timeout.ts",
+      "target": "function:midscene_tech/src/step_timeout.ts:withStepTimeout",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/web_dispatch.ts",
+      "target": "function:midscene_tech/src/web_dispatch.ts:parseWebDispatchJson",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:midscene_tech/src/yaml_runner.ts",
+      "target": "function:midscene_tech/src/yaml_runner.ts:runMidsceneYamlScript",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/auth_utils.py",
+      "target": "function:web/backend/app/auth_utils.py:verify_password",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/auth_utils.py",
+      "target": "function:web/backend/app/auth_utils.py:decode_token",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/database.py",
+      "target": "function:web/backend/app/database.py:_build_engine",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/database.py",
+      "target": "function:web/backend/app/database.py:ensure_schema",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/database.py",
+      "target": "function:web/backend/app/database.py:ensure_company_bootstrap",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/database.py",
+      "target": "function:web/backend/app/database.py:ensure_builtin_platform_admin",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/database.py",
+      "target": "function:web/backend/app/database.py:bootstrap_rbac",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/database.py",
+      "target": "function:web/backend/app/database.py:ensure_projects_bootstrap",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/database.py",
+      "target": "function:web/backend/app/database.py:ensure_personal_spaces",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/deps.py",
+      "target": "function:web/backend/app/deps.py:get_current_user",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/deps.py",
+      "target": "function:web/backend/app/deps.py:get_current_user_allow_stale_role",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/executor.py",
+      "target": "function:web/backend/app/executor.py:signal_cancel",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/executor.py",
+      "target": "function:web/backend/app/executor.py:execute_test_run",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/knowledge/chunk_policy.py",
+      "target": "function:web/backend/app/knowledge/chunk_policy.py:default_chunk_policy_from_env",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/knowledge/chunk_policy.py",
+      "target": "function:web/backend/app/knowledge/chunk_policy.py:normalize_chunk_policy",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/knowledge/chunk_policy.py",
+      "target": "function:web/backend/app/knowledge/chunk_policy.py:_merge_project_chunk_policy",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/knowledge/chunk_policy.py",
+      "target": "function:web/backend/app/knowledge/chunk_policy.py:resolve_chunk_policy",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/knowledge/index/embeddings.py",
+      "target": "function:web/backend/app/knowledge/index/embeddings.py:format_embedding_error",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/knowledge/index/embeddings.py",
+      "target": "class:web/backend/app/knowledge/index/embeddings.py:DashScopeEmbedding",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/knowledge/index/pipeline.py",
+      "target": "function:web/backend/app/knowledge/index/pipeline.py:_finalize_doc_status",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/knowledge/index/pipeline.py",
+      "target": "function:web/backend/app/knowledge/index/pipeline.py:run_ingest_document",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/knowledge/index/pipeline.py",
+      "target": "function:web/backend/app/knowledge/index/pipeline.py:schedule_ingest",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/knowledge/index/pipeline.py",
+      "target": "function:web/backend/app/knowledge/index/pipeline.py:sync_case_document",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/knowledge/index/pipeline.py",
+      "target": "function:web/backend/app/knowledge/index/pipeline.py:get_or_create_default_collection",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/knowledge/index/qdrant_store.py",
+      "target": "function:web/backend/app/knowledge/index/qdrant_store.py:search_vectors",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/knowledge/ingestion/chunkers.py",
+      "target": "function:web/backend/app/knowledge/ingestion/chunkers.py:_split_by_size",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/knowledge/ingestion/chunkers.py",
+      "target": "function:web/backend/app/knowledge/ingestion/chunkers.py:_chunk_by_headings",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/knowledge/ingestion/chunkers.py",
+      "target": "function:web/backend/app/knowledge/ingestion/chunkers.py:chunk_text",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/knowledge/ingestion/chunkers.py",
+      "target": "function:web/backend/app/knowledge/ingestion/chunkers.py:build_embed_text",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/knowledge/ingestion/parsers.py",
+      "target": "function:web/backend/app/knowledge/ingestion/parsers.py:parse_docx",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/knowledge/ingestion/parsers.py",
+      "target": "function:web/backend/app/knowledge/ingestion/parsers.py:parse_pdf",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/knowledge/ingestion/parsers.py",
+      "target": "function:web/backend/app/knowledge/ingestion/parsers.py:parse_xlsx",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/knowledge/ingestion/parsers.py",
+      "target": "function:web/backend/app/knowledge/ingestion/parsers.py:parse_xls",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/knowledge/ingestion/parsers.py",
+      "target": "function:web/backend/app/knowledge/ingestion/parsers.py:parse_structured_json",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/knowledge/ingestion/parsers.py",
+      "target": "function:web/backend/app/knowledge/ingestion/parsers.py:parse_feature_tree_json",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/knowledge/ingestion/parsers.py",
+      "target": "function:web/backend/app/knowledge/ingestion/parsers.py:parse_document_content",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/knowledge/ingestion/parsers.py",
+      "target": "class:web/backend/app/knowledge/ingestion/parsers.py:_HtmlTextExtractor",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/knowledge/ingestion/router.py",
+      "target": "function:web/backend/app/knowledge/ingestion/router.py:route_and_parse",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/knowledge/ingestion/upload_types.py",
+      "target": "function:web/backend/app/knowledge/ingestion/upload_types.py:validate_upload_path",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/knowledge/query/engine.py",
+      "target": "function:web/backend/app/knowledge/query/engine.py:query_engine_search",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    }
+  ]
+}

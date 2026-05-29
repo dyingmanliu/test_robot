@@ -1,0 +1,114 @@
+{
+  "nodes": [
+    {
+      "id": "file:mai_ui_tech/scripts/pull_ollama_model.sh",
+      "type": "file",
+      "name": "pull_ollama_model.sh",
+      "summary": "从 Ollama 仓库拉取指定模型到本地，用于后续的本地推理服务。",
+      "tags": [
+        "模型拉取",
+        "Ollama",
+        "shell脚本",
+        "模型管理"
+      ],
+      "complexity": "simple",
+      "language": "shell"
+    },
+    {
+      "id": "file:mai_ui_tech/scripts/run_cli.sh",
+      "type": "file",
+      "name": "run_cli.sh",
+      "summary": "封装 CLI 命令行工具的启动脚本，设置必要环境变量并调用主程序入口。",
+      "tags": [
+        "CLI启动",
+        "shell脚本",
+        "入口脚本"
+      ],
+      "complexity": "simple",
+      "language": "shell"
+    },
+    {
+      "id": "file:mai_ui_tech/scripts/serve_grounding_mlx.sh",
+      "type": "file",
+      "name": "serve_grounding_mlx.sh",
+      "summary": "基于 MLX 框架启动 Grounding 视觉定位模型的本地推理服务，配置模型路径和端口参数。",
+      "tags": [
+        "模型服务",
+        "MLX",
+        "Grounding",
+        "视觉定位",
+        "shell脚本"
+      ],
+      "complexity": "moderate",
+      "language": "shell"
+    },
+    {
+      "id": "file:mai_ui_tech/scripts/serve_vllm_mlx.sh",
+      "type": "file",
+      "name": "serve_vllm_mlx.sh",
+      "summary": "在 Apple Silicon Mac 上通过 MLX 框架启动 vLLM 推理服务，包含模型加载参数、GPU 内存配置和服务端口设置。",
+      "tags": [
+        "模型服务",
+        "vLLM",
+        "MLX",
+        "LLM推理",
+        "Apple Silicon"
+      ],
+      "complexity": "moderate",
+      "language": "shell"
+    },
+    {
+      "id": "file:mai_ui_tech/scripts/setup_mlx_mac.sh",
+      "type": "file",
+      "name": "setup_mlx_mac.sh",
+      "summary": "为 Apple Silicon Mac 搭建 MLX 开发运行环境，安装依赖库、配置虚拟环境及相关工具链。",
+      "tags": [
+        "环境搭建",
+        "MLX",
+        "Apple Silicon",
+        "依赖安装",
+        "shell脚本"
+      ],
+      "complexity": "complex",
+      "language": "shell"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:mai_ui_tech/scripts/serve_grounding_mlx.sh",
+      "target": "file:mai_ui_tech/scripts/setup_mlx_mac.sh",
+      "type": "depends_on",
+      "weight": 0.8
+    },
+    {
+      "source": "file:mai_ui_tech/scripts/serve_vllm_mlx.sh",
+      "target": "file:mai_ui_tech/scripts/setup_mlx_mac.sh",
+      "type": "depends_on",
+      "weight": 0.8
+    },
+    {
+      "source": "file:mai_ui_tech/scripts/serve_vllm_mlx.sh",
+      "target": "file:mai_ui_tech/scripts/pull_ollama_model.sh",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:mai_ui_tech/scripts/serve_grounding_mlx.sh",
+      "target": "file:mai_ui_tech/scripts/pull_ollama_model.sh",
+      "type": "depends_on",
+      "weight": 0.5
+    },
+    {
+      "source": "file:mai_ui_tech/scripts/run_cli.sh",
+      "target": "file:mai_ui_tech/scripts/serve_vllm_mlx.sh",
+      "type": "depends_on",
+      "weight": 0.7
+    },
+    {
+      "source": "file:mai_ui_tech/scripts/serve_vllm_mlx.sh",
+      "target": "file:mai_ui_tech/scripts/serve_grounding_mlx.sh",
+      "type": "similar_to",
+      "weight": 0.6
+    }
+  ]
+}

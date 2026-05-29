@@ -1,0 +1,92 @@
+{
+  "nodes": [
+    {
+      "id": "file:midscene_tech/.env.example",
+      "type": "file",
+      "name": ".env.example",
+      "summary": "Midscene 子项目的环境变量模板，定义了视觉模型（DashScope/智谱）、设备平台（Android/HarmonyOS）、ADB/HDC 连接及 Agent 行为参数等配置项。",
+      "tags": [
+        "环境变量",
+        "配置模板",
+        "Midscene",
+        "设备连接"
+      ],
+      "complexity": "simple",
+      "language": "config"
+    },
+    {
+      "id": "file:midscene_tech/README.md",
+      "type": "file",
+      "name": "README.md",
+      "summary": "midscene_tech 子项目的完整技术文档，涵盖 Android/HarmonyOS 自动化能力、与 Web 平台的调度关系、前置条件、CLI 用法及目录结构说明。",
+      "tags": [
+        "技术文档",
+        "Midscene",
+        "Android",
+        "HarmonyOS",
+        "自动化测试"
+      ],
+      "complexity": "moderate",
+      "language": "markdown"
+    },
+    {
+      "id": "file:midscene_tech/package.json",
+      "type": "file",
+      "name": "package.json",
+      "summary": "Midscene Agent 的 Node.js 项目清单，声明了 Android/HarmonyOS Midscene SDK 依赖、ts CLI 脚本入口及 Node ≥18 引擎要求。",
+      "tags": [
+        "依赖管理",
+        "Node.js",
+        "Midscene",
+        "CLI"
+      ],
+      "complexity": "simple",
+      "language": "json"
+    },
+    {
+      "id": "file:midscene_tech/tsconfig.json",
+      "type": "file",
+      "name": "tsconfig.json",
+      "summary": "TypeScript 编译配置，启用 ES2022 目标、NodeNext 模块解析和严格模式，限定 src/ 和 scripts/ 为编译范围。",
+      "tags": [
+        "TypeScript",
+        "编译配置",
+        "ES2022"
+      ],
+      "complexity": "simple",
+      "language": "json"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:midscene_tech/package.json",
+      "target": "file:midscene_tech/tsconfig.json",
+      "type": "configures",
+      "weight": 0.9
+    },
+    {
+      "source": "file:midscene_tech/.env.example",
+      "target": "file:midscene_tech/package.json",
+      "type": "configures",
+      "weight": 0.7
+    },
+    {
+      "source": "file:midscene_tech/README.md",
+      "target": "file:midscene_tech/package.json",
+      "type": "documents",
+      "weight": 0.8
+    },
+    {
+      "source": "file:midscene_tech/README.md",
+      "target": "file:midscene_tech/.env.example",
+      "type": "documents",
+      "weight": 0.8
+    },
+    {
+      "source": "file:midscene_tech/tsconfig.json",
+      "target": "file:midscene_tech/package.json",
+      "type": "depends_on",
+      "weight": 0.6
+    }
+  ]
+}

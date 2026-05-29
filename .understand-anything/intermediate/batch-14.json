@@ -1,0 +1,1258 @@
+{
+  "nodes": [
+    {
+      "id": "file:web/backend/app/services/knowledge_bootstrap.py",
+      "type": "file",
+      "name": "knowledge_bootstrap.py",
+      "summary": "知识库引导服务，确保系统技能配置文件（SkillProfile）存在于数据库中",
+      "tags": [
+        "service",
+        "knowledge-base",
+        "bootstrap",
+        "config"
+      ],
+      "complexity": "low",
+      "lines": 52
+    },
+    {
+      "id": "func:web/backend/app/services/knowledge_bootstrap.py:ensure_skill_profiles",
+      "type": "function",
+      "name": "ensure_skill_profiles",
+      "summary": "检查并创建默认的技能配置文件到数据库，用于机器人能力定义",
+      "tags": [
+        "bootstrap",
+        "database",
+        "config"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "file:web/backend/app/services/knowledge_collection.py",
+      "type": "file",
+      "name": "knowledge_collection.py",
+      "summary": "知识库集合管理服务，提供集合删除功能，包括清理关联的文档、分块、Qdrant 向量点和机器人绑定",
+      "tags": [
+        "service",
+        "knowledge-base",
+        "collection",
+        "crud"
+      ],
+      "complexity": "medium",
+      "lines": 81
+    },
+    {
+      "id": "func:web/backend/app/services/knowledge_collection.py:delete_knowledge_collection",
+      "type": "function",
+      "name": "delete_knowledge_collection",
+      "summary": "删除知识库集合及其所有关联资源：文档、分块、Qdrant 向量点、文件存储和机器人绑定",
+      "tags": [
+        "crud",
+        "delete",
+        "qdrant"
+      ],
+      "complexity": "high"
+    },
+    {
+      "id": "func:web/backend/app/services/knowledge_collection.py:_remove_collection_from_bindings",
+      "type": "function",
+      "name": "_remove_collection_from_bindings",
+      "summary": "从机器人实例绑定中移除指定知识库集合的引用",
+      "tags": [
+        "binding",
+        "cleanup"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "file:web/backend/app/services/knowledge_document.py",
+      "type": "file",
+      "name": "knowledge_document.py",
+      "summary": "知识库文档管理服务，提供单个文档的删除功能，包括清理 Qdrant 向量点和物理文件",
+      "tags": [
+        "service",
+        "knowledge-base",
+        "document",
+        "crud"
+      ],
+      "complexity": "low",
+      "lines": 55
+    },
+    {
+      "id": "func:web/backend/app/services/knowledge_document.py:delete_knowledge_document",
+      "type": "function",
+      "name": "delete_knowledge_document",
+      "summary": "删除知识库文档及其关联的 Qdrant 向量点和物理文件",
+      "tags": [
+        "crud",
+        "delete",
+        "qdrant"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "file:web/backend/app/services/knowledge_sync.py",
+      "type": "file",
+      "name": "knowledge_sync.py",
+      "summary": "知识库同步服务，将测试用例和功能树自动同步到知识库，支持 RAG 检索增强",
+      "tags": [
+        "service",
+        "knowledge-base",
+        "sync",
+        "rag"
+      ],
+      "complexity": "medium",
+      "lines": 80
+    },
+    {
+      "id": "func:web/backend/app/services/knowledge_sync.py:sync_test_case_to_knowledge",
+      "type": "function",
+      "name": "sync_test_case_to_knowledge",
+      "summary": "将测试用例同步到默认知识库集合",
+      "tags": [
+        "sync",
+        "test-case",
+        "knowledge-base"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "func:web/backend/app/services/knowledge_sync.py:sync_feature_tree_to_knowledge",
+      "type": "function",
+      "name": "sync_feature_tree_to_knowledge",
+      "summary": "将功能分析树同步到知识库，创建或更新 feature_tree 类型的知识文档",
+      "tags": [
+        "sync",
+        "feature-tree",
+        "knowledge-base"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "file:web/backend/app/services/llm_usage_log.py",
+      "type": "file",
+      "name": "llm_usage_log.py",
+      "summary": "LLM 使用量日志服务，记录和估算 OpenAI/Midscene 等大模型调用的 token 消耗",
+      "tags": [
+        "service",
+        "logging",
+        "llm",
+        "token-usage",
+        "billing"
+      ],
+      "complexity": "low",
+      "lines": 105
+    },
+    {
+      "id": "func:web/backend/app/services/llm_usage_log.py:log_llm_usage",
+      "type": "function",
+      "name": "log_llm_usage",
+      "summary": "记录 LLM 调用日志，包含模型、token 用量和调用上下文",
+      "tags": [
+        "logging",
+        "llm"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "func:web/backend/app/services/llm_usage_log.py:log_from_openai_usage",
+      "type": "function",
+      "name": "log_from_openai_usage",
+      "summary": "从 OpenAI API 响应中提取并记录 token 使用量",
+      "tags": [
+        "logging",
+        "openai"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "func:web/backend/app/services/llm_usage_log.py:estimate_tokens",
+      "type": "function",
+      "name": "estimate_tokens",
+      "summary": "估算文本的 token 数量（用于无法获取实际用量的场景）",
+      "tags": [
+        "estimation",
+        "token"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "file:web/backend/app/services/mai_ui_service.py",
+      "type": "file",
+      "name": "mai_ui_service.py",
+      "summary": "MAI UI 智能界面服务，调用外部 grounding worker 进行 UI 元素定位和菜单检测",
+      "tags": [
+        "service",
+        "ui-automation",
+        "grounding",
+        "vision"
+      ],
+      "complexity": "medium",
+      "lines": 283
+    },
+    {
+      "id": "func:web/backend/app/services/mai_ui_service.py:run_grounding",
+      "type": "function",
+      "name": "run_grounding",
+      "summary": "执行 UI 元素定位（grounding），通过视觉模型识别屏幕上的目标元素",
+      "tags": [
+        "ui-automation",
+        "vision",
+        "grounding"
+      ],
+      "complexity": "high"
+    },
+    {
+      "id": "func:web/backend/app/services/mai_ui_service.py:run_menu_detect",
+      "type": "function",
+      "name": "run_menu_detect",
+      "summary": "执行菜单检测，识别屏幕上的菜单项和交互元素",
+      "tags": [
+        "ui-automation",
+        "vision",
+        "menu"
+      ],
+      "complexity": "high"
+    },
+    {
+      "id": "func:web/backend/app/services/mai_ui_service.py:get_mai_ui_status",
+      "type": "function",
+      "name": "get_mai_ui_status",
+      "summary": "获取 MAI UI grounding worker 的运行状态",
+      "tags": [
+        "status",
+        "monitoring"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "file:web/backend/app/services/marketplace_catalog.py",
+      "type": "file",
+      "name": "marketplace_catalog.py",
+      "summary": "机器人市场目录服务，提供机器人产品的列表查询和详情获取功能",
+      "tags": [
+        "service",
+        "marketplace",
+        "catalog",
+        "robot"
+      ],
+      "complexity": "low",
+      "lines": 133
+    },
+    {
+      "id": "func:web/backend/app/services/marketplace_catalog.py:list_robots",
+      "type": "function",
+      "name": "list_robots",
+      "summary": "列出市场目录中所有可用的机器人产品",
+      "tags": [
+        "catalog",
+        "list"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "func:web/backend/app/services/marketplace_catalog.py:get_robot_by_id",
+      "type": "function",
+      "name": "get_robot_by_id",
+      "summary": "根据 ID 获取机器人产品详情",
+      "tags": [
+        "catalog",
+        "detail"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "file:web/backend/app/services/package_bundle.py",
+      "type": "file",
+      "name": "package_bundle.py",
+      "summary": "应用包 Bundle ID 解析服务，从 APK/HAP 安装包或安装后状态推断应用的 Bundle ID",
+      "tags": [
+        "service",
+        "package",
+        "bundle-id",
+        "android",
+        "harmonyos"
+      ],
+      "complexity": "medium",
+      "lines": 146
+    },
+    {
+      "id": "func:web/backend/app/services/package_bundle.py:infer_bundle_id_from_package",
+      "type": "function",
+      "name": "infer_bundle_id_from_package",
+      "summary": "从安装包文件推断应用的 Bundle ID",
+      "tags": [
+        "package",
+        "bundle-id",
+        "inference"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "func:web/backend/app/services/package_bundle.py:resolve_bundle_after_install",
+      "type": "function",
+      "name": "resolve_bundle_after_install",
+      "summary": "在应用安装后从设备解析 Bundle ID",
+      "tags": [
+        "package",
+        "bundle-id",
+        "device"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "file:web/backend/app/services/package_platform.py",
+      "type": "file",
+      "name": "package_platform.py",
+      "summary": "应用包平台识别服务，从安装包文件名或元数据推断目标设备平台（Android/HarmonyOS）",
+      "tags": [
+        "service",
+        "package",
+        "platform",
+        "inference"
+      ],
+      "complexity": "low",
+      "lines": 75
+    },
+    {
+      "id": "func:web/backend/app/services/package_platform.py:infer_device_platform_from_package",
+      "type": "function",
+      "name": "infer_device_platform_from_package",
+      "summary": "从安装包文件推断目标设备平台",
+      "tags": [
+        "package",
+        "platform",
+        "inference"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "file:web/backend/app/services/project_dashboard.py",
+      "type": "file",
+      "name": "project_dashboard.py",
+      "summary": "项目仪表板服务，聚合项目的统计数据（用例数、运行数、机器人实例等）构建仪表板视图",
+      "tags": [
+        "service",
+        "dashboard",
+        "statistics",
+        "aggregation"
+      ],
+      "complexity": "medium",
+      "lines": 144
+    },
+    {
+      "id": "func:web/backend/app/services/project_dashboard.py:build_project_dashboard_payload",
+      "type": "function",
+      "name": "build_project_dashboard_payload",
+      "summary": "构建项目的完整仪表板数据，包含用例统计、运行历史和资源使用情况",
+      "tags": [
+        "dashboard",
+        "aggregation"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "file:web/backend/app/services/robot_agent_context.py",
+      "type": "file",
+      "name": "robot_agent_context.py",
+      "summary": "机器人 Agent 上下文服务，解析机器人实例的技能配置和 Agent 参数",
+      "tags": [
+        "service",
+        "robot",
+        "agent",
+        "context",
+        "skill-profile"
+      ],
+      "complexity": "low",
+      "lines": 91
+    },
+    {
+      "id": "func:web/backend/app/services/robot_agent_context.py:resolve_robot_agent_context",
+      "type": "function",
+      "name": "resolve_robot_agent_context",
+      "summary": "解析机器人实例的完整 Agent 执行上下文，包括技能配置和运行时参数",
+      "tags": [
+        "context",
+        "agent",
+        "resolution"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "func:web/backend/app/services/robot_agent_context.py:default_skill_profile_for_catalog",
+      "type": "function",
+      "name": "default_skill_profile_for_catalog",
+      "summary": "获取目录机器人的默认技能配置",
+      "tags": [
+        "skill-profile",
+        "default"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "file:web/backend/app/services/robot_catalog.py",
+      "type": "file",
+      "name": "robot_catalog.py",
+      "summary": "机器人目录类型判断服务，区分分析型和执行型机器人",
+      "tags": [
+        "service",
+        "catalog",
+        "type-check"
+      ],
+      "complexity": "none",
+      "lines": 13
+    },
+    {
+      "id": "func:web/backend/app/services/robot_catalog.py:is_analysis_catalog",
+      "type": "function",
+      "name": "is_analysis_catalog",
+      "summary": "判断机器人目录是否为分析型（测试分析角色）",
+      "tags": [
+        "catalog",
+        "type-check"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "func:web/backend/app/services/robot_catalog.py:is_execution_catalog",
+      "type": "function",
+      "name": "is_execution_catalog",
+      "summary": "判断机器人目录是否为执行型（测试执行角色）",
+      "tags": [
+        "catalog",
+        "type-check"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "file:web/backend/app/services/robot_instance_out.py",
+      "type": "file",
+      "name": "robot_instance_out.py",
+      "summary": "机器人实例输出转换服务，将数据库模型转换为 API 响应格式",
+      "tags": [
+        "service",
+        "robot",
+        "serialization",
+        "dto"
+      ],
+      "complexity": "low",
+      "lines": 29
+    },
+    {
+      "id": "func:web/backend/app/services/robot_instance_out.py:robot_instance_to_out",
+      "type": "function",
+      "name": "robot_instance_to_out",
+      "summary": "将机器人实例 ORM 对象转换为 RobotInstanceOut 响应模型",
+      "tags": [
+        "serialization",
+        "dto"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "file:web/backend/app/services/robot_monitor.py",
+      "type": "file",
+      "name": "robot_monitor.py",
+      "summary": "机器人监控服务，计算机器人实例的实时运行指标和状态",
+      "tags": [
+        "service",
+        "monitoring",
+        "metrics",
+        "robot"
+      ],
+      "complexity": "medium",
+      "lines": 195
+    },
+    {
+      "id": "func:web/backend/app/services/robot_monitor.py:compute_robot_metrics",
+      "type": "function",
+      "name": "compute_robot_metrics",
+      "summary": "计算机器人实例的综合运行指标，包括活跃任务数、成功率和资源使用",
+      "tags": [
+        "metrics",
+        "monitoring"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "file:web/backend/app/services/robot_run_guard.py",
+      "type": "file",
+      "name": "robot_run_guard.py",
+      "summary": "机器人运行并发保护模块，防止同一实例同时执行多个测试任务，并在启动时清理过期任务",
+      "tags": [
+        "service",
+        "concurrency",
+        "guard",
+        "test-execution"
+      ],
+      "complexity": "medium",
+      "lines": 103
+    },
+    {
+      "id": "func:web/backend/app/services/robot_run_guard.py:instance_execution_lock",
+      "type": "function",
+      "name": "instance_execution_lock",
+      "summary": "上下文管理器，为实例获取测试执行锁",
+      "tags": [
+        "concurrency",
+        "lock"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "func:web/backend/app/services/robot_run_guard.py:instance_available_for_run",
+      "type": "function",
+      "name": "instance_available_for_run",
+      "summary": "检查实例是否可用于启动新的测试运行",
+      "tags": [
+        "concurrency",
+        "check"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "func:web/backend/app/services/robot_run_guard.py:reconcile_stale_runs_on_startup",
+      "type": "function",
+      "name": "reconcile_stale_runs_on_startup",
+      "summary": "服务启动时清理过期的运行任务，将卡住的任务标记为失败",
+      "tags": [
+        "startup",
+        "cleanup",
+        "reconciliation"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "file:web/backend/app/services/run_metrics.py",
+      "type": "file",
+      "name": "run_metrics.py",
+      "summary": "测试运行指标计算服务，统计运行中的识别步骤数",
+      "tags": [
+        "service",
+        "metrics",
+        "test-run"
+      ],
+      "complexity": "none",
+      "lines": 10
+    },
+    {
+      "id": "func:web/backend/app/services/run_metrics.py:count_recognition_steps",
+      "type": "function",
+      "name": "count_recognition_steps",
+      "summary": "统计测试运行中的识别步骤数量",
+      "tags": [
+        "metrics",
+        "counting"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "file:web/backend/app/services/run_report.py",
+      "type": "file",
+      "name": "run_report.py",
+      "summary": "测试运行报告服务，管理和解析 Midscene 生成的测试报告文件路径",
+      "tags": [
+        "service",
+        "report",
+        "test-run",
+        "midscene"
+      ],
+      "complexity": "low",
+      "lines": 104
+    },
+    {
+      "id": "func:web/backend/app/services/run_report.py:find_latest_midscene_report",
+      "type": "function",
+      "name": "find_latest_midscene_report",
+      "summary": "查找最新的 Midscene 测试报告文件",
+      "tags": [
+        "report",
+        "search"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "func:web/backend/app/services/run_report.py:resolve_report_file",
+      "type": "function",
+      "name": "resolve_report_file",
+      "summary": "解析并验证测试报告文件路径",
+      "tags": [
+        "report",
+        "resolve"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "file:web/backend/app/test_case_io.py",
+      "type": "file",
+      "name": "test_case_io.py",
+      "summary": "测试用例 IO 转换服务，提供用例、运行记录和版本修订的序列化转换方法",
+      "tags": [
+        "service",
+        "serialization",
+        "dto",
+        "test-case"
+      ],
+      "complexity": "low",
+      "lines": 73
+    },
+    {
+      "id": "func:web/backend/app/test_case_io.py:test_case_to_out",
+      "type": "function",
+      "name": "test_case_to_out",
+      "summary": "将测试用例 ORM 对象转换为 TestCaseOut 响应模型",
+      "tags": [
+        "serialization",
+        "test-case"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "func:web/backend/app/test_case_io.py:test_run_to_out",
+      "type": "function",
+      "name": "test_run_to_out",
+      "summary": "将测试运行 ORM 对象转换为 TestRunOut 响应模型",
+      "tags": [
+        "serialization",
+        "test-run"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "file:web/backend/data/feature_analysis_exports/feature-analysis-3-9.xlsx",
+      "type": "file",
+      "name": "feature-analysis-3-9.xlsx",
+      "summary": "功能分析导出的 Excel 文件样本数据",
+      "tags": [
+        "data",
+        "export",
+        "excel"
+      ],
+      "complexity": "none",
+      "lines": 32
+    },
+    {
+      "id": "file:web/backend/data/knowledge/3/1/20260527103159_测试用例规范V1.0设计文档.docx",
+      "type": "file",
+      "name": "20260527103159_测试用例规范V1.0设计文档.docx",
+      "summary": "测试用例规范设计文档（Word 格式），知识库存储的规范文档",
+      "tags": [
+        "data",
+        "knowledge",
+        "documentation"
+      ],
+      "complexity": "none",
+      "lines": 206
+    },
+    {
+      "id": "file:web/backend/requirements.txt",
+      "type": "file",
+      "name": "requirements.txt",
+      "summary": "Web 后端 Python 依赖清单，包含 FastAPI、SQLAlchemy、Qdrant、PyMySQL 等核心库",
+      "tags": [
+        "config",
+        "dependencies",
+        "python"
+      ],
+      "complexity": "none",
+      "lines": 22
+    },
+    {
+      "id": "file:web/backend/tests/test_case_agent_text.py",
+      "type": "file",
+      "name": "test_case_agent_text.py",
+      "summary": "用例 Agent 文本构建的单元测试，验证 Midscene 和 AutoGLM 的文本生成逻辑",
+      "tags": [
+        "test",
+        "unit-test",
+        "case-agent-text"
+      ],
+      "complexity": "low",
+      "lines": 62
+    },
+    {
+      "id": "func:web/backend/tests/test_case_agent_text.py:test_midscene_steps_omit_task_text_when_structured_steps_exist",
+      "type": "function",
+      "name": "test_midscene_steps_omit_task_text_when_structured_steps_exist",
+      "summary": "测试 Midscene 在有结构化步骤时省略任务文本的行为",
+      "tags": [
+        "test",
+        "midscene"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "func:web/backend/tests/test_case_agent_text.py:test_midscene_steps_use_task_text_when_no_structured_steps",
+      "type": "function",
+      "name": "test_midscene_steps_use_task_text_when_no_structured_steps",
+      "summary": "测试 Midscene 在无结构化步骤时使用任务文本的行为",
+      "tags": [
+        "test",
+        "midscene"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "file:web/backend/tests/test_knowledge_integration.py",
+      "type": "file",
+      "name": "test_knowledge_integration.py",
+      "summary": "知识库集成的单元测试，验证知识库的 CRUD 和同步功能",
+      "tags": [
+        "test",
+        "unit-test",
+        "knowledge-base"
+      ],
+      "complexity": "medium",
+      "lines": 126
+    },
+    {
+      "id": "class:web/backend/tests/test_knowledge_integration.py:KnowledgeUnitTest",
+      "type": "class",
+      "name": "KnowledgeUnitTest",
+      "summary": "知识库集成测试类，包含知识库集合、文档、分块的测试用例",
+      "tags": [
+        "test",
+        "knowledge-base"
+      ],
+      "complexity": "medium"
+    },
+    {
+      "id": "file:web/frontend/scripts/test-feature-tree.mjs",
+      "type": "file",
+      "name": "test-feature-tree.mjs",
+      "summary": "前端功能树测试脚本（Node.js），验证功能树 API 的集成测试",
+      "tags": [
+        "test",
+        "integration-test",
+        "frontend",
+        "feature-tree"
+      ],
+      "complexity": "medium",
+      "lines": 293
+    },
+    {
+      "id": "func:web/frontend/scripts/test-feature-tree.mjs:assert",
+      "type": "function",
+      "name": "assert",
+      "summary": "测试断言辅助函数",
+      "tags": [
+        "test",
+        "assertion"
+      ],
+      "complexity": "low"
+    },
+    {
+      "id": "file:web/frontend/src/api/client.js",
+      "type": "file",
+      "name": "client.js",
+      "summary": "前端 API 客户端封装，配置 Axios 实例和 JWT 拦截器，提供统一的错误格式化",
+      "tags": [
+        "frontend",
+        "api-client",
+        "axios",
+        "jwt"
+      ],
+      "complexity": "low",
+      "lines": 64
+    },
+    {
+      "id": "func:web/frontend/src/api/client.js:formatApiError",
+      "type": "function",
+      "name": "formatApiError",
+      "summary": "格式化 API 错误信息为用户友好的显示格式",
+      "tags": [
+        "error-handling",
+        "formatting"
+      ],
+      "complexity": "low"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:web/backend/app/services/knowledge_bootstrap.py",
+      "target": "func:web/backend/app/services/knowledge_bootstrap.py:ensure_skill_profiles",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/knowledge_collection.py",
+      "target": "func:web/backend/app/services/knowledge_collection.py:delete_knowledge_collection",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/knowledge_collection.py",
+      "target": "func:web/backend/app/services/knowledge_collection.py:_remove_collection_from_bindings",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/knowledge_document.py",
+      "target": "func:web/backend/app/services/knowledge_document.py:delete_knowledge_document",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/knowledge_sync.py",
+      "target": "func:web/backend/app/services/knowledge_sync.py:sync_test_case_to_knowledge",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/knowledge_sync.py",
+      "target": "func:web/backend/app/services/knowledge_sync.py:sync_feature_tree_to_knowledge",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/llm_usage_log.py",
+      "target": "func:web/backend/app/services/llm_usage_log.py:log_llm_usage",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/llm_usage_log.py",
+      "target": "func:web/backend/app/services/llm_usage_log.py:log_from_openai_usage",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/llm_usage_log.py",
+      "target": "func:web/backend/app/services/llm_usage_log.py:estimate_tokens",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/mai_ui_service.py",
+      "target": "func:web/backend/app/services/mai_ui_service.py:run_grounding",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/mai_ui_service.py",
+      "target": "func:web/backend/app/services/mai_ui_service.py:run_menu_detect",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/mai_ui_service.py",
+      "target": "func:web/backend/app/services/mai_ui_service.py:get_mai_ui_status",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/marketplace_catalog.py",
+      "target": "func:web/backend/app/services/marketplace_catalog.py:list_robots",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/marketplace_catalog.py",
+      "target": "func:web/backend/app/services/marketplace_catalog.py:get_robot_by_id",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/package_bundle.py",
+      "target": "func:web/backend/app/services/package_bundle.py:infer_bundle_id_from_package",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/package_bundle.py",
+      "target": "func:web/backend/app/services/package_bundle.py:resolve_bundle_after_install",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/package_platform.py",
+      "target": "func:web/backend/app/services/package_platform.py:infer_device_platform_from_package",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/project_dashboard.py",
+      "target": "func:web/backend/app/services/project_dashboard.py:build_project_dashboard_payload",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/robot_agent_context.py",
+      "target": "func:web/backend/app/services/robot_agent_context.py:resolve_robot_agent_context",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/robot_agent_context.py",
+      "target": "func:web/backend/app/services/robot_agent_context.py:default_skill_profile_for_catalog",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/robot_catalog.py",
+      "target": "func:web/backend/app/services/robot_catalog.py:is_analysis_catalog",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/robot_catalog.py",
+      "target": "func:web/backend/app/services/robot_catalog.py:is_execution_catalog",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/robot_instance_out.py",
+      "target": "func:web/backend/app/services/robot_instance_out.py:robot_instance_to_out",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/robot_monitor.py",
+      "target": "func:web/backend/app/services/robot_monitor.py:compute_robot_metrics",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/robot_run_guard.py",
+      "target": "func:web/backend/app/services/robot_run_guard.py:instance_execution_lock",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/robot_run_guard.py",
+      "target": "func:web/backend/app/services/robot_run_guard.py:instance_available_for_run",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/robot_run_guard.py",
+      "target": "func:web/backend/app/services/robot_run_guard.py:reconcile_stale_runs_on_startup",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/run_metrics.py",
+      "target": "func:web/backend/app/services/run_metrics.py:count_recognition_steps",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/run_report.py",
+      "target": "func:web/backend/app/services/run_report.py:find_latest_midscene_report",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/services/run_report.py",
+      "target": "func:web/backend/app/services/run_report.py:resolve_report_file",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/test_case_io.py",
+      "target": "func:web/backend/app/test_case_io.py:test_case_to_out",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/test_case_io.py",
+      "target": "func:web/backend/app/test_case_io.py:test_run_to_out",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/tests/test_case_agent_text.py",
+      "target": "func:web/backend/tests/test_case_agent_text.py:test_midscene_steps_omit_task_text_when_structured_steps_exist",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/tests/test_case_agent_text.py",
+      "target": "func:web/backend/tests/test_case_agent_text.py:test_midscene_steps_use_task_text_when_no_structured_steps",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/tests/test_knowledge_integration.py",
+      "target": "class:web/backend/tests/test_knowledge_integration.py:KnowledgeUnitTest",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/frontend/scripts/test-feature-tree.mjs",
+      "target": "func:web/frontend/scripts/test-feature-tree.mjs:assert",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/frontend/src/api/client.js",
+      "target": "func:web/frontend/src/api/client.js:formatApiError",
+      "type": "contains"
+    },
+    {
+      "source": "func:web/backend/app/services/knowledge_collection.py:delete_knowledge_collection",
+      "target": "func:web/backend/app/services/knowledge_collection.py:_remove_collection_from_bindings",
+      "type": "calls"
+    },
+    {
+      "source": "func:web/backend/app/services/robot_monitor.py:compute_robot_metrics",
+      "target": "func:web/backend/app/services/robot_run_guard.py:instance_available_for_run",
+      "type": "calls"
+    },
+    {
+      "source": "file:web/backend/app/services/knowledge_collection.py",
+      "target": "file:web/backend/app/services/knowledge_document.py",
+      "type": "depends_on"
+    },
+    {
+      "source": "file:web/backend/app/services/knowledge_sync.py",
+      "target": "file:web/backend/app/services/knowledge_collection.py",
+      "type": "depends_on"
+    },
+    {
+      "source": "file:web/backend/app/services/robot_monitor.py",
+      "target": "file:web/backend/app/services/robot_run_guard.py",
+      "type": "depends_on"
+    },
+    {
+      "source": "file:web/backend/app/services/package_bundle.py",
+      "target": "file:web/backend/app/services/package_platform.py",
+      "type": "depends_on"
+    },
+    {
+      "source": "file:web/backend/tests/test_case_agent_text.py",
+      "target": "file:web/backend/app/services/case_agent_text.py",
+      "type": "depends_on"
+    },
+    {
+      "source": "file:web/backend/tests/test_knowledge_integration.py",
+      "target": "file:web/backend/app/services/knowledge_collection.py",
+      "type": "depends_on"
+    },
+    {
+      "source": "file:web/backend/tests/test_knowledge_integration.py",
+      "target": "file:web/backend/app/services/knowledge_document.py",
+      "type": "depends_on"
+    },
+    {
+      "source": "file:web/frontend/scripts/test-feature-tree.mjs",
+      "target": "file:web/frontend/src/api/client.js",
+      "type": "depends_on"
+    },
+    {
+      "source": "file:web/backend/app/services/knowledge_bootstrap.py",
+      "target": "function:web/backend/app/services/knowledge_bootstrap.py:ensure_skill_profiles",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/knowledge_collection.py",
+      "target": "function:web/backend/app/services/knowledge_collection.py:_remove_collection_from_bindings",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/knowledge_collection.py",
+      "target": "function:web/backend/app/services/knowledge_collection.py:delete_knowledge_collection",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/knowledge_document.py",
+      "target": "function:web/backend/app/services/knowledge_document.py:delete_knowledge_document",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/knowledge_sync.py",
+      "target": "function:web/backend/app/services/knowledge_sync.py:_feature_tree_knowledge_title",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/knowledge_sync.py",
+      "target": "function:web/backend/app/services/knowledge_sync.py:sync_feature_tree_to_knowledge",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/llm_usage_log.py",
+      "target": "function:web/backend/app/services/llm_usage_log.py:log_llm_usage",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/llm_usage_log.py",
+      "target": "function:web/backend/app/services/llm_usage_log.py:log_from_openai_usage",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/llm_usage_log.py",
+      "target": "function:web/backend/app/services/llm_usage_log.py:log_midscene_machine_line",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/mai_ui_service.py",
+      "target": "function:web/backend/app/services/mai_ui_service.py:_grounding_worker_status",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/mai_ui_service.py",
+      "target": "function:web/backend/app/services/mai_ui_service.py:_run_grounding_via_worker",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/mai_ui_service.py",
+      "target": "function:web/backend/app/services/mai_ui_service.py:get_mai_ui_status",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/mai_ui_service.py",
+      "target": "function:web/backend/app/services/mai_ui_service.py:run_grounding",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/mai_ui_service.py",
+      "target": "function:web/backend/app/services/mai_ui_service.py:_run_menu_detect_via_worker",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/mai_ui_service.py",
+      "target": "function:web/backend/app/services/mai_ui_service.py:run_menu_detect",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/package_bundle.py",
+      "target": "function:web/backend/app/services/package_bundle.py:resolve_bundle_after_install",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/package_bundle.py",
+      "target": "function:web/backend/app/services/package_bundle.py:_bundle_from_hap_archive",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/package_bundle.py",
+      "target": "function:web/backend/app/services/package_bundle.py:_extract_bundle_from_json",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/package_bundle.py",
+      "target": "function:web/backend/app/services/package_bundle.py:_bundle_from_apk",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/package_platform.py",
+      "target": "function:web/backend/app/services/package_platform.py:infer_device_platform_from_package",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/package_platform.py",
+      "target": "function:web/backend/app/services/package_platform.py:parse_platform_app_text",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/project_dashboard.py",
+      "target": "function:web/backend/app/services/project_dashboard.py:build_project_dashboard_payload",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/robot_agent_context.py",
+      "target": "function:web/backend/app/services/robot_agent_context.py:resolve_robot_agent_context",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/robot_instance_out.py",
+      "target": "function:web/backend/app/services/robot_instance_out.py:robot_instance_to_out",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/robot_monitor.py",
+      "target": "function:web/backend/app/services/robot_monitor.py:_compute_robot_metrics_legacy",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/robot_monitor.py",
+      "target": "function:web/backend/app/services/robot_monitor.py:compute_robot_metrics",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/robot_run_guard.py",
+      "target": "function:web/backend/app/services/robot_run_guard.py:find_active_run_for_instance",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/robot_run_guard.py",
+      "target": "function:web/backend/app/services/robot_run_guard.py:resolve_instance_runtime_status",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/robot_run_guard.py",
+      "target": "function:web/backend/app/services/robot_run_guard.py:reconcile_stale_runs_on_startup",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/run_report.py",
+      "target": "function:web/backend/app/services/run_report.py:find_latest_midscene_report",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/services/run_report.py",
+      "target": "function:web/backend/app/services/run_report.py:resolve_report_file",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/test_case_io.py",
+      "target": "function:web/backend/app/test_case_io.py:_steps_from_raw",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/test_case_io.py",
+      "target": "function:web/backend/app/test_case_io.py:test_case_to_out",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/test_case_io.py",
+      "target": "function:web/backend/app/test_case_io.py:revision_to_out",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/tests/test_case_agent_text.py",
+      "target": "function:web/backend/tests/test_case_agent_text.py:test_midscene_steps_use_task_text_when_no_structured_steps",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/tests/test_knowledge_integration.py",
+      "target": "class:web/backend/tests/test_knowledge_integration.py:KnowledgeUnitTest",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    }
+  ]
+}

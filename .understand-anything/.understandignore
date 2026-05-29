@@ -1,0 +1,39 @@
+# Understand-Anything ignore file
+# Generated based on .gitignore patterns
+
+# Dependencies
+node_modules/
+.venv/
+venv/
+
+# Build outputs
+dist/
+build/
+
+# Python
+__pycache__/
+*.pyc
+.Python
+*.egg-info/
+
+# OS
+.DS_Store
+
+# Midscene runtime
+midscene_run/
+midscene_tech/midscene_run/
+
+# Export data
+web/backend/data/explore_exports/
+
+# Environment files (optional - uncomment if you want to exclude)
+# .env
+# **/.env
+
+# Other common patterns
+*.log
+.git/
+.vscode/
+.idea/
+*.min.js
+*.min.css

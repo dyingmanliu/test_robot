@@ -1,0 +1,694 @@
+{
+  "nodes": [
+    {
+      "id": "file:.claude/settings.json",
+      "type": "file",
+      "name": "settings.json",
+      "summary": "Claude Code 的权限与插件配置文件，定义了工具权限白名单和启用的插件列表。",
+      "tags": [
+        "配置",
+        "Claude Code",
+        "权限管理",
+        "plugins"
+      ],
+      "complexity": "simple",
+      "language": "json"
+    },
+    {
+      "id": "file:.cursor/mcp.json",
+      "type": "file",
+      "name": "mcp.json",
+      "summary": "Cursor IDE 的 MCP (Model Context Protocol) 服务器配置，定义外部工具服务器连接。",
+      "tags": [
+        "配置",
+        "MCP",
+        "Cursor"
+      ],
+      "complexity": "simple",
+      "language": "json"
+    },
+    {
+      "id": "file:.cursor/rules/python-venv.mdc",
+      "type": "file",
+      "name": "python-venv.mdc",
+      "summary": "Cursor 项目规则文件，强制要求所有 Python 命令使用项目 .venv 虚拟环境而非系统 Python。",
+      "tags": [
+        "规则",
+        "Python",
+        "venv",
+        "开发规范"
+      ],
+      "complexity": "simple",
+      "language": "mdc"
+    },
+    {
+      "id": "file:.understand-anything/config.json",
+      "type": "file",
+      "name": "config.json",
+      "summary": "Understand-Anything 代码分析工具的全局配置，设置输出语言为中文。",
+      "tags": [
+        "配置",
+        "understand-anything",
+        "i18n"
+      ],
+      "complexity": "simple",
+      "language": "json"
+    },
+    {
+      "id": "file:agent_service/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "summary": "agent_service 包的初始化文件，定义包的基本元数据和版本信息。",
+      "tags": [
+        "包初始化",
+        "agent_service",
+        "Python"
+      ],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "file:agent_service/analysis_agent/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "summary": "analysis_agent 子包的入口模块，导出测试分析代理的核心公共接口和类型。",
+      "tags": [
+        "包初始化",
+        "测试分析",
+        "接口导出",
+        "analysis_agent"
+      ],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "file:agent_service/analysis_agent/agent.py",
+      "type": "file",
+      "name": "agent.py",
+      "summary": "测试分析代理(AnalysisAgent)的核心实现，封装用例生成逻辑并支持 agentic RAG 和传统 LLM 两种模式。",
+      "tags": [
+        "测试分析",
+        "Agent",
+        "用例生成",
+        "RAG",
+        "LLM"
+      ],
+      "complexity": "moderate",
+      "language": "python"
+    },
+    {
+      "id": "file:agent_service/analysis_agent/config/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "summary": "分析代理的配置加载模块，从环境变量读取 LLM API 密钥、模型参数及知识库开关等配置项。",
+      "tags": [
+        "配置",
+        "环境变量",
+        "LLM配置",
+        "知识库"
+      ],
+      "complexity": "moderate",
+      "language": "python"
+    },
+    {
+      "id": "file:agent_service/analysis_agent/config/prompts.py",
+      "type": "file",
+      "name": "prompts.py",
+      "summary": "存放测试分析代理使用的 LLM prompt 模板，定义用例生成和分析的系统提示词。",
+      "tags": [
+        "prompt模板",
+        "LLM",
+        "测试分析"
+      ],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "file:agent_service/analysis_agent/errors.py",
+      "type": "file",
+      "name": "errors.py",
+      "summary": "定义分析代理的自定义异常类 AnalysisAgentError，用于统一错误处理。",
+      "tags": [
+        "异常处理",
+        "错误定义",
+        "analysis_agent"
+      ],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "file:agent_service/analysis_agent/feature_explore/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "summary": "功能探索(feature_explore)子包的入口模块，导出功能遍历代理的公共接口。",
+      "tags": [
+        "包初始化",
+        "功能探索",
+        "接口导出"
+      ],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "file:agent_service/analysis_agent/feature_explore/agent.py",
+      "type": "file",
+      "name": "agent.py",
+      "summary": "功能探索代理(FeatureExploreAgent)的实现，驱动 App 功能菜单树的自动遍历、特征合并和 GIIC 树归一化。",
+      "tags": [
+        "功能探索",
+        "Agent",
+        "功能树",
+        "GIIC",
+        "设备自动化"
+      ],
+      "complexity": "complex",
+      "language": "python"
+    },
+    {
+      "id": "file:agent_service/analysis_agent/feature_explore/README.md",
+      "type": "file",
+      "name": "README.md",
+      "summary": "功能探索模块的技术文档，描述调用链、ExploreDispatch 字段、SSE 事件流格式和保存确认流程。",
+      "tags": [
+        "文档",
+        "功能探索",
+        "SSE",
+        "API"
+      ],
+      "complexity": "simple",
+      "language": "markdown"
+    },
+    {
+      "id": "file:agent_service/analysis_agent/feature_explore/tree_build.py",
+      "type": "file",
+      "name": "tree_build.py",
+      "summary": "功能树的构建与归一化核心模块，包含图标网格启发式、底部 Tab 推断、路径树构建、GIIC 树同步等复杂逻辑。",
+      "tags": [
+        "功能树",
+        "启发式算法",
+        "GIIC",
+        "数据转换",
+        "tree_build"
+      ],
+      "complexity": "complex",
+      "language": "python"
+    },
+    {
+      "id": "file:agent_service/analysis_agent/feature_explore/types.py",
+      "type": "file",
+      "name": "types.py",
+      "summary": "功能探索相关的数据类型定义，包括 ExploreDispatch 调度参数和 ExploreRunResult 运行结果。",
+      "tags": [
+        "类型定义",
+        "dataclass",
+        "功能探索",
+        "Pydantic"
+      ],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "file:agent_service/analysis_agent/model/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "summary": "模型客户端子包的入口文件，导出 LLM 模型调用相关接口。",
+      "tags": [
+        "包初始化",
+        "模型客户端"
+      ],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "file:agent_service/analysis_agent/model/client.py",
+      "type": "file",
+      "name": "client.py",
+      "summary": "分析代理的 LLM 模型客户端，封装 OpenAI 兼容 API 调用，含 DNS 预检、重试、连接错误诊断等机制。",
+      "tags": [
+        "LLM客户端",
+        "OpenAI",
+        "httpx",
+        "重试机制",
+        "网络诊断"
+      ],
+      "complexity": "complex",
+      "language": "python"
+    },
+    {
+      "id": "file:agent_service/analysis_agent/parser.py",
+      "type": "file",
+      "name": "parser.py",
+      "summary": "LLM 输出的 JSON 解析器，负责从模型响应中提取 JSON 对象、归一化测试步骤并构建 CaseDraft 结构。",
+      "tags": [
+        "JSON解析",
+        "数据转换",
+        "用例格式",
+        "LLM输出"
+      ],
+      "complexity": "moderate",
+      "language": "python"
+    },
+    {
+      "id": "file:agent_service/analysis_agent/progress.py",
+      "type": "file",
+      "name": "progress.py",
+      "summary": "用例生成过程的 SSE 进度推送模块，封装 LLM 请求/响应事件、Token 统计和知识库查询日志的进度回调。",
+      "tags": [
+        "SSE",
+        "进度回调",
+        "Token统计",
+        "日志",
+        "LLM"
+      ],
+      "complexity": "complex",
+      "language": "python"
+    },
+    {
+      "id": "file:agent_service/analysis_agent/README.md",
+      "type": "file",
+      "name": "README.md",
+      "summary": "analysis_agent 模块的概览文档，描述目录结构、环境变量配置和 Web 侧适配说明。",
+      "tags": [
+        "文档",
+        "测试分析",
+        "环境变量",
+        "架构"
+      ],
+      "complexity": "simple",
+      "language": "markdown"
+    },
+    {
+      "id": "file:agent_service/analysis_agent/types.py",
+      "type": "file",
+      "name": "types.py",
+      "summary": "测试分析的核心数据类型定义，包含项目上下文(ProjectContext)、测试步骤(CaseStep)和用例草稿(CaseDraft)。",
+      "tags": [
+        "类型定义",
+        "dataclass",
+        "用例格式",
+        "Pydantic"
+      ],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "file:agent_service/common/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "summary": "agent_service 公共工具子包的入口文件（空包）。",
+      "tags": [
+        "包初始化",
+        "common"
+      ],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "file:agent_service/common/device_resolve.py",
+      "type": "file",
+      "name": "device_resolve.py",
+      "summary": "设备 ID 解析工具函数，根据平台(android/harmonyos)从参数或环境变量中解析出实际执行设备 ID。",
+      "tags": [
+        "设备解析",
+        "ADB",
+        "HDC",
+        "环境变量"
+      ],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "file:agent_service/func_agent/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "summary": "功能测试代理(func_agent)子包的入口模块，导出测试执行相关的公共接口。",
+      "tags": [
+        "包初始化",
+        "测试执行",
+        "func_agent"
+      ],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "file:agent_service/func_agent/backends/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "summary": "测试执行后端引擎子包的入口，管理 AutoGLM 和 Midscene 两种执行后端的路由。",
+      "tags": [
+        "包初始化",
+        "执行后端",
+        "AutoGLM",
+        "Midscene"
+      ],
+      "complexity": "simple",
+      "language": "python"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:agent_service/analysis_agent/agent.py",
+      "target": "file:agent_service/analysis_agent/config/__init__.py",
+      "type": "imports",
+      "weight": 0.9
+    },
+    {
+      "source": "file:agent_service/analysis_agent/agent.py",
+      "target": "file:agent_service/analysis_agent/errors.py",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:agent_service/analysis_agent/agent.py",
+      "target": "file:agent_service/analysis_agent/types.py",
+      "type": "depends_on",
+      "weight": 0.8
+    },
+    {
+      "source": "file:agent_service/analysis_agent/agent.py",
+      "target": "file:agent_service/analysis_agent/parser.py",
+      "type": "depends_on",
+      "weight": 0.8
+    },
+    {
+      "source": "file:agent_service/analysis_agent/agent.py",
+      "target": "file:agent_service/analysis_agent/progress.py",
+      "type": "depends_on",
+      "weight": 0.7
+    },
+    {
+      "source": "file:agent_service/analysis_agent/agent.py",
+      "target": "file:agent_service/analysis_agent/model/client.py",
+      "type": "depends_on",
+      "weight": 0.7
+    },
+    {
+      "source": "file:agent_service/analysis_agent/model/client.py",
+      "target": "file:agent_service/analysis_agent/config/__init__.py",
+      "type": "depends_on",
+      "weight": 0.8
+    },
+    {
+      "source": "file:agent_service/analysis_agent/model/client.py",
+      "target": "file:agent_service/analysis_agent/errors.py",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:agent_service/analysis_agent/parser.py",
+      "target": "file:agent_service/analysis_agent/types.py",
+      "type": "imports",
+      "weight": 0.9
+    },
+    {
+      "source": "file:agent_service/analysis_agent/parser.py",
+      "target": "file:agent_service/analysis_agent/errors.py",
+      "type": "imports",
+      "weight": 0.6
+    },
+    {
+      "source": "file:agent_service/analysis_agent/feature_explore/agent.py",
+      "target": "file:agent_service/analysis_agent/feature_explore/types.py",
+      "type": "imports",
+      "weight": 0.9
+    },
+    {
+      "source": "file:agent_service/analysis_agent/feature_explore/agent.py",
+      "target": "file:agent_service/analysis_agent/feature_explore/tree_build.py",
+      "type": "imports",
+      "weight": 0.9
+    },
+    {
+      "source": "file:agent_service/analysis_agent/feature_explore/tree_build.py",
+      "target": "file:agent_service/analysis_agent/feature_explore/types.py",
+      "type": "depends_on",
+      "weight": 0.5
+    },
+    {
+      "source": "file:agent_service/analysis_agent/config/__init__.py",
+      "target": "file:agent_service/analysis_agent/config/prompts.py",
+      "type": "related",
+      "weight": 0.6
+    },
+    {
+      "source": "file:agent_service/analysis_agent/progress.py",
+      "target": "file:agent_service/analysis_agent/types.py",
+      "type": "depends_on",
+      "weight": 0.4
+    },
+    {
+      "source": "file:agent_service/analysis_agent/__init__.py",
+      "target": "file:agent_service/analysis_agent/agent.py",
+      "type": "exports",
+      "weight": 0.9
+    },
+    {
+      "source": "file:agent_service/analysis_agent/__init__.py",
+      "target": "file:agent_service/analysis_agent/types.py",
+      "type": "exports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:agent_service/analysis_agent/__init__.py",
+      "target": "file:agent_service/analysis_agent/errors.py",
+      "type": "exports",
+      "weight": 0.6
+    },
+    {
+      "source": "file:agent_service/analysis_agent/feature_explore/__init__.py",
+      "target": "file:agent_service/analysis_agent/feature_explore/agent.py",
+      "type": "exports",
+      "weight": 0.9
+    },
+    {
+      "source": "file:agent_service/analysis_agent/feature_explore/__init__.py",
+      "target": "file:agent_service/analysis_agent/feature_explore/types.py",
+      "type": "exports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:agent_service/__init__.py",
+      "target": "file:agent_service/analysis_agent/__init__.py",
+      "type": "contains",
+      "weight": 0.5
+    },
+    {
+      "source": "file:agent_service/__init__.py",
+      "target": "file:agent_service/func_agent/__init__.py",
+      "type": "contains",
+      "weight": 0.5
+    },
+    {
+      "source": "file:agent_service/__init__.py",
+      "target": "file:agent_service/common/__init__.py",
+      "type": "contains",
+      "weight": 0.5
+    },
+    {
+      "source": "file:agent_service/common/device_resolve.py",
+      "target": "file:agent_service/func_agent/__init__.py",
+      "type": "related",
+      "weight": 0.5
+    },
+    {
+      "source": "file:agent_service/func_agent/backends/__init__.py",
+      "target": "file:agent_service/func_agent/__init__.py",
+      "type": "belongs_to",
+      "weight": 0.6
+    },
+    {
+      "source": "file:agent_service/analysis_agent/feature_explore/README.md",
+      "target": "file:agent_service/analysis_agent/feature_explore/agent.py",
+      "type": "documents",
+      "weight": 0.8
+    },
+    {
+      "source": "file:agent_service/analysis_agent/README.md",
+      "target": "file:agent_service/analysis_agent/agent.py",
+      "type": "documents",
+      "weight": 0.7
+    },
+    {
+      "source": "file:agent_service/analysis_agent/agent.py",
+      "target": "class:agent_service/analysis_agent/agent.py:AnalysisAgent",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/analysis_agent/config/__init__.py",
+      "target": "function:agent_service/analysis_agent/config/__init__.py:load_analysis_config",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/analysis_agent/feature_explore/agent.py",
+      "target": "class:agent_service/analysis_agent/feature_explore/agent.py:FeatureExploreAgent",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/analysis_agent/feature_explore/tree_build.py",
+      "target": "function:agent_service/analysis_agent/feature_explore/tree_build.py:_apply_icon_grid_heuristic",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/analysis_agent/feature_explore/tree_build.py",
+      "target": "function:agent_service/analysis_agent/feature_explore/tree_build.py:_infer_active_bottom_tab",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/analysis_agent/feature_explore/tree_build.py",
+      "target": "function:agent_service/analysis_agent/feature_explore/tree_build.py:_reparent_root_tab_content",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/analysis_agent/feature_explore/tree_build.py",
+      "target": "function:agent_service/analysis_agent/feature_explore/tree_build.py:_enrich_feature",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/analysis_agent/feature_explore/tree_build.py",
+      "target": "function:agent_service/analysis_agent/feature_explore/tree_build.py:build_function_tree_by_path",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/analysis_agent/feature_explore/tree_build.py",
+      "target": "function:agent_service/analysis_agent/feature_explore/tree_build.py:_finalize_app_name",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/analysis_agent/feature_explore/tree_build.py",
+      "target": "function:agent_service/analysis_agent/feature_explore/tree_build.py:sync_giic_tree_from_features",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/analysis_agent/feature_explore/tree_build.py",
+      "target": "function:agent_service/analysis_agent/feature_explore/tree_build.py:ensure_giic_tree",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/analysis_agent/feature_explore/types.py",
+      "target": "class:agent_service/analysis_agent/feature_explore/types.py:ExploreDispatch",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/analysis_agent/model/client.py",
+      "target": "function:agent_service/analysis_agent/model/client.py:_connection_error_message",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/analysis_agent/model/client.py",
+      "target": "class:agent_service/analysis_agent/model/client.py:AnalysisModelClient",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/analysis_agent/parser.py",
+      "target": "function:agent_service/analysis_agent/parser.py:extract_json_object",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/analysis_agent/parser.py",
+      "target": "function:agent_service/analysis_agent/parser.py:normalize_steps",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/analysis_agent/parser.py",
+      "target": "function:agent_service/analysis_agent/parser.py:draft_from_parsed",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/analysis_agent/progress.py",
+      "target": "function:agent_service/analysis_agent/progress.py:emit_case_gen_progress",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/analysis_agent/progress.py",
+      "target": "function:agent_service/analysis_agent/progress.py:_message_chars",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/analysis_agent/progress.py",
+      "target": "function:agent_service/analysis_agent/progress.py:_coerce_token_count",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/analysis_agent/progress.py",
+      "target": "function:agent_service/analysis_agent/progress.py:_token_usage_from_response",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/analysis_agent/progress.py",
+      "target": "function:agent_service/analysis_agent/progress.py:emit_llm_request",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/analysis_agent/progress.py",
+      "target": "function:agent_service/analysis_agent/progress.py:emit_llm_response",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/analysis_agent/progress.py",
+      "target": "function:agent_service/analysis_agent/progress.py:invoke_chat_with_progress",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/analysis_agent/progress.py",
+      "target": "function:agent_service/analysis_agent/progress.py:emit_kb_http_log",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:agent_service/common/device_resolve.py",
+      "target": "function:agent_service/common/device_resolve.py:resolve_execution_device_id",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    }
+  ]
+}

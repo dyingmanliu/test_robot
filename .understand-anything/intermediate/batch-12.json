@@ -1,0 +1,3176 @@
+{
+  "nodes": [
+    {
+      "id": "file:web/backend/app/knowledge/query/service.py",
+      "type": "file",
+      "name": "service.py",
+      "summary": "知识库查询服务，实现基于向量相似度的语义检索，支持多 collection 过滤、最低分数阈值和项目级分块策略覆盖",
+      "tags": [
+        "web-backend",
+        "knowledge",
+        "query",
+        "rag",
+        "vector-search"
+      ],
+      "complexity": 1,
+      "lines": 85
+    },
+    {
+      "id": "func:web/backend/app/knowledge/query/service.py::knowledge_search",
+      "type": "function",
+      "name": "knowledge_search",
+      "summary": "知识库搜索主函数：嵌入查询文本、向量检索、关联 MySQL 元数据，返回带分数的搜索结果列表",
+      "tags": [
+        "function"
+      ],
+      "complexity": 2,
+      "lines": 58,
+      "file": "file:web/backend/app/knowledge/query/service.py"
+    },
+    {
+      "id": "func:web/backend/app/knowledge/query/service.py::merge_rag_policy",
+      "type": "function",
+      "name": "merge_rag_policy",
+      "summary": "合并 RAG 策略配置，项目级覆盖全局默认值",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 7,
+      "file": "file:web/backend/app/knowledge/query/service.py"
+    },
+    {
+      "id": "file:web/backend/app/logging_config.py",
+      "type": "file",
+      "name": "logging_config.py",
+      "summary": "日志配置模块，基于环境变量配置日志级别、格式和 SQL 日志输出，支持自定义模板和详细/简洁两种格式",
+      "tags": [
+        "web-backend",
+        "logging",
+        "configuration"
+      ],
+      "complexity": 1,
+      "lines": 91
+    },
+    {
+      "id": "func:web/backend/app/logging_config.py::_resolve_level",
+      "type": "function",
+      "name": "_resolve_level",
+      "summary": "从 LOG_LEVEL 环境变量解析日志级别",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 3,
+      "file": "file:web/backend/app/logging_config.py"
+    },
+    {
+      "id": "func:web/backend/app/logging_config.py::_resolve_format",
+      "type": "function",
+      "name": "_resolve_format",
+      "summary": "从 LOG_FORMAT 环境变量解析日志格式，支持自定义模板",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 7,
+      "file": "file:web/backend/app/logging_config.py"
+    },
+    {
+      "id": "func:web/backend/app/logging_config.py::configure_logging",
+      "type": "function",
+      "name": "configure_logging",
+      "summary": "配置全局日志系统：解析环境变量设置级别和格式，配置 dictConfig，控制 SQL 日志输出",
+      "tags": [
+        "function"
+      ],
+      "complexity": 3,
+      "lines": 61,
+      "file": "file:web/backend/app/logging_config.py"
+    },
+    {
+      "id": "file:web/backend/app/main.py",
+      "type": "file",
+      "name": "main.py",
+      "summary": "FastAPI 应用入口，配置中间件、路由挂载、启动钩子(数据库迁移/RBAC/公司引导)，提供健康检查端点",
+      "tags": [
+        "web-backend",
+        "fastapi",
+        "main",
+        "entry-point",
+        "middleware"
+      ],
+      "complexity": 2,
+      "lines": 177
+    },
+    {
+      "id": "func:web/backend/app/main.py::_http_log_level",
+      "type": "function",
+      "name": "_http_log_level",
+      "summary": "根据请求路径决定日志级别，轮询端点可降低日志优先级",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 6,
+      "file": "file:web/backend/app/main.py"
+    },
+    {
+      "id": "func:web/backend/app/main.py::request_logging_middleware",
+      "type": "function",
+      "name": "request_logging_middleware",
+      "summary": "HTTP 请求日志中间件，记录方法/路径/状态码/耗时，支持轮询请求静默",
+      "tags": [
+        "function"
+      ],
+      "complexity": 2,
+      "lines": 31,
+      "file": "file:web/backend/app/main.py"
+    },
+    {
+      "id": "func:web/backend/app/main.py::on_startup",
+      "type": "function",
+      "name": "on_startup",
+      "summary": "应用启动钩子：执行数据库表迁移、RBAC 初始化、公司/项目/个人空间引导",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 29,
+      "file": "file:web/backend/app/main.py"
+    },
+    {
+      "id": "func:web/backend/app/main.py::health",
+      "type": "function",
+      "name": "health",
+      "summary": "健康检查端点，返回数据库连接状态",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 3,
+      "file": "file:web/backend/app/main.py"
+    },
+    {
+      "id": "file:web/backend/app/models.py",
+      "type": "file",
+      "name": "models.py",
+      "summary": "SQLAlchemy ORM 模型定义，包含全部 26 个数据库表映射：用户/公司/项目/测试用例/知识库/机器人/账单等核心实体",
+      "tags": [
+        "web-backend",
+        "orm",
+        "models",
+        "database",
+        "core"
+      ],
+      "complexity": 5,
+      "lines": 518
+    },
+    {
+      "id": "class:web/backend/app/models.py::Company",
+      "type": "class",
+      "name": "Company",
+      "summary": "公司表：多租户顶层实体，包含名称和内部共享开关(share_projects_cases_internally)",
+      "tags": [
+        "class"
+      ],
+      "complexity": 2,
+      "file": "file:web/backend/app/models.py"
+    },
+    {
+      "id": "class:web/backend/app/models.py::User",
+      "type": "class",
+      "name": "User",
+      "summary": "用户表：包含用户名、密码哈希、角色ID、公司ID、显示名等认证和归属信息",
+      "tags": [
+        "class"
+      ],
+      "complexity": 2,
+      "file": "file:web/backend/app/models.py"
+    },
+    {
+      "id": "class:web/backend/app/models.py::PersonalSpace",
+      "type": "class",
+      "name": "PersonalSpace",
+      "summary": "个人空间表：每个用户一个，关联默认项目",
+      "tags": [
+        "class"
+      ],
+      "complexity": 2,
+      "file": "file:web/backend/app/models.py"
+    },
+    {
+      "id": "class:web/backend/app/models.py::Project",
+      "type": "class",
+      "name": "Project",
+      "summary": "项目表：核心业务实体，包含名称、描述、所有者、公司ID和知识库默认集合",
+      "tags": [
+        "class"
+      ],
+      "complexity": 2,
+      "file": "file:web/backend/app/models.py"
+    },
+    {
+      "id": "class:web/backend/app/models.py::ProjectReport",
+      "type": "class",
+      "name": "ProjectReport",
+      "summary": "项目报告表：存储项目级别的汇总报告数据",
+      "tags": [
+        "class"
+      ],
+      "complexity": 2,
+      "file": "file:web/backend/app/models.py"
+    },
+    {
+      "id": "class:web/backend/app/models.py::Defect",
+      "type": "class",
+      "name": "Defect",
+      "summary": "缺陷表：关联项目和测试运行的缺陷记录",
+      "tags": [
+        "class"
+      ],
+      "complexity": 2,
+      "file": "file:web/backend/app/models.py"
+    },
+    {
+      "id": "class:web/backend/app/models.py::TestCase",
+      "type": "class",
+      "name": "TestCase",
+      "summary": "测试用例表：核心实体，包含步骤JSON、任务文本、所属项目和集合",
+      "tags": [
+        "class"
+      ],
+      "complexity": 2,
+      "file": "file:web/backend/app/models.py"
+    },
+    {
+      "id": "class:web/backend/app/models.py::TestCaseRevision",
+      "type": "class",
+      "name": "TestCaseRevision",
+      "summary": "测试用例修订版本表：记录用例的历史版本",
+      "tags": [
+        "class"
+      ],
+      "complexity": 2,
+      "file": "file:web/backend/app/models.py"
+    },
+    {
+      "id": "class:web/backend/app/models.py::CaseKbDocument",
+      "type": "class",
+      "name": "CaseKbDocument",
+      "summary": "用例知识库文档表：测试用例与知识库文档的关联",
+      "tags": [
+        "class"
+      ],
+      "complexity": 2,
+      "file": "file:web/backend/app/models.py"
+    },
+    {
+      "id": "class:web/backend/app/models.py::ProjectAppArtifact",
+      "type": "class",
+      "name": "ProjectAppArtifact",
+      "summary": "项目应用产物表：存储上传的 APK/HAP 安装包元数据",
+      "tags": [
+        "class"
+      ],
+      "complexity": 2,
+      "file": "file:web/backend/app/models.py"
+    },
+    {
+      "id": "class:web/backend/app/models.py::TestCaseSet",
+      "type": "class",
+      "name": "TestCaseSet",
+      "summary": "测试用例集表：用例的逻辑分组",
+      "tags": [
+        "class"
+      ],
+      "complexity": 2,
+      "file": "file:web/backend/app/models.py"
+    },
+    {
+      "id": "class:web/backend/app/models.py::TestCaseSetItem",
+      "type": "class",
+      "name": "TestCaseSetItem",
+      "summary": "测试用例集成员表：用例集与用例的多对多关联",
+      "tags": [
+        "class"
+      ],
+      "complexity": 2,
+      "file": "file:web/backend/app/models.py"
+    },
+    {
+      "id": "class:web/backend/app/models.py::FunctionalDispatchTask",
+      "type": "class",
+      "name": "FunctionalDispatchTask",
+      "summary": "功能调度任务表：测试执行任务的调度记录，包含机器人实例和状态",
+      "tags": [
+        "class"
+      ],
+      "complexity": 2,
+      "file": "file:web/backend/app/models.py"
+    },
+    {
+      "id": "class:web/backend/app/models.py::BillingPreorder",
+      "type": "class",
+      "name": "BillingPreorder",
+      "summary": "计费预订单表：机器人租赁的预订单信息",
+      "tags": [
+        "class"
+      ],
+      "complexity": 2,
+      "file": "file:web/backend/app/models.py"
+    },
+    {
+      "id": "class:web/backend/app/models.py::RobotRentalOrder",
+      "type": "class",
+      "name": "RobotRentalOrder",
+      "summary": "机器人租赁订单表：记录租赁时长、状态和审批信息",
+      "tags": [
+        "class"
+      ],
+      "complexity": 2,
+      "file": "file:web/backend/app/models.py"
+    },
+    {
+      "id": "class:web/backend/app/models.py::RobotInstance",
+      "type": "class",
+      "name": "RobotInstance",
+      "summary": "机器人实例表：具体的测试机器人，包含设备平台、后端类型和状态",
+      "tags": [
+        "class"
+      ],
+      "complexity": 2,
+      "file": "file:web/backend/app/models.py"
+    },
+    {
+      "id": "class:web/backend/app/models.py::TestRun",
+      "type": "class",
+      "name": "TestRun",
+      "summary": "测试运行表：单次测试执行的运行记录，包含步骤日志和状态",
+      "tags": [
+        "class"
+      ],
+      "complexity": 2,
+      "file": "file:web/backend/app/models.py"
+    },
+    {
+      "id": "class:web/backend/app/models.py::AppExploreRun",
+      "type": "class",
+      "name": "AppExploreRun",
+      "summary": "应用探索运行表：记录应用功能探索的执行状态和结果",
+      "tags": [
+        "class"
+      ],
+      "complexity": 2,
+      "file": "file:web/backend/app/models.py"
+    },
+    {
+      "id": "class:web/backend/app/models.py::ProjectFeatureAnalysisRun",
+      "type": "class",
+      "name": "ProjectFeatureAnalysisRun",
+      "summary": "项目特性分析运行表：记录特性分析的执行状态",
+      "tags": [
+        "class"
+      ],
+      "complexity": 2,
+      "file": "file:web/backend/app/models.py"
+    },
+    {
+      "id": "class:web/backend/app/models.py::ProjectFeatureTree",
+      "type": "class",
+      "name": "ProjectFeatureTree",
+      "summary": "项目特性树表：存储应用的特性树 JSON 结构和版本标签",
+      "tags": [
+        "class"
+      ],
+      "complexity": 2,
+      "file": "file:web/backend/app/models.py"
+    },
+    {
+      "id": "class:web/backend/app/models.py::KnowledgeCollection",
+      "type": "class",
+      "name": "KnowledgeCollection",
+      "summary": "知识库集合表：知识库文档的逻辑分组，关联项目",
+      "tags": [
+        "class"
+      ],
+      "complexity": 2,
+      "file": "file:web/backend/app/models.py"
+    },
+    {
+      "id": "class:web/backend/app/models.py::KnowledgeDocument",
+      "type": "class",
+      "name": "KnowledgeDocument",
+      "summary": "知识库文档表：存储文档元数据、类型、状态和分块策略",
+      "tags": [
+        "class"
+      ],
+      "complexity": 2,
+      "file": "file:web/backend/app/models.py"
+    },
+    {
+      "id": "class:web/backend/app/models.py::KnowledgeChunk",
+      "type": "class",
+      "name": "KnowledgeChunk",
+      "summary": "知识库分块表：文档分块后的文本片段，关联 Qdrant 向量ID",
+      "tags": [
+        "class"
+      ],
+      "complexity": 2,
+      "file": "file:web/backend/app/models.py"
+    },
+    {
+      "id": "class:web/backend/app/models.py::ProjectKnowledgeSettings",
+      "type": "class",
+      "name": "ProjectKnowledgeSettings",
+      "summary": "项目知识库设置表：项目级别的知识库分块和搜索配置",
+      "tags": [
+        "class"
+      ],
+      "complexity": 2,
+      "file": "file:web/backend/app/models.py"
+    },
+    {
+      "id": "class:web/backend/app/models.py::SkillProfile",
+      "type": "class",
+      "name": "SkillProfile",
+      "summary": "技能档案表：定义机器人的技能描述和匹配规则",
+      "tags": [
+        "class"
+      ],
+      "complexity": 2,
+      "file": "file:web/backend/app/models.py"
+    },
+    {
+      "id": "class:web/backend/app/models.py::RobotInstanceBinding",
+      "type": "class",
+      "name": "RobotInstanceBinding",
+      "summary": "机器人实例绑定表：机器人与知识库集合的绑定关系",
+      "tags": [
+        "class"
+      ],
+      "complexity": 2,
+      "file": "file:web/backend/app/models.py"
+    },
+    {
+      "id": "file:web/backend/app/rbac.py",
+      "type": "file",
+      "name": "rbac.py",
+      "summary": "RBAC 角色权限控制模块，定义三种角色(platform_admin/tse/enterprise)的权限判断和查询范围过滤",
+      "tags": [
+        "web-backend",
+        "rbac",
+        "authorization",
+        "security"
+      ],
+      "complexity": 1,
+      "lines": 45
+    },
+    {
+      "id": "func:web/backend/app/rbac.py::can_view_all_cases",
+      "type": "function",
+      "name": "can_view_all_cases",
+      "summary": "判断角色是否可以查看所有用例(platform_admin)",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 2,
+      "file": "file:web/backend/app/rbac.py"
+    },
+    {
+      "id": "func:web/backend/app/rbac.py::can_manage_users",
+      "type": "function",
+      "name": "can_manage_users",
+      "summary": "判断角色是否可以管理用户(platform_admin)",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 2,
+      "file": "file:web/backend/app/rbac.py"
+    },
+    {
+      "id": "func:web/backend/app/rbac.py::case_scope_filter",
+      "type": "function",
+      "name": "case_scope_filter",
+      "summary": "根据角色返回用例查询过滤条件，非管理员只能查看自己公司/个人的用例",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 5,
+      "file": "file:web/backend/app/rbac.py"
+    },
+    {
+      "id": "func:web/backend/app/rbac.py::run_scope_query",
+      "type": "function",
+      "name": "run_scope_query",
+      "summary": "根据角色对测试运行查询添加范围过滤",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 5,
+      "file": "file:web/backend/app/rbac.py"
+    },
+    {
+      "id": "file:web/backend/app/routers/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "summary": "路由包子包初始化文件",
+      "tags": [
+        "web-backend",
+        "routers",
+        "init"
+      ],
+      "complexity": 1,
+      "lines": 1
+    },
+    {
+      "id": "file:web/backend/app/routers/admin.py",
+      "type": "file",
+      "name": "admin.py",
+      "summary": "平台管理后台路由，提供租赁订单审批、公司管理、机器人实例管理、用户角色管理等平台级操作",
+      "tags": [
+        "web-backend",
+        "admin",
+        "routers",
+        "rbac",
+        "rental"
+      ],
+      "complexity": 3,
+      "lines": 209
+    },
+    {
+      "id": "func:web/backend/app/routers/admin.py::approve_rental_order",
+      "type": "function",
+      "name": "approve_rental_order",
+      "summary": "审批通过租赁订单，创建机器人实例并分配实例编号",
+      "tags": [
+        "function"
+      ],
+      "complexity": 2,
+      "lines": 35,
+      "file": "file:web/backend/app/routers/admin.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/admin.py::reject_rental_order",
+      "type": "function",
+      "name": "reject_rental_order",
+      "summary": "拒绝租赁订单并更新状态",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 18,
+      "file": "file:web/backend/app/routers/admin.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/admin.py::list_companies",
+      "type": "function",
+      "name": "list_companies",
+      "summary": "列出所有公司，支持分页",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 17,
+      "file": "file:web/backend/app/routers/admin.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/admin.py::patch_company_share_internal",
+      "type": "function",
+      "name": "patch_company_share_internal",
+      "summary": "更新公司内部共享项目和用例的开关",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 19,
+      "file": "file:web/backend/app/routers/admin.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/admin.py::set_robot_instance_status_admin",
+      "type": "function",
+      "name": "set_robot_instance_status_admin",
+      "summary": "管理员设置机器人实例状态(启用/禁用)",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 13,
+      "file": "file:web/backend/app/routers/admin.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/admin.py::set_user_role",
+      "type": "function",
+      "name": "set_user_role",
+      "summary": "设置用户角色，仅限 platform_admin 操作",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 18,
+      "file": "file:web/backend/app/routers/admin.py"
+    },
+    {
+      "id": "file:web/backend/app/routers/app_explore.py",
+      "type": "file",
+      "name": "app_explore.py",
+      "summary": "应用功能探索路由，管理应用探索任务的创建、查询、取消和 Excel 结果下载",
+      "tags": [
+        "web-backend",
+        "app-explore",
+        "routers",
+        "test-execution"
+      ],
+      "complexity": 2,
+      "lines": 178
+    },
+    {
+      "id": "func:web/backend/app/routers/app_explore.py::list_installed_apps",
+      "type": "function",
+      "name": "list_installed_apps",
+      "summary": "列出设备上已安装的应用列表",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 12,
+      "file": "file:web/backend/app/routers/app_explore.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/app_explore.py::start_explore",
+      "type": "function",
+      "name": "start_explore",
+      "summary": "启动应用功能探索任务：提交到 agent_service，创建探索运行记录",
+      "tags": [
+        "function"
+      ],
+      "complexity": 3,
+      "lines": 60,
+      "file": "file:web/backend/app/routers/app_explore.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/app_explore.py::get_explore_run",
+      "type": "function",
+      "name": "get_explore_run",
+      "summary": "获取探索运行的当前状态和结果",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 9,
+      "file": "file:web/backend/app/routers/app_explore.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/app_explore.py::cancel_explore_run",
+      "type": "function",
+      "name": "cancel_explore_run",
+      "summary": "取消正在进行的探索任务",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 16,
+      "file": "file:web/backend/app/routers/app_explore.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/app_explore.py::download_explore_excel",
+      "type": "function",
+      "name": "download_explore_excel",
+      "summary": "将探索结果导出为 Excel 文件下载",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 25,
+      "file": "file:web/backend/app/routers/app_explore.py"
+    },
+    {
+      "id": "file:web/backend/app/routers/auth.py",
+      "type": "file",
+      "name": "auth.py",
+      "summary": "认证路由，提供用户注册、登录、JWT 刷新、个人资料更新和密码修改功能",
+      "tags": [
+        "web-backend",
+        "auth",
+        "routers",
+        "jwt"
+      ],
+      "complexity": 3,
+      "lines": 170
+    },
+    {
+      "id": "func:web/backend/app/routers/auth.py::register",
+      "type": "function",
+      "name": "register",
+      "summary": "用户注册：验证公司信息、创建用户记录、初始化个人空间",
+      "tags": [
+        "function"
+      ],
+      "complexity": 2,
+      "lines": 46,
+      "file": "file:web/backend/app/routers/auth.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/auth.py::login",
+      "type": "function",
+      "name": "login",
+      "summary": "用户登录：验证凭证、返回 JWT 令牌和用户信息",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 5,
+      "file": "file:web/backend/app/routers/auth.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/auth.py::refresh_token",
+      "type": "function",
+      "name": "refresh_token",
+      "summary": "刷新 JWT 访问令牌",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 3,
+      "file": "file:web/backend/app/routers/auth.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/auth.py::update_profile",
+      "type": "function",
+      "name": "update_profile",
+      "summary": "更新用户个人资料(显示名等)",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 15,
+      "file": "file:web/backend/app/routers/auth.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/auth.py::change_password",
+      "type": "function",
+      "name": "change_password",
+      "summary": "修改用户密码，需验证旧密码",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 13,
+      "file": "file:web/backend/app/routers/auth.py"
+    },
+    {
+      "id": "file:web/backend/app/routers/billing.py",
+      "type": "file",
+      "name": "billing.py",
+      "summary": "计费路由，管理机器人租赁的预订单创建和查询",
+      "tags": [
+        "web-backend",
+        "billing",
+        "routers"
+      ],
+      "complexity": 1,
+      "lines": 64
+    },
+    {
+      "id": "func:web/backend/app/routers/billing.py::create_preorder",
+      "type": "function",
+      "name": "create_preorder",
+      "summary": "创建租赁预订单，包含机器人类型、数量和时长信息",
+      "tags": [
+        "function"
+      ],
+      "complexity": 2,
+      "lines": 33,
+      "file": "file:web/backend/app/routers/billing.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/billing.py::get_preorder",
+      "type": "function",
+      "name": "get_preorder",
+      "summary": "查询预订单详情",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 11,
+      "file": "file:web/backend/app/routers/billing.py"
+    },
+    {
+      "id": "file:web/backend/app/routers/companies.py",
+      "type": "file",
+      "name": "companies.py",
+      "summary": "公司注册查询路由，为注册页面提供可选公司列表",
+      "tags": [
+        "web-backend",
+        "companies",
+        "routers"
+      ],
+      "complexity": 1,
+      "lines": 17
+    },
+    {
+      "id": "func:web/backend/app/routers/companies.py::list_companies_for_register",
+      "type": "function",
+      "name": "list_companies_for_register",
+      "summary": "返回可供注册的公司列表",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 2,
+      "file": "file:web/backend/app/routers/companies.py"
+    },
+    {
+      "id": "file:web/backend/app/routers/dashboard.py",
+      "type": "file",
+      "name": "dashboard.py",
+      "summary": "仪表盘路由，提供项目级别的测试运行和用例统计摘要",
+      "tags": [
+        "web-backend",
+        "dashboard",
+        "routers",
+        "statistics"
+      ],
+      "complexity": 1,
+      "lines": 80
+    },
+    {
+      "id": "func:web/backend/app/routers/dashboard.py::dashboard_summary",
+      "type": "function",
+      "name": "dashboard_summary",
+      "summary": "返回项目的仪表盘数据：测试运行数、通过率、用例数等统计",
+      "tags": [
+        "function"
+      ],
+      "complexity": 2,
+      "lines": 43,
+      "file": "file:web/backend/app/routers/dashboard.py"
+    },
+    {
+      "id": "file:web/backend/app/routers/device_pools_api.py",
+      "type": "file",
+      "name": "device_pools_api.py",
+      "summary": "设备池 API 路由，提供可用设备资源池的查询",
+      "tags": [
+        "web-backend",
+        "devices",
+        "routers",
+        "device-pool"
+      ],
+      "complexity": 1,
+      "lines": 14
+    },
+    {
+      "id": "func:web/backend/app/routers/device_pools_api.py::get_device_pools",
+      "type": "function",
+      "name": "get_device_pools",
+      "summary": "获取当前可用的设备池列表",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 2,
+      "file": "file:web/backend/app/routers/device_pools_api.py"
+    },
+    {
+      "id": "file:web/backend/app/routers/devices.py",
+      "type": "file",
+      "name": "devices.py",
+      "summary": "设备管理路由，查询当前连接的设备列表，包含设备信息和状态",
+      "tags": [
+        "web-backend",
+        "devices",
+        "routers",
+        "adb",
+        "hdc"
+      ],
+      "complexity": 1,
+      "lines": 40
+    },
+    {
+      "id": "func:web/backend/app/routers/devices.py::get_connected_devices",
+      "type": "function",
+      "name": "get_connected_devices",
+      "summary": "获取当前通过 ADB/HDC 连接的设备列表及状态信息",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 24,
+      "file": "file:web/backend/app/routers/devices.py"
+    },
+    {
+      "id": "file:web/backend/app/routers/internal_knowledge.py",
+      "type": "file",
+      "name": "internal_knowledge.py",
+      "summary": "内部知识库 API 路由，供 agent_service 通过 Bearer Token 调用的知识库查询接口，支持用例搜索和机器人上下文查询",
+      "tags": [
+        "web-backend",
+        "knowledge",
+        "internal-api",
+        "routers",
+        "agent-service"
+      ],
+      "complexity": 2,
+      "lines": 137
+    },
+    {
+      "id": "func:web/backend/app/routers/internal_knowledge.py::_verify_service_token",
+      "type": "function",
+      "name": "_verify_service_token",
+      "summary": "验证 agent_service 的 Bearer Token 认证",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 9,
+      "file": "file:web/backend/app/routers/internal_knowledge.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/internal_knowledge.py::internal_search_cases_kb",
+      "type": "function",
+      "name": "internal_search_cases_kb",
+      "summary": "内部用例知识库搜索接口，供 agent_service 的 RAG 检索使用",
+      "tags": [
+        "function"
+      ],
+      "complexity": 2,
+      "lines": 42,
+      "file": "file:web/backend/app/routers/internal_knowledge.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/internal_knowledge.py::internal_knowledge_query",
+      "type": "function",
+      "name": "internal_knowledge_query",
+      "summary": "内部知识库通用查询接口",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 29,
+      "file": "file:web/backend/app/routers/internal_knowledge.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/internal_knowledge.py::internal_robot_agent_context",
+      "type": "function",
+      "name": "internal_robot_agent_context",
+      "summary": "获取机器人代理上下文，包含绑定的知识库集合信息",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 19,
+      "file": "file:web/backend/app/routers/internal_knowledge.py"
+    },
+    {
+      "id": "file:web/backend/app/routers/knowledge.py",
+      "type": "file",
+      "name": "knowledge.py",
+      "summary": "知识库管理路由(最大模块，871行)，提供集合/文档/分块策略/审核/搜索/机器人绑定的完整 CRUD，包含 11 个 Pydantic 模型和 32 个端点",
+      "tags": [
+        "web-backend",
+        "knowledge",
+        "routers",
+        "crud",
+        "review",
+        "chunking"
+      ],
+      "complexity": 5,
+      "lines": 871
+    },
+    {
+      "id": "func:web/backend/app/routers/knowledge.py::get_project_chunk_policy",
+      "type": "function",
+      "name": "get_project_chunk_policy",
+      "summary": "获取项目级分块策略配置",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 7,
+      "file": "file:web/backend/app/routers/knowledge.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/knowledge.py::update_project_chunk_policy",
+      "type": "function",
+      "name": "update_project_chunk_policy",
+      "summary": "更新项目级分块策略",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 21,
+      "file": "file:web/backend/app/routers/knowledge.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/knowledge.py::list_skill_profiles",
+      "type": "function",
+      "name": "list_skill_profiles",
+      "summary": "列出可用的技能档案",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 22,
+      "file": "file:web/backend/app/routers/knowledge.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/knowledge.py::list_collections",
+      "type": "function",
+      "name": "list_collections",
+      "summary": "列出项目下的知识库集合",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 14,
+      "file": "file:web/backend/app/routers/knowledge.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/knowledge.py::create_collection",
+      "type": "function",
+      "name": "create_collection",
+      "summary": "创建新的知识库集合",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 19,
+      "file": "file:web/backend/app/routers/knowledge.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/knowledge.py::upload_document",
+      "type": "function",
+      "name": "upload_document",
+      "summary": "上传文档到知识库，触发异步摄取流程",
+      "tags": [
+        "function"
+      ],
+      "complexity": 2,
+      "lines": 56,
+      "file": "file:web/backend/app/routers/knowledge.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/knowledge.py::create_structured_document",
+      "type": "function",
+      "name": "create_structured_document",
+      "summary": "创建结构化文档(如从 API 直接创建)",
+      "tags": [
+        "function"
+      ],
+      "complexity": 2,
+      "lines": 39,
+      "file": "file:web/backend/app/routers/knowledge.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/knowledge.py::submit_review",
+      "type": "function",
+      "name": "submit_review",
+      "summary": "提交文档到审核队列(standard/strategy 类型需要审核)",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 21,
+      "file": "file:web/backend/app/routers/knowledge.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/knowledge.py::review_document",
+      "type": "function",
+      "name": "review_document",
+      "summary": "审核文档：通过则写入向量索引，拒绝则标记",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 23,
+      "file": "file:web/backend/app/routers/knowledge.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/knowledge.py::reindex_document",
+      "type": "function",
+      "name": "reindex_document",
+      "summary": "重新索引已有文档，重新执行分块和嵌入",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 12,
+      "file": "file:web/backend/app/routers/knowledge.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/knowledge.py::search_project_knowledge",
+      "type": "function",
+      "name": "search_project_knowledge",
+      "summary": "搜索项目知识库，返回语义匹配结果",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 20,
+      "file": "file:web/backend/app/routers/knowledge.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/knowledge.py::search_test_cases_kb",
+      "type": "function",
+      "name": "search_test_cases_kb",
+      "summary": "搜索测试用例知识库，支持语义检索",
+      "tags": [
+        "function"
+      ],
+      "complexity": 2,
+      "lines": 44,
+      "file": "file:web/backend/app/routers/knowledge.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/knowledge.py::get_robot_knowledge_binding",
+      "type": "function",
+      "name": "get_robot_knowledge_binding",
+      "summary": "获取机器人实例的知识库绑定配置",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 14,
+      "file": "file:web/backend/app/routers/knowledge.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/knowledge.py::patch_robot_knowledge_binding",
+      "type": "function",
+      "name": "patch_robot_knowledge_binding",
+      "summary": "更新机器人实例的知识库绑定",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 25,
+      "file": "file:web/backend/app/routers/knowledge.py"
+    },
+    {
+      "id": "file:web/backend/app/routers/mai_ui.py",
+      "type": "file",
+      "name": "mai_ui.py",
+      "summary": "MAI UI 路由，提供移动端 UI 自动化的状态查询、界面检测和菜单检测接口",
+      "tags": [
+        "web-backend",
+        "mai-ui",
+        "routers",
+        "ui-automation"
+      ],
+      "complexity": 2,
+      "lines": 110
+    },
+    {
+      "id": "func:web/backend/app/routers/mai_ui.py::mai_ui_status",
+      "type": "function",
+      "name": "mai_ui_status",
+      "summary": "查询 MAI UI 自动化服务的当前状态",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 9,
+      "file": "file:web/backend/app/routers/mai_ui.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/mai_ui.py::mai_ui_ground",
+      "type": "function",
+      "name": "mai_ui_ground",
+      "summary": "执行界面检测，识别当前屏幕上的 UI 元素",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 27,
+      "file": "file:web/backend/app/routers/mai_ui.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/mai_ui.py::mai_ui_detect_menus",
+      "type": "function",
+      "name": "mai_ui_detect_menus",
+      "summary": "检测屏幕上的菜单元素",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 27,
+      "file": "file:web/backend/app/routers/mai_ui.py"
+    },
+    {
+      "id": "file:web/backend/app/routers/marketplace.py",
+      "type": "file",
+      "name": "marketplace.py",
+      "summary": "机器人市场路由，提供机器人目录的浏览和筛选",
+      "tags": [
+        "web-backend",
+        "marketplace",
+        "routers",
+        "robot"
+      ],
+      "complexity": 1,
+      "lines": 30
+    },
+    {
+      "id": "func:web/backend/app/routers/marketplace.py::robots_catalog",
+      "type": "function",
+      "name": "robots_catalog",
+      "summary": "返回机器人市场目录，按业务角色(测试分析/测试执行)和技术路线分组",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 15,
+      "file": "file:web/backend/app/routers/marketplace.py"
+    },
+    {
+      "id": "file:web/backend/app/routers/monitor_api.py",
+      "type": "file",
+      "name": "monitor_api.py",
+      "summary": "监控 API 路由，提供设备监控快照数据的访问，需要监控角色认证",
+      "tags": [
+        "web-backend",
+        "monitor",
+        "routers",
+        "websocket"
+      ],
+      "complexity": 1,
+      "lines": 32
+    },
+    {
+      "id": "func:web/backend/app/routers/monitor_api.py::_require_monitor_role",
+      "type": "function",
+      "name": "_require_monitor_role",
+      "summary": "验证监控角色的权限",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 6,
+      "file": "file:web/backend/app/routers/monitor_api.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/monitor_api.py::monitor_robots_snapshot",
+      "type": "function",
+      "name": "monitor_robots_snapshot",
+      "summary": "获取机器人监控快照数据",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 7,
+      "file": "file:web/backend/app/routers/monitor_api.py"
+    },
+    {
+      "id": "file:web/backend/app/routers/platform_api.py",
+      "type": "file",
+      "name": "platform_api.py",
+      "summary": "平台管理 API 路由，提供设备管理、计费配置、机器人目录、企业租赁和用量报告等平台级数据",
+      "tags": [
+        "web-backend",
+        "platform",
+        "routers",
+        "admin"
+      ],
+      "complexity": 1,
+      "lines": 73
+    },
+    {
+      "id": "func:web/backend/app/routers/platform_api.py::platform_devices",
+      "type": "function",
+      "name": "platform_devices",
+      "summary": "获取平台级设备列表",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 9,
+      "file": "file:web/backend/app/routers/platform_api.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/platform_api.py::platform_billing_config",
+      "type": "function",
+      "name": "platform_billing_config",
+      "summary": "获取平台计费配置",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 8,
+      "file": "file:web/backend/app/routers/platform_api.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/platform_api.py::robot_catalog_full",
+      "type": "function",
+      "name": "robot_catalog_full",
+      "summary": "获取完整机器人目录(含技术参数)",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 10,
+      "file": "file:web/backend/app/routers/platform_api.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/platform_api.py::enterprise_robot_rentals",
+      "type": "function",
+      "name": "enterprise_robot_rentals",
+      "summary": "查看企业机器人租赁记录",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 9,
+      "file": "file:web/backend/app/routers/platform_api.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/platform_api.py::enterprise_usage_report",
+      "type": "function",
+      "name": "enterprise_usage_report",
+      "summary": "生成企业用量报告",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 10,
+      "file": "file:web/backend/app/routers/platform_api.py"
+    },
+    {
+      "id": "file:web/backend/app/routers/project_feature_analysis.py",
+      "type": "file",
+      "name": "project_feature_analysis.py",
+      "summary": "项目特性分析路由(823行)，管理应用包上传/安装、特性探索运行、特性树确认/版本管理、Excel 导出等完整工作流",
+      "tags": [
+        "web-backend",
+        "feature-analysis",
+        "routers",
+        "app-package",
+        "feature-tree"
+      ],
+      "complexity": 5,
+      "lines": 823
+    },
+    {
+      "id": "func:web/backend/app/routers/project_feature_analysis.py::upload_feature_app_package",
+      "type": "function",
+      "name": "upload_feature_app_package",
+      "summary": "上传应用安装包(APK/HAP)到项目",
+      "tags": [
+        "function"
+      ],
+      "complexity": 2,
+      "lines": 33,
+      "file": "file:web/backend/app/routers/project_feature_analysis.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/project_feature_analysis.py::install_feature_app_package",
+      "type": "function",
+      "name": "install_feature_app_package",
+      "summary": "安装应用包到测试设备",
+      "tags": [
+        "function"
+      ],
+      "complexity": 3,
+      "lines": 61,
+      "file": "file:web/backend/app/routers/project_feature_analysis.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/project_feature_analysis.py::start_feature_analysis",
+      "type": "function",
+      "name": "start_feature_analysis",
+      "summary": "启动特性分析任务：提交到 agent_service，创建分析运行记录",
+      "tags": [
+        "function"
+      ],
+      "complexity": 3,
+      "lines": 99,
+      "file": "file:web/backend/app/routers/project_feature_analysis.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/project_feature_analysis.py::cancel_feature_run",
+      "type": "function",
+      "name": "cancel_feature_run",
+      "summary": "取消正在运行的特性分析任务",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 25,
+      "file": "file:web/backend/app/routers/project_feature_analysis.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/project_feature_analysis.py::download_feature_excel",
+      "type": "function",
+      "name": "download_feature_excel",
+      "summary": "下载特性分析的 Excel 结果",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 29,
+      "file": "file:web/backend/app/routers/project_feature_analysis.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/project_feature_analysis.py::confirm_feature_tree",
+      "type": "function",
+      "name": "confirm_feature_tree",
+      "summary": "确认特性树结果，生成版本标签并持久化",
+      "tags": [
+        "function"
+      ],
+      "complexity": 2,
+      "lines": 42,
+      "file": "file:web/backend/app/routers/project_feature_analysis.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/project_feature_analysis.py::list_feature_trees",
+      "type": "function",
+      "name": "list_feature_trees",
+      "summary": "列出项目的特性树版本",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 17,
+      "file": "file:web/backend/app/routers/project_feature_analysis.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/project_feature_analysis.py::export_feature_tree_excel",
+      "type": "function",
+      "name": "export_feature_tree_excel",
+      "summary": "将特性树导出为 Excel 文件",
+      "tags": [
+        "function"
+      ],
+      "complexity": 2,
+      "lines": 42,
+      "file": "file:web/backend/app/routers/project_feature_analysis.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/project_feature_analysis.py::update_feature_tree",
+      "type": "function",
+      "name": "update_feature_tree",
+      "summary": "手动更新特性树节点",
+      "tags": [
+        "function"
+      ],
+      "complexity": 2,
+      "lines": 34,
+      "file": "file:web/backend/app/routers/project_feature_analysis.py"
+    },
+    {
+      "id": "file:web/backend/app/routers/project_functional.py",
+      "type": "file",
+      "name": "project_functional.py",
+      "summary": "项目功能测试路由，管理应用包上传、测试用例集、AI 用例草稿和功能测试调度执行",
+      "tags": [
+        "web-backend",
+        "functional-test",
+        "routers",
+        "test-execution",
+        "case-set"
+      ],
+      "complexity": 4,
+      "lines": 327
+    },
+    {
+      "id": "func:web/backend/app/routers/project_functional.py::upload_app_package",
+      "type": "function",
+      "name": "upload_app_package",
+      "summary": "上传测试应用的安装包到项目",
+      "tags": [
+        "function"
+      ],
+      "complexity": 2,
+      "lines": 31,
+      "file": "file:web/backend/app/routers/project_functional.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/project_functional.py::create_case_set",
+      "type": "function",
+      "name": "create_case_set",
+      "summary": "创建测试用例集，支持从现有用例中选取",
+      "tags": [
+        "function"
+      ],
+      "complexity": 2,
+      "lines": 41,
+      "file": "file:web/backend/app/routers/project_functional.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/project_functional.py::ai_draft_case_set",
+      "type": "function",
+      "name": "ai_draft_case_set",
+      "summary": "AI 生成测试用例草稿",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 12,
+      "file": "file:web/backend/app/routers/project_functional.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/project_functional.py::create_functional_dispatch",
+      "type": "function",
+      "name": "create_functional_dispatch",
+      "summary": "创建功能测试调度任务：选择机器人实例和用例集，提交到 agent_service 执行",
+      "tags": [
+        "function"
+      ],
+      "complexity": 3,
+      "lines": 108,
+      "file": "file:web/backend/app/routers/project_functional.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/project_functional.py::list_functional_dispatches",
+      "type": "function",
+      "name": "list_functional_dispatches",
+      "summary": "列出项目的功能测试调度记录",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 13,
+      "file": "file:web/backend/app/routers/project_functional.py"
+    },
+    {
+      "id": "file:web/backend/app/routers/projects.py",
+      "type": "file",
+      "name": "projects.py",
+      "summary": "项目管理路由，提供项目的 CRUD、仪表盘、报告和任务摘要，支持角色级访问控制",
+      "tags": [
+        "web-backend",
+        "projects",
+        "routers",
+        "crud"
+      ],
+      "complexity": 3,
+      "lines": 199
+    },
+    {
+      "id": "func:web/backend/app/routers/projects.py::list_projects",
+      "type": "function",
+      "name": "list_projects",
+      "summary": "列出当前用户可访问的项目列表，支持角色过滤",
+      "tags": [
+        "function"
+      ],
+      "complexity": 2,
+      "lines": 39,
+      "file": "file:web/backend/app/routers/projects.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/projects.py::create_project",
+      "type": "function",
+      "name": "create_project",
+      "summary": "创建新项目，自动关联当前用户和公司",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 16,
+      "file": "file:web/backend/app/routers/projects.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/projects.py::update_project",
+      "type": "function",
+      "name": "update_project",
+      "summary": "更新项目信息，仅限项目所有者操作",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 17,
+      "file": "file:web/backend/app/routers/projects.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/projects.py::delete_project",
+      "type": "function",
+      "name": "delete_project",
+      "summary": "删除项目及关联数据",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 16,
+      "file": "file:web/backend/app/routers/projects.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/projects.py::project_task_summary",
+      "type": "function",
+      "name": "project_task_summary",
+      "summary": "返回项目的任务执行摘要统计",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 20,
+      "file": "file:web/backend/app/routers/projects.py"
+    },
+    {
+      "id": "file:web/backend/app/routers/rentals.py",
+      "type": "file",
+      "name": "rentals.py",
+      "summary": "租赁订单路由，管理企业用户的机器人租赁申请",
+      "tags": [
+        "web-backend",
+        "rentals",
+        "routers",
+        "billing"
+      ],
+      "complexity": 1,
+      "lines": 70
+    },
+    {
+      "id": "func:web/backend/app/routers/rentals.py::create_rental_order",
+      "type": "function",
+      "name": "create_rental_order",
+      "summary": "创建机器人租赁订单，包含机器人类型、租赁时长和用途说明",
+      "tags": [
+        "function"
+      ],
+      "complexity": 2,
+      "lines": 40,
+      "file": "file:web/backend/app/routers/rentals.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/rentals.py::list_my_rental_orders",
+      "type": "function",
+      "name": "list_my_rental_orders",
+      "summary": "列出当前用户/公司的租赁订单",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 10,
+      "file": "file:web/backend/app/routers/rentals.py"
+    },
+    {
+      "id": "file:web/backend/app/routers/robot_instances.py",
+      "type": "file",
+      "name": "robot_instances.py",
+      "summary": "机器人实例管理路由，提供实例列表、详情、设备截屏和配置更新",
+      "tags": [
+        "web-backend",
+        "robot-instances",
+        "routers",
+        "device"
+      ],
+      "complexity": 2,
+      "lines": 119
+    },
+    {
+      "id": "func:web/backend/app/routers/robot_instances.py::list_my_instances",
+      "type": "function",
+      "name": "list_my_instances",
+      "summary": "列出当前用户可访问的机器人实例",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 11,
+      "file": "file:web/backend/app/routers/robot_instances.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/robot_instances.py::get_my_instance",
+      "type": "function",
+      "name": "get_my_instance",
+      "summary": "获取单个机器人实例的详细信息",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 11,
+      "file": "file:web/backend/app/routers/robot_instances.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/robot_instances.py::get_device_screen",
+      "type": "function",
+      "name": "get_device_screen",
+      "summary": "获取机器人绑定设备的当前屏幕截图(base64)",
+      "tags": [
+        "function"
+      ],
+      "complexity": 2,
+      "lines": 38,
+      "file": "file:web/backend/app/routers/robot_instances.py"
+    },
+    {
+      "id": "func:web/backend/app/routers/robot_instances.py::patch_my_instance",
+      "type": "function",
+      "name": "patch_my_instance",
+      "summary": "更新机器人实例的配置参数",
+      "tags": [
+        "function"
+      ],
+      "complexity": 1,
+      "lines": 22,
+      "file": "file:web/backend/app/routers/robot_instances.py"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:web/backend/app/knowledge/query/service.py",
+      "target": "func:web/backend/app/knowledge/query/service.py::knowledge_search",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/query/service.py",
+      "target": "func:web/backend/app/knowledge/query/service.py::merge_rag_policy",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/query/service.py",
+      "target": "file:web/backend/app/knowledge/index/embeddings.py",
+      "type": "depends_on"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/query/service.py",
+      "target": "file:web/backend/app/knowledge/index/qdrant_store.py",
+      "type": "depends_on"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/query/service.py",
+      "target": "file:web/backend/app/knowledge/chunk_policy.py",
+      "type": "depends_on"
+    },
+    {
+      "source": "file:web/backend/app/logging_config.py",
+      "target": "func:web/backend/app/logging_config.py::_resolve_level",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/logging_config.py",
+      "target": "func:web/backend/app/logging_config.py::_resolve_format",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/logging_config.py",
+      "target": "func:web/backend/app/logging_config.py::configure_logging",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/main.py",
+      "target": "func:web/backend/app/main.py::_http_log_level",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/main.py",
+      "target": "func:web/backend/app/main.py::request_logging_middleware",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/main.py",
+      "target": "func:web/backend/app/main.py::on_startup",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/main.py",
+      "target": "func:web/backend/app/main.py::health",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/main.py",
+      "target": "file:web/backend/app/database.py",
+      "type": "depends_on"
+    },
+    {
+      "source": "file:web/backend/app/main.py",
+      "target": "file:web/backend/app/logging_config.py",
+      "type": "depends_on"
+    },
+    {
+      "source": "file:web/backend/app/main.py",
+      "target": "file:web/backend/app/routers/admin.py",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/main.py",
+      "target": "file:web/backend/app/routers/auth.py",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/main.py",
+      "target": "file:web/backend/app/routers/knowledge.py",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/main.py",
+      "target": "file:web/backend/app/routers/projects.py",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/main.py",
+      "target": "file:web/backend/app/routers/project_functional.py",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/main.py",
+      "target": "file:web/backend/app/routers/project_feature_analysis.py",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/main.py",
+      "target": "file:web/backend/app/routers/app_explore.py",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/main.py",
+      "target": "file:web/backend/app/routers/dashboard.py",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/main.py",
+      "target": "file:web/backend/app/routers/devices.py",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/main.py",
+      "target": "file:web/backend/app/routers/billing.py",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/main.py",
+      "target": "file:web/backend/app/routers/rentals.py",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/main.py",
+      "target": "file:web/backend/app/routers/robot_instances.py",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/main.py",
+      "target": "file:web/backend/app/routers/marketplace.py",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/main.py",
+      "target": "file:web/backend/app/routers/platform_api.py",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/main.py",
+      "target": "file:web/backend/app/routers/monitor_api.py",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/main.py",
+      "target": "file:web/backend/app/routers/mai_ui.py",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/main.py",
+      "target": "file:web/backend/app/routers/internal_knowledge.py",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/main.py",
+      "target": "file:web/backend/app/routers/companies.py",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/main.py",
+      "target": "file:web/backend/app/routers/device_pools_api.py",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/models.py",
+      "target": "class:web/backend/app/models.py::Company",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/models.py",
+      "target": "class:web/backend/app/models.py::User",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/models.py",
+      "target": "class:web/backend/app/models.py::PersonalSpace",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/models.py",
+      "target": "class:web/backend/app/models.py::Project",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/models.py",
+      "target": "class:web/backend/app/models.py::ProjectReport",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/models.py",
+      "target": "class:web/backend/app/models.py::Defect",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/models.py",
+      "target": "class:web/backend/app/models.py::TestCase",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/models.py",
+      "target": "class:web/backend/app/models.py::TestCaseRevision",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/models.py",
+      "target": "class:web/backend/app/models.py::CaseKbDocument",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/models.py",
+      "target": "class:web/backend/app/models.py::ProjectAppArtifact",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/models.py",
+      "target": "class:web/backend/app/models.py::TestCaseSet",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/models.py",
+      "target": "class:web/backend/app/models.py::TestCaseSetItem",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/models.py",
+      "target": "class:web/backend/app/models.py::FunctionalDispatchTask",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/models.py",
+      "target": "class:web/backend/app/models.py::BillingPreorder",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/models.py",
+      "target": "class:web/backend/app/models.py::RobotRentalOrder",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/models.py",
+      "target": "class:web/backend/app/models.py::RobotInstance",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/models.py",
+      "target": "class:web/backend/app/models.py::TestRun",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/models.py",
+      "target": "class:web/backend/app/models.py::AppExploreRun",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/models.py",
+      "target": "class:web/backend/app/models.py::ProjectFeatureAnalysisRun",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/models.py",
+      "target": "class:web/backend/app/models.py::ProjectFeatureTree",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/models.py",
+      "target": "class:web/backend/app/models.py::KnowledgeCollection",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/models.py",
+      "target": "class:web/backend/app/models.py::KnowledgeDocument",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/models.py",
+      "target": "class:web/backend/app/models.py::KnowledgeChunk",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/models.py",
+      "target": "class:web/backend/app/models.py::ProjectKnowledgeSettings",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/models.py",
+      "target": "class:web/backend/app/models.py::SkillProfile",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/models.py",
+      "target": "class:web/backend/app/models.py::RobotInstanceBinding",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/rbac.py",
+      "target": "func:web/backend/app/rbac.py::can_view_all_cases",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/rbac.py",
+      "target": "func:web/backend/app/rbac.py::can_manage_users",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/rbac.py",
+      "target": "func:web/backend/app/rbac.py::case_scope_filter",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/rbac.py",
+      "target": "func:web/backend/app/rbac.py::run_scope_query",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/admin.py",
+      "target": "func:web/backend/app/routers/admin.py::approve_rental_order",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/admin.py",
+      "target": "func:web/backend/app/routers/admin.py::reject_rental_order",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/admin.py",
+      "target": "func:web/backend/app/routers/admin.py::list_companies",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/admin.py",
+      "target": "func:web/backend/app/routers/admin.py::patch_company_share_internal",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/admin.py",
+      "target": "func:web/backend/app/routers/admin.py::set_robot_instance_status_admin",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/admin.py",
+      "target": "func:web/backend/app/routers/admin.py::set_user_role",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/app_explore.py",
+      "target": "func:web/backend/app/routers/app_explore.py::list_installed_apps",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/app_explore.py",
+      "target": "func:web/backend/app/routers/app_explore.py::start_explore",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/app_explore.py",
+      "target": "func:web/backend/app/routers/app_explore.py::get_explore_run",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/app_explore.py",
+      "target": "func:web/backend/app/routers/app_explore.py::cancel_explore_run",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/app_explore.py",
+      "target": "func:web/backend/app/routers/app_explore.py::download_explore_excel",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/auth.py",
+      "target": "func:web/backend/app/routers/auth.py::register",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/auth.py",
+      "target": "func:web/backend/app/routers/auth.py::login",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/auth.py",
+      "target": "func:web/backend/app/routers/auth.py::refresh_token",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/auth.py",
+      "target": "func:web/backend/app/routers/auth.py::update_profile",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/auth.py",
+      "target": "func:web/backend/app/routers/auth.py::change_password",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/billing.py",
+      "target": "func:web/backend/app/routers/billing.py::create_preorder",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/billing.py",
+      "target": "func:web/backend/app/routers/billing.py::get_preorder",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/companies.py",
+      "target": "func:web/backend/app/routers/companies.py::list_companies_for_register",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/dashboard.py",
+      "target": "func:web/backend/app/routers/dashboard.py::dashboard_summary",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/device_pools_api.py",
+      "target": "func:web/backend/app/routers/device_pools_api.py::get_device_pools",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/devices.py",
+      "target": "func:web/backend/app/routers/devices.py::get_connected_devices",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/internal_knowledge.py",
+      "target": "func:web/backend/app/routers/internal_knowledge.py::_verify_service_token",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/internal_knowledge.py",
+      "target": "func:web/backend/app/routers/internal_knowledge.py::internal_search_cases_kb",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/internal_knowledge.py",
+      "target": "func:web/backend/app/routers/internal_knowledge.py::internal_knowledge_query",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/internal_knowledge.py",
+      "target": "func:web/backend/app/routers/internal_knowledge.py::internal_robot_agent_context",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/internal_knowledge.py",
+      "target": "file:web/backend/app/knowledge/query/service.py",
+      "type": "depends_on"
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "func:web/backend/app/routers/knowledge.py::get_project_chunk_policy",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "func:web/backend/app/routers/knowledge.py::update_project_chunk_policy",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "func:web/backend/app/routers/knowledge.py::list_skill_profiles",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "func:web/backend/app/routers/knowledge.py::list_collections",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "func:web/backend/app/routers/knowledge.py::create_collection",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "func:web/backend/app/routers/knowledge.py::upload_document",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "func:web/backend/app/routers/knowledge.py::create_structured_document",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "func:web/backend/app/routers/knowledge.py::submit_review",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "func:web/backend/app/routers/knowledge.py::review_document",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "func:web/backend/app/routers/knowledge.py::reindex_document",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "func:web/backend/app/routers/knowledge.py::search_project_knowledge",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "func:web/backend/app/routers/knowledge.py::search_test_cases_kb",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "func:web/backend/app/routers/knowledge.py::get_robot_knowledge_binding",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "func:web/backend/app/routers/knowledge.py::patch_robot_knowledge_binding",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "file:web/backend/app/knowledge/index/pipeline.py",
+      "type": "depends_on"
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "file:web/backend/app/knowledge/query/service.py",
+      "type": "depends_on"
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "file:web/backend/app/knowledge/chunk_policy.py",
+      "type": "depends_on"
+    },
+    {
+      "source": "file:web/backend/app/routers/mai_ui.py",
+      "target": "func:web/backend/app/routers/mai_ui.py::mai_ui_status",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/mai_ui.py",
+      "target": "func:web/backend/app/routers/mai_ui.py::mai_ui_ground",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/mai_ui.py",
+      "target": "func:web/backend/app/routers/mai_ui.py::mai_ui_detect_menus",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/marketplace.py",
+      "target": "func:web/backend/app/routers/marketplace.py::robots_catalog",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/monitor_api.py",
+      "target": "func:web/backend/app/routers/monitor_api.py::_require_monitor_role",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/monitor_api.py",
+      "target": "func:web/backend/app/routers/monitor_api.py::monitor_robots_snapshot",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/platform_api.py",
+      "target": "func:web/backend/app/routers/platform_api.py::platform_devices",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/platform_api.py",
+      "target": "func:web/backend/app/routers/platform_api.py::platform_billing_config",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/platform_api.py",
+      "target": "func:web/backend/app/routers/platform_api.py::robot_catalog_full",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/platform_api.py",
+      "target": "func:web/backend/app/routers/platform_api.py::enterprise_robot_rentals",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/platform_api.py",
+      "target": "func:web/backend/app/routers/platform_api.py::enterprise_usage_report",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/project_feature_analysis.py",
+      "target": "func:web/backend/app/routers/project_feature_analysis.py::upload_feature_app_package",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/project_feature_analysis.py",
+      "target": "func:web/backend/app/routers/project_feature_analysis.py::install_feature_app_package",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/project_feature_analysis.py",
+      "target": "func:web/backend/app/routers/project_feature_analysis.py::start_feature_analysis",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/project_feature_analysis.py",
+      "target": "func:web/backend/app/routers/project_feature_analysis.py::cancel_feature_run",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/project_feature_analysis.py",
+      "target": "func:web/backend/app/routers/project_feature_analysis.py::download_feature_excel",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/project_feature_analysis.py",
+      "target": "func:web/backend/app/routers/project_feature_analysis.py::confirm_feature_tree",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/project_feature_analysis.py",
+      "target": "func:web/backend/app/routers/project_feature_analysis.py::list_feature_trees",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/project_feature_analysis.py",
+      "target": "func:web/backend/app/routers/project_feature_analysis.py::export_feature_tree_excel",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/project_feature_analysis.py",
+      "target": "func:web/backend/app/routers/project_feature_analysis.py::update_feature_tree",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/project_feature_analysis.py",
+      "target": "file:web/backend/app/executor.py",
+      "type": "depends_on"
+    },
+    {
+      "source": "file:web/backend/app/routers/project_functional.py",
+      "target": "func:web/backend/app/routers/project_functional.py::upload_app_package",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/project_functional.py",
+      "target": "func:web/backend/app/routers/project_functional.py::create_case_set",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/project_functional.py",
+      "target": "func:web/backend/app/routers/project_functional.py::ai_draft_case_set",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/project_functional.py",
+      "target": "func:web/backend/app/routers/project_functional.py::create_functional_dispatch",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/project_functional.py",
+      "target": "func:web/backend/app/routers/project_functional.py::list_functional_dispatches",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/project_functional.py",
+      "target": "file:web/backend/app/executor.py",
+      "type": "depends_on"
+    },
+    {
+      "source": "file:web/backend/app/routers/projects.py",
+      "target": "func:web/backend/app/routers/projects.py::list_projects",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/projects.py",
+      "target": "func:web/backend/app/routers/projects.py::create_project",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/projects.py",
+      "target": "func:web/backend/app/routers/projects.py::update_project",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/projects.py",
+      "target": "func:web/backend/app/routers/projects.py::delete_project",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/projects.py",
+      "target": "func:web/backend/app/routers/projects.py::project_task_summary",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/rentals.py",
+      "target": "func:web/backend/app/routers/rentals.py::create_rental_order",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/rentals.py",
+      "target": "func:web/backend/app/routers/rentals.py::list_my_rental_orders",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/robot_instances.py",
+      "target": "func:web/backend/app/routers/robot_instances.py::list_my_instances",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/robot_instances.py",
+      "target": "func:web/backend/app/routers/robot_instances.py::get_my_instance",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/robot_instances.py",
+      "target": "func:web/backend/app/routers/robot_instances.py::get_device_screen",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/routers/robot_instances.py",
+      "target": "func:web/backend/app/routers/robot_instances.py::patch_my_instance",
+      "type": "contains"
+    },
+    {
+      "source": "file:web/backend/app/knowledge/query/service.py",
+      "target": "function:web/backend/app/knowledge/query/service.py:knowledge_search",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/logging_config.py",
+      "target": "function:web/backend/app/logging_config.py:configure_logging",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/main.py",
+      "target": "function:web/backend/app/main.py:request_logging_middleware",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/main.py",
+      "target": "function:web/backend/app/main.py:on_startup",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/models.py",
+      "target": "class:web/backend/app/models.py:TestCase",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/models.py",
+      "target": "class:web/backend/app/models.py:RobotRentalOrder",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/models.py",
+      "target": "class:web/backend/app/models.py:RobotInstance",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/models.py",
+      "target": "class:web/backend/app/models.py:TestRun",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/models.py",
+      "target": "class:web/backend/app/models.py:AppExploreRun",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/models.py",
+      "target": "class:web/backend/app/models.py:ProjectFeatureAnalysisRun",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/models.py",
+      "target": "class:web/backend/app/models.py:KnowledgeDocument",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/admin.py",
+      "target": "function:web/backend/app/routers/admin.py:approve_rental_order",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/admin.py",
+      "target": "function:web/backend/app/routers/admin.py:reject_rental_order",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/admin.py",
+      "target": "function:web/backend/app/routers/admin.py:list_companies",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/admin.py",
+      "target": "function:web/backend/app/routers/admin.py:patch_company_share_internal",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/admin.py",
+      "target": "function:web/backend/app/routers/admin.py:set_robot_instance_status_admin",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/admin.py",
+      "target": "function:web/backend/app/routers/admin.py:set_user_role",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/app_explore.py",
+      "target": "function:web/backend/app/routers/app_explore.py:list_installed_apps",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/app_explore.py",
+      "target": "function:web/backend/app/routers/app_explore.py:start_explore",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/app_explore.py",
+      "target": "function:web/backend/app/routers/app_explore.py:cancel_explore_run",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/app_explore.py",
+      "target": "function:web/backend/app/routers/app_explore.py:download_explore_excel",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/auth.py",
+      "target": "function:web/backend/app/routers/auth.py:_resolve_register_company",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/auth.py",
+      "target": "function:web/backend/app/routers/auth.py:_resolve_user",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/auth.py",
+      "target": "function:web/backend/app/routers/auth.py:register",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/auth.py",
+      "target": "function:web/backend/app/routers/auth.py:update_profile",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/auth.py",
+      "target": "function:web/backend/app/routers/auth.py:change_password",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/billing.py",
+      "target": "function:web/backend/app/routers/billing.py:create_preorder",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/billing.py",
+      "target": "function:web/backend/app/routers/billing.py:get_preorder",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/dashboard.py",
+      "target": "function:web/backend/app/routers/dashboard.py:dashboard_summary",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/devices.py",
+      "target": "function:web/backend/app/routers/devices.py:get_connected_devices",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/internal_knowledge.py",
+      "target": "function:web/backend/app/routers/internal_knowledge.py:internal_search_cases_kb",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/internal_knowledge.py",
+      "target": "function:web/backend/app/routers/internal_knowledge.py:internal_knowledge_query",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/internal_knowledge.py",
+      "target": "function:web/backend/app/routers/internal_knowledge.py:internal_robot_agent_context",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "function:web/backend/app/routers/knowledge.py:_doc_status_counts_by_collection",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "function:web/backend/app/routers/knowledge.py:_collection_out",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "function:web/backend/app/routers/knowledge.py:_get_collection",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "function:web/backend/app/routers/knowledge.py:_require_document",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "function:web/backend/app/routers/knowledge.py:_document_chunk_policy_out",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "function:web/backend/app/routers/knowledge.py:_apply_upload_chunk_policy",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "function:web/backend/app/routers/knowledge.py:_chunk_policy_out",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "function:web/backend/app/routers/knowledge.py:_get_or_create_project_knowledge_settings",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "function:web/backend/app/routers/knowledge.py:update_project_chunk_policy",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "function:web/backend/app/routers/knowledge.py:reset_project_chunk_policy",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "function:web/backend/app/routers/knowledge.py:list_skill_profiles",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "function:web/backend/app/routers/knowledge.py:list_collections",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "function:web/backend/app/routers/knowledge.py:create_collection",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "function:web/backend/app/routers/knowledge.py:update_collection",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "function:web/backend/app/routers/knowledge.py:delete_collection",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "function:web/backend/app/routers/knowledge.py:list_documents",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "function:web/backend/app/routers/knowledge.py:update_document_chunk_policy",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "function:web/backend/app/routers/knowledge.py:upload_document",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "function:web/backend/app/routers/knowledge.py:create_structured_document",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "function:web/backend/app/routers/knowledge.py:delete_document",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "function:web/backend/app/routers/knowledge.py:submit_review",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "function:web/backend/app/routers/knowledge.py:review_document",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "function:web/backend/app/routers/knowledge.py:reindex_document",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "function:web/backend/app/routers/knowledge.py:search_project_knowledge",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "function:web/backend/app/routers/knowledge.py:review_queue",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "function:web/backend/app/routers/knowledge.py:search_test_cases_kb",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "function:web/backend/app/routers/knowledge.py:get_robot_knowledge_binding",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/knowledge.py",
+      "target": "function:web/backend/app/routers/knowledge.py:patch_robot_knowledge_binding",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/mai_ui.py",
+      "target": "function:web/backend/app/routers/mai_ui.py:mai_ui_ground",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/mai_ui.py",
+      "target": "function:web/backend/app/routers/mai_ui.py:mai_ui_detect_menus",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/mai_ui.py",
+      "target": "function:web/backend/app/routers/mai_ui.py:_parse_queries",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/marketplace.py",
+      "target": "function:web/backend/app/routers/marketplace.py:robots_catalog",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/project_feature_analysis.py",
+      "target": "function:web/backend/app/routers/project_feature_analysis.py:_app_name_from_tree_json",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/project_feature_analysis.py",
+      "target": "function:web/backend/app/routers/project_feature_analysis.py:_content_disposition_attachment",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/project_feature_analysis.py",
+      "target": "function:web/backend/app/routers/project_feature_analysis.py:_assert_run_confirmable",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/project_feature_analysis.py",
+      "target": "function:web/backend/app/routers/project_feature_analysis.py:_sync_run_app_display_name",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/project_feature_analysis.py",
+      "target": "function:web/backend/app/routers/project_feature_analysis.py:_max_v_label_number",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/project_feature_analysis.py",
+      "target": "function:web/backend/app/routers/project_feature_analysis.py:_version_labels_for_same_app",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/project_feature_analysis.py",
+      "target": "function:web/backend/app/routers/project_feature_analysis.py:_next_version_label",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/project_feature_analysis.py",
+      "target": "function:web/backend/app/routers/project_feature_analysis.py:_feature_tree_out",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/project_feature_analysis.py",
+      "target": "function:web/backend/app/routers/project_feature_analysis.py:list_installed_apps_for_project",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/project_feature_analysis.py",
+      "target": "function:web/backend/app/routers/project_feature_analysis.py:list_feature_app_packages",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/project_feature_analysis.py",
+      "target": "function:web/backend/app/routers/project_feature_analysis.py:upload_feature_app_package",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/project_feature_analysis.py",
+      "target": "function:web/backend/app/routers/project_feature_analysis.py:install_feature_app_package",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/project_feature_analysis.py",
+      "target": "function:web/backend/app/routers/project_feature_analysis.py:list_feature_runs",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/project_feature_analysis.py",
+      "target": "function:web/backend/app/routers/project_feature_analysis.py:start_feature_analysis",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/project_feature_analysis.py",
+      "target": "function:web/backend/app/routers/project_feature_analysis.py:get_feature_run",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/project_feature_analysis.py",
+      "target": "function:web/backend/app/routers/project_feature_analysis.py:cancel_feature_run",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/project_feature_analysis.py",
+      "target": "function:web/backend/app/routers/project_feature_analysis.py:download_feature_excel",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/project_feature_analysis.py",
+      "target": "function:web/backend/app/routers/project_feature_analysis.py:confirm_feature_tree",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/project_feature_analysis.py",
+      "target": "function:web/backend/app/routers/project_feature_analysis.py:list_feature_trees",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/project_feature_analysis.py",
+      "target": "function:web/backend/app/routers/project_feature_analysis.py:get_feature_tree",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/project_feature_analysis.py",
+      "target": "function:web/backend/app/routers/project_feature_analysis.py:export_feature_tree_excel",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/project_feature_analysis.py",
+      "target": "function:web/backend/app/routers/project_feature_analysis.py:update_feature_tree",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/project_feature_analysis.py",
+      "target": "function:web/backend/app/routers/project_feature_analysis.py:delete_feature_tree",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/project_functional.py",
+      "target": "function:web/backend/app/routers/project_functional.py:upload_app_package",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/project_functional.py",
+      "target": "function:web/backend/app/routers/project_functional.py:list_app_packages",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/project_functional.py",
+      "target": "function:web/backend/app/routers/project_functional.py:create_case_set",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/project_functional.py",
+      "target": "function:web/backend/app/routers/project_functional.py:list_case_sets",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/project_functional.py",
+      "target": "function:web/backend/app/routers/project_functional.py:ai_draft_case_set",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/project_functional.py",
+      "target": "function:web/backend/app/routers/project_functional.py:create_functional_dispatch",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/project_functional.py",
+      "target": "function:web/backend/app/routers/project_functional.py:list_functional_dispatches",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/projects.py",
+      "target": "function:web/backend/app/routers/projects.py:list_projects",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/projects.py",
+      "target": "function:web/backend/app/routers/projects.py:create_project",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/projects.py",
+      "target": "function:web/backend/app/routers/projects.py:update_project",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/projects.py",
+      "target": "function:web/backend/app/routers/projects.py:delete_project",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/projects.py",
+      "target": "function:web/backend/app/routers/projects.py:project_task_summary",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/rentals.py",
+      "target": "function:web/backend/app/routers/rentals.py:create_rental_order",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/robot_instances.py",
+      "target": "function:web/backend/app/routers/robot_instances.py:list_my_instances",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/robot_instances.py",
+      "target": "function:web/backend/app/routers/robot_instances.py:get_my_instance",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/robot_instances.py",
+      "target": "function:web/backend/app/routers/robot_instances.py:get_device_screen",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:web/backend/app/routers/robot_instances.py",
+      "target": "function:web/backend/app/routers/robot_instances.py:patch_my_instance",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    }
+  ]
+}
