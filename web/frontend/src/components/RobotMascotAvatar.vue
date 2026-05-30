@@ -2,10 +2,10 @@
   <div class="mascot-wrap" :class="{ 'mascot-wrap--inline': inline }">
     <img
       class="mascot-img"
-      src="/images/digital-robot-mascot.png"
+      src="/images/platform-logo.png"
       :alt="altText"
-      width="400"
-      height="400"
+      width="552"
+      height="162"
       loading="lazy"
       decoding="async"
     />
@@ -43,22 +43,19 @@ const altText = computed(() => {
   border-radius: 14px;
   overflow: hidden;
   border: 1px solid rgb(226 232 240 / 95%);
-  background: linear-gradient(185deg, #ffffff 0%, #f0f7ff 48%, #eef2f7 100%);
   box-shadow: 0 6px 22px rgb(15 23 42 / 6%);
 }
 
 .mascot-img {
   display: block;
   width: 100%;
-  max-height: 168px;
   height: auto;
-  object-fit: contain;
-  object-position: center center;
 }
 
 .mascot-wrap--inline {
-  width: 4.5rem;
-  height: 4.5rem;
+  width: auto;
+  max-width: 8.5rem;
+  height: auto;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -67,10 +64,8 @@ const altText = computed(() => {
 }
 
 .mascot-wrap--inline .mascot-img {
-  width: 100%;
-  max-height: none;
-  height: 100%;
-  object-fit: contain;
-  object-position: center center;
+  width: auto;
+  max-height: 4.5rem;
+  height: auto;
 }
 </style>

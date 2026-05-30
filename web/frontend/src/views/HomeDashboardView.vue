@@ -8,6 +8,9 @@
           以下为当前账号可见范围内的<strong>用例梳理</strong>与<strong>自动化执行数据</strong>摘要；支持数字机器人编排与持续回归。
         </p>
       </div>
+      <div class="hero-brand" aria-hidden="true">
+        <img class="hero-logo" src="/images/platform-logo.png" alt="" width="552" height="162" decoding="async" />
+      </div>
       <div class="hero-actions">
         <router-link class="btn btn-primary glow" :to="{ name: 'cases' }">进入用例管理</router-link>
         <router-link class="btn btn-outline" :to="{ name: 'projects' }">项目空间</router-link>
@@ -235,15 +238,41 @@ onMounted(load);
 .hero {
   padding: 1.5rem 1.75rem;
   margin-bottom: 1.25rem;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    "copy brand"
+    "actions actions";
+  align-items: center;
   gap: 1.25rem;
   background: linear-gradient(135deg, #eff6ff 0%, #ffffff 72%);
   border: 1px solid #e2e8f0;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
+}
+
+.hero-copy {
+  grid-area: copy;
+}
+
+.hero-brand {
+  grid-area: brand;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.hero-logo {
+  display: block;
+  width: min(220px, 100%);
+  height: auto;
+}
+
+.hero-actions {
+  grid-area: actions;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
 }
 
 .eyebrow {
@@ -271,11 +300,18 @@ onMounted(load);
   color: var(--text-secondary);
 }
 
-.hero-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  align-items: center;
+@media (max-width: 640px) {
+  .hero {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "copy"
+      "brand"
+      "actions";
+  }
+
+  .hero-brand {
+    justify-self: start;
+  }
 }
 
 .loading-msg {

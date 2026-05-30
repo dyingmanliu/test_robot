@@ -36,6 +36,12 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     { path: "/", name: "home", component: HomeDashboardView, meta: { requiresAuth: true } },
+    {
+      path: "/test-executions",
+      name: "testExecutions",
+      component: () => import("@/views/TestExecutionsManageView.vue"),
+      meta: { requiresAuth: true },
+    },
     { path: "/cases", name: "cases", component: CasesView, meta: { requiresAuth: true } },
     {
       path: "/runs/:runId/live",

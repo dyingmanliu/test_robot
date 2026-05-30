@@ -10,21 +10,7 @@
       <div class="top-bar">
         <router-link :to="auth.token ? '/' : { name: 'platformIntro' }" class="brand" @click="closeAllDetails">
           <span class="brand-badge" aria-hidden="true">
-            <svg class="brand-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path
-                d="M12 3v1.5M9.5 4.5h5"
-                stroke="currentColor"
-                stroke-width="1.6"
-                stroke-linecap="round"
-              />
-              <circle cx="12" cy="2.25" r="1.1" fill="currentColor" />
-              <rect x="5" y="6" width="14" height="10" rx="2.8" fill="currentColor" />
-              <circle cx="9.25" cy="11" r="1.35" fill="#1d4ed8" />
-              <circle cx="14.75" cy="11" r="1.35" fill="#1d4ed8" />
-              <rect x="4" y="17" width="16" height="5" rx="2" fill="currentColor" />
-              <rect x="2.5" y="9" width="2" height="5" rx="1" fill="currentColor" />
-              <rect x="19.5" y="9" width="2" height="5" rx="1" fill="currentColor" />
-            </svg>
+            <img class="brand-logo" src="/images/platform-logo.png" alt="" width="552" height="162" decoding="async" />
           </span>
           <span class="brand-full">鸿蒙生态智能测试平台</span>
         </router-link>
@@ -37,9 +23,6 @@
 
         <nav v-else class="nav">
           <router-link :to="{ name: 'platformIntro' }" class="nav-link" @click="closeAllDetails">平台介绍</router-link>
-          <router-link to="/" class="nav-link" @click="closeAllDetails">工作台</router-link>
-          <router-link to="/mai-ui" class="nav-link" @click="closeAllDetails">MAI-UI 识图</router-link>
-          <router-link to="/app-explore" class="nav-link" @click="closeAllDetails">功能清单探索</router-link>
 
           <details class="nav-dd" :class="{ 'nav-dd--current': marketplaceMenuActive }" @toggle="onNavDetailsToggle">
             <summary class="nav-dd-trigger">机器人商城</summary>
@@ -50,16 +33,27 @@
             </div>
           </details>
 
-          <details class="nav-dd" :class="{ 'nav-dd--current': projectSpaceMenuActive }" @toggle="onNavDetailsToggle">
-            <summary class="nav-dd-trigger">项目空间</summary>
+          <details class="nav-dd nav-dd--wide" :class="{ 'nav-dd--current': workbenchMenuActive }" @toggle="onNavDetailsToggle">
+            <summary class="nav-dd-trigger">测试工作台</summary>
             <div class="nav-dd-panel">
-              <router-link to="/projects" class="nav-dd-item" @click="closeAllDetails">项目列表</router-link>
-              <router-link :to="{ name: 'cases' }" class="nav-dd-item" @click="closeAllDetails">测试用例</router-link>
+              <router-link to="/projects" class="nav-dd-item" @click="closeAllDetails">项目空间管理</router-link>
+
+              <p class="nav-dd-group">功能完备度管理</p>
+              <router-link to="/mai-ui" class="nav-dd-item nav-dd-item--sub" @click="closeAllDetails">MAI-UI 识图</router-link>
+              <router-link to="/app-explore" class="nav-dd-item nav-dd-item--sub" @click="closeAllDetails">功能清单探索</router-link>
+
+              <p class="nav-dd-group">测试用例管理</p>
+              <router-link :to="{ name: 'cases' }" class="nav-dd-item nav-dd-item--sub" @click="closeAllDetails">测试用例</router-link>
+              <router-link :to="{ name: 'testExecutions' }" class="nav-dd-item nav-dd-item--sub" @click="closeAllDetails">测试执行管理</router-link>
             </div>
           </details>
 
-          <details class="nav-dd" :class="{ 'nav-dd--current': monitorMenuActive }" @toggle="onNavDetailsToggle">
-            <summary class="nav-dd-trigger">运行监控</summary>
+          <details
+            class="nav-dd"
+            :class="{ 'nav-dd--current': adminMenuActive }"
+            @toggle="onNavDetailsToggle"
+          >
+            <summary class="nav-dd-trigger">管理后台</summary>
             <div class="nav-dd-panel">
               <router-link
                 v-if="auth.role === 'platform_admin' || auth.role === 'tse'"
@@ -70,22 +64,13 @@
                 运行监控
               </router-link>
               <router-link to="/dashboard" class="nav-dd-item" @click="closeAllDetails">数据看板</router-link>
-            </div>
-          </details>
-
-          <details
-            v-if="auth.role === 'platform_admin'"
-            class="nav-dd"
-            :class="{ 'nav-dd--current': adminMenuActive }"
-            @toggle="onNavDetailsToggle"
-          >
-            <summary class="nav-dd-trigger">后台管理</summary>
-            <div class="nav-dd-panel">
-              <router-link to="/admin/companies" class="nav-dd-item" @click="closeAllDetails">公司与共享</router-link>
-              <router-link to="/admin/rental-orders" class="nav-dd-item" @click="closeAllDetails">租用审批</router-link>
-              <router-link to="/admin/users" class="nav-dd-item" @click="closeAllDetails">用户与角色</router-link>
-              <router-link to="/knowledge/review" class="nav-dd-item" @click="closeAllDetails">知识库审核</router-link>
-              <router-link to="/admin/robot-instances" class="nav-dd-item" @click="closeAllDetails">机器人实例</router-link>
+              <template v-if="auth.role === 'platform_admin'">
+                <router-link to="/admin/companies" class="nav-dd-item" @click="closeAllDetails">公司与共享</router-link>
+                <router-link to="/admin/rental-orders" class="nav-dd-item" @click="closeAllDetails">租用审批</router-link>
+                <router-link to="/admin/users" class="nav-dd-item" @click="closeAllDetails">用户与角色</router-link>
+                <router-link to="/knowledge/review" class="nav-dd-item" @click="closeAllDetails">知识库审核</router-link>
+                <router-link to="/admin/robot-instances" class="nav-dd-item" @click="closeAllDetails">机器人实例</router-link>
+              </template>
             </div>
           </details>
 
@@ -173,20 +158,27 @@ const showGlobalRunBanner = computed(() => {
 });
 
 /** 子路由命中时高亮对应下拉分组标题 */
-const projectSpaceMenuActive = computed(
-  () => route.path.startsWith("/projects") || route.path === "/cases",
-);
+const workbenchMenuActive = computed(() => {
+  const p = route.path;
+  if (p === "/" || p === "/cases" || p === "/mai-ui" || p === "/app-explore" || p === "/test-executions") {
+    return true;
+  }
+  if (p.startsWith("/projects") || p.startsWith("/runs/")) return true;
+  return false;
+});
 const marketplaceMenuActive = computed(
   () =>
     route.path === "/marketplace" ||
     route.path.startsWith("/my-robots") ||
-    route.path === "/my-rental-applications",
-);
-const monitorMenuActive = computed(
-  () => route.path === "/monitor" || route.path === "/dashboard",
+    route.path === "/my-rental-applications" ||
+    route.path === "/payment",
 );
 const adminMenuActive = computed(
-  () => route.path.startsWith("/admin") || route.path === "/knowledge/review",
+  () =>
+    route.path.startsWith("/admin") ||
+    route.path === "/knowledge/review" ||
+    route.path === "/monitor" ||
+    route.path === "/dashboard",
 );
 
 /** 路由变化时收起下拉，避免上一页展开的菜单残留 */
@@ -327,20 +319,13 @@ function closeAllDetails() {
 
 .brand-badge {
   flex-shrink: 0;
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 11px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  color: #fff;
-  background: linear-gradient(145deg, #3b82f6 0%, #1d4ed8 55%, #1e3a8a 100%);
-  box-shadow: 0 2px 10px rgb(37 99 235 / 28%);
 }
 
-.brand-icon {
-  width: 1.45rem;
-  height: 1.45rem;
+.brand-logo {
+  height: 2.5rem;
+  width: auto;
   display: block;
 }
 
@@ -442,6 +427,29 @@ function closeAllDetails() {
   border-radius: 10px;
   box-shadow: 0 12px 32px rgb(15 23 42 / 12%);
   z-index: 80;
+}
+
+.nav-dd--wide .nav-dd-panel {
+  min-width: 12.5rem;
+}
+
+.nav-dd-group {
+  margin: 0.45rem 0.35rem 0.2rem;
+  padding: 0.35rem 0.35rem 0.15rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  border-top: 1px solid #e2e8f0;
+}
+
+.nav-dd-group:first-of-type {
+  border-top: none;
+  margin-top: 0.25rem;
+}
+
+.nav-dd-item--sub {
+  padding-left: 1.15rem;
 }
 
 .nav-dd-item {
